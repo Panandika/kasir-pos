@@ -17,17 +17,18 @@ namespace Kasir.Data.Repositories
         {
             SqlHelper.ExecuteNonQuery(_db,
                 @"INSERT INTO payables_register (sub_code, journal_no, doc_date, due_date,
-                  direction, gross_amount, amount, payment_amount, is_paid, control,
+                  account_code, direction, gross_amount, value, payment_amount, is_paid, control,
                   period_code, changed_by, changed_at)
-                  VALUES (@sub, @jnl, @date, @due, @dir, @gross, @amount, @paid, 'N', @control,
+                  VALUES (@sub, @jnl, @date, @due, @acc, @dir, @gross, @value, @paid, 'N', @control,
                   @period, @changedBy, datetime('now','localtime'))",
                 SqlHelper.Param("@sub", entry.SubCode),
                 SqlHelper.Param("@jnl", entry.JournalNo),
                 SqlHelper.Param("@date", entry.DocDate),
                 SqlHelper.Param("@due", entry.DueDate ?? ""),
+                SqlHelper.Param("@acc", ""),
                 SqlHelper.Param("@dir", entry.Direction ?? "D"),
                 SqlHelper.Param("@gross", entry.GrossAmount),
-                SqlHelper.Param("@amount", entry.Amount),
+                SqlHelper.Param("@value", entry.Amount),
                 SqlHelper.Param("@paid", entry.PaymentAmount),
                 SqlHelper.Param("@control", entry.Control),
                 SqlHelper.Param("@period", entry.PeriodCode),
@@ -55,7 +56,7 @@ namespace Kasir.Data.Repositories
         public long GetTotalUnpaidByVendor(string vendorCode)
         {
             return SqlHelper.ExecuteScalar<long>(_db,
-                @"SELECT COALESCE(SUM(amount - payment_amount), 0) FROM payables_register
+                @"SELECT COALESCE(SUM(value - payment_amount), 0) FROM payables_register
                   WHERE sub_code = @sub AND is_paid = 'N' AND control != 3",
                 SqlHelper.Param("@sub", vendorCode));
         }
@@ -64,7 +65,7 @@ namespace Kasir.Data.Repositories
         {
             SqlHelper.ExecuteNonQuery(_db,
                 @"UPDATE payables_register SET payment_amount = payment_amount + @paid,
-                  is_paid = CASE WHEN payment_amount + @paid >= amount THEN 'Y' ELSE 'N' END,
+                  is_paid = CASE WHEN payment_amount + @paid >= value THEN 'Y' ELSE 'N' END,
                   changed_at = datetime('now','localtime')
                   WHERE journal_no = @jnl",
                 SqlHelper.Param("@paid", paymentAmount),
@@ -82,7 +83,7 @@ namespace Kasir.Data.Repositories
                 DueDate = SqlHelper.GetString(r, "due_date"),
                 Direction = SqlHelper.GetString(r, "direction"),
                 GrossAmount = SqlHelper.GetLong(r, "gross_amount"),
-                Amount = SqlHelper.GetLong(r, "amount"),
+                Amount = SqlHelper.GetLong(r, "value"),
                 PaymentAmount = SqlHelper.GetLong(r, "payment_amount"),
                 IsPaid = SqlHelper.GetString(r, "is_paid"),
                 Control = SqlHelper.GetInt(r, "control"),
