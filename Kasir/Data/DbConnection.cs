@@ -172,6 +172,19 @@ namespace Kasir.Data
                         ('sync_role', 'hub', 'Sync role: hub or slave'),
                         ('sync_hub_share', '\\\\KASIR01\\kasir\\sync', 'UNC path to sync share');";
                     cmd.ExecuteNonQuery();
+
+                    // Seed counter prefixes to avoid race on first use
+                    cmd.CommandText = @"
+                        INSERT OR IGNORE INTO counters (prefix, register_id, current_value, format) VALUES
+                        ('KLR', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('OMS', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('BPB', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('MSK', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('RMS', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('TRM', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('OPN', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('OTM', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}');";
+                    cmd.ExecuteNonQuery();
                 }
 
                 txn.Commit();
