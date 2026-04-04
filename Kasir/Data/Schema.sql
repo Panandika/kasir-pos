@@ -1730,3 +1730,21 @@ SELECT
 FROM payables_register pr
 LEFT JOIN subsidiaries s ON s.sub_code = pr.sub_code
 WHERE pr.is_paid = 'N' AND pr.control != 3;
+
+-- ============================================================
+-- Section 8: Shift Management (added in Phase 2)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS shifts (
+    id              INTEGER PRIMARY KEY,
+    register_id     TEXT    NOT NULL,
+    shift_number    TEXT    NOT NULL DEFAULT '1',
+    cashier_id      INTEGER NOT NULL,
+    opened_at       TEXT    NOT NULL,
+    closed_at       TEXT,
+    opening_cash    INTEGER NOT NULL DEFAULT 0,
+    closing_cash    INTEGER,
+    expected_cash   INTEGER,
+    status          TEXT    NOT NULL DEFAULT 'O' CHECK(status IN ('O','C')),
+    UNIQUE(register_id, shift_number, opened_at)
+);

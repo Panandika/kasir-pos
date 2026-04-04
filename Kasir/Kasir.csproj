@@ -59,6 +59,10 @@
     <Compile Include="Data\Repositories\SyncQueueRepository.cs" />
     <Compile Include="Data\Repositories\ProductRepository.cs" />
     <Compile Include="Data\Repositories\ProductBarcodeRepository.cs" />
+    <Compile Include="Data\Repositories\CreditCardRepository.cs" />
+    <Compile Include="Data\Repositories\ShiftRepository.cs" />
+    <Compile Include="Data\Repositories\DiscountRepository.cs" />
+    <Compile Include="Data\Repositories\MemberRepository.cs" />
     <Compile Include="Models\User.cs" />
     <Compile Include="Models\Role.cs" />
     <Compile Include="Models\Department.cs" />
@@ -66,6 +70,9 @@
     <Compile Include="Models\Counter.cs" />
     <Compile Include="Models\SyncQueueEntry.cs" />
     <Compile Include="Models\Product.cs" />
+    <Compile Include="Models\CreditCard.cs" />
+    <Compile Include="Models\Shift.cs" />
+    <Compile Include="Models\Member.cs" />
     <Compile Include="Models\ProductBarcode.cs" />
     <Compile Include="Models\Discount.cs" />
     <Compile Include="Services\PricingEngine.cs" />
