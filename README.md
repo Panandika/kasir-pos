@@ -8,6 +8,8 @@
 
 A full-featured Point of Sale system built to replace a **30-year-old FoxPro/Harbour retail system** running on Windows 7 register hardware. Handles 24,000+ products, 750+ vendors, 80,000+ AP records, and 3 registers with offline-first sync.
 
+<video src="docs/kasir-showcase.mp4" width="100%" autoplay muted loop></video>
+
 ## Why This Exists
 
 RASIO POS has been running a single retail store in Indonesia since the mid-1990s. The original system was written in FoxPro 2.6, later modernized to Harbour 3.0 (266 compiled modules, 3.7MB executable). After 30 years, the platform risks became critical:
