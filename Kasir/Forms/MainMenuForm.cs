@@ -107,7 +107,7 @@ namespace Kasir.Forms
             AddMenuItem(reportMenu, "Pembelian", "reports.purchase", OnStubClick);
             AddMenuItem(reportMenu, "Hutang", "reports.purchase", OnStubClick);
             AddMenuItem(reportMenu, "Retur Pembelian", "reports.purchase", OnStubClick);
-            AddMenuItem(reportMenu, "Penjualan", "reports.sales", OnStubClick);
+            AddMenuItem(reportMenu, "Penjualan", "reports.sales", OnSalesReportClick);
             AddMenuItem(reportMenu, "Laba", "reports.sales", OnStubClick);
             AddMenuItem(reportMenu, "Transfer", "reports.stock", OnStubClick);
             AddMenuItem(reportMenu, "Pemakaian/Rusak/Hilang", "reports.stock", OnStubClick);
@@ -197,6 +197,11 @@ namespace Kasir.Forms
         private void OnCreditCardClick(object sender, EventArgs e)
         {
             ShowChildForm(new Master.CreditCardForm());
+        }
+
+        private void OnSalesReportClick(object sender, EventArgs e)
+        {
+            ShowChildForm(new Reports.SalesReportForm());
         }
 
         private void OnPenjualanClick(object sender, EventArgs e)

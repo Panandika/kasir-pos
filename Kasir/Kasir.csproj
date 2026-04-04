@@ -46,6 +46,7 @@
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
@@ -105,6 +106,8 @@
     <Compile Include="Forms\Master\ProductForm.cs" />
     <Compile Include="Forms\Master\CreditCardForm.cs" />
     <Compile Include="Services\ReceiptBuilder.cs" />
+    <Compile Include="Forms\Reports\SalesReportForm.cs" />
+    <Compile Include="Utils\ExcelExporter.cs" />
     <Compile Include="Data\Repositories\SubsidiaryRepository.cs" />
     <Compile Include="Sync\ISyncFileWriter.cs" />
     <Compile Include="Sync\ISyncFileReader.cs" />
