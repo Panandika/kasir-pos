@@ -31,7 +31,7 @@ namespace Kasir.Tests.Services
             var result = _engine.ResolveDiscount(
                 _product, "2026-04-04",
                 new List<Discount>(),
-                0, 0, 0, 0);
+                0, 0, null, null);
 
             result.Source.Should().Be("none");
             result.DiscPct.Should().Be(0);
@@ -45,7 +45,7 @@ namespace Kasir.Tests.Services
             var result = _engine.ResolveDiscount(
                 _product, "2026-04-04",
                 new List<Discount>(),
-                0, 0, 0, 0);
+                0, 0, null, null);
 
             result.DiscPct.Should().Be(500);
             result.Source.Should().Be("product");
@@ -71,7 +71,7 @@ namespace Kasir.Tests.Services
             var result = _engine.ResolveDiscount(
                 _product, "2026-04-04",
                 discounts,
-                0, 0, 0, 0);
+                0, 0, null, null);
 
             result.DiscPct.Should().Be(1000);
             result.Source.Should().Be("discounts_table");
@@ -97,7 +97,7 @@ namespace Kasir.Tests.Services
             var result = _engine.ResolveDiscount(
                 _product, "2026-04-04",
                 discounts,
-                0, 0, 0, 0);
+                0, 0, null, null);
 
             result.DiscPct.Should().Be(500, "expired discount falls back to product disc");
             result.Source.Should().Be("product");
