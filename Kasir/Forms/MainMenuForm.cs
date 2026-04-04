@@ -82,8 +82,8 @@ namespace Kasir.Forms
             var masterMenu = new ToolStripMenuItem("&Master");
             AddMenuItem(masterMenu, "Departemen", "master.department", OnDepartmentClick);
             AddMenuItem(masterMenu, "Supplier", "master.supplier", OnStubClick);
-            AddMenuItem(masterMenu, "Barang", "master.product", OnStubClick);
-            AddMenuItem(masterMenu, "Credit Card", "master.credit_card", OnStubClick);
+            AddMenuItem(masterMenu, "Barang", "master.product", OnProductClick);
+            AddMenuItem(masterMenu, "Credit Card", "master.credit_card", OnCreditCardClick);
             AddMenuItem(masterMenu, "Ganti Harga Jual", "master.price_change", OnStubClick);
             AddMenuItem(masterMenu, "Stok Opname", "master.stock_opname", OnStubClick);
 
@@ -187,6 +187,16 @@ namespace Kasir.Forms
             this.Hide();
             childForm.FormClosed += (s, ev) => this.Show();
             childForm.Show();
+        }
+
+        private void OnProductClick(object sender, EventArgs e)
+        {
+            ShowChildForm(new Master.ProductForm());
+        }
+
+        private void OnCreditCardClick(object sender, EventArgs e)
+        {
+            ShowChildForm(new Master.CreditCardForm());
         }
 
         private void OnPenjualanClick(object sender, EventArgs e)

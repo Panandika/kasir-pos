@@ -102,6 +102,10 @@
     <Compile Include="Forms\POS\SaleForm.cs" />
     <Compile Include="Forms\POS\PaymentForm.cs" />
     <Compile Include="Forms\POS\ShiftForm.cs" />
+    <Compile Include="Forms\Master\ProductForm.cs" />
+    <Compile Include="Forms\Master\CreditCardForm.cs" />
+    <Compile Include="Services\ReceiptBuilder.cs" />
+    <Compile Include="Data\Repositories\SubsidiaryRepository.cs" />
     <Compile Include="Sync\ISyncFileWriter.cs" />
     <Compile Include="Sync\ISyncFileReader.cs" />
     <Compile Include="Sync\SyncConfig.cs" />
