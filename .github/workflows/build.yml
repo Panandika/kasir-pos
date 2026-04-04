@@ -22,27 +22,6 @@ jobs:
     - name: Build solution
       run: msbuild Kasir.sln /p:Configuration=Release /p:Platform=x86 /p:TreatWarningsAsErrors=true
 
-    - name: Copy native SQLite DLL to test output
-      shell: pwsh
-      run: |
-        $nativeDir = Get-ChildItem -Path "$env:USERPROFILE\.nuget\packages\system.data.sqlite\2.0.3" -Recurse -Filter "e_sqlite3.dll" | Where-Object { $_.DirectoryName -match "win-x86" -or $_.DirectoryName -match "x86" } | Select-Object -First 1
-        if ($nativeDir) {
-          Copy-Item $nativeDir.FullName -Destination "Kasir.Tests\bin\Release\" -Force
-          Copy-Item $nativeDir.FullName -Destination "Kasir\bin\Release\" -Force
-          Write-Host "Copied e_sqlite3.dll from: $($nativeDir.FullName)"
-        } else {
-          # Try finding it in runtimes folder
-          $runtimeDir = Get-ChildItem -Path "$env:USERPROFILE\.nuget\packages" -Recurse -Filter "e_sqlite3.dll" | Select-Object -First 1
-          if ($runtimeDir) {
-            Copy-Item $runtimeDir.FullName -Destination "Kasir.Tests\bin\Release\" -Force
-            Copy-Item $runtimeDir.FullName -Destination "Kasir\bin\Release\" -Force
-            Write-Host "Copied e_sqlite3.dll from: $($runtimeDir.FullName)"
-          } else {
-            Write-Host "WARNING: e_sqlite3.dll not found in NuGet cache"
-            Get-ChildItem -Path "$env:USERPROFILE\.nuget\packages\system.data.sqlite" -Recurse -Filter "*.dll" | ForEach-Object { Write-Host $_.FullName }
-          }
-        }
-
     - name: Setup VSTest
       uses: darenm/Setup-VSTest@v1.3
 
