@@ -71,6 +71,10 @@
     <Compile Include="Services\PricingEngine.cs" />
     <Compile Include="Services\DiscountEngine.cs" />
     <Compile Include="Services\PaymentCalculator.cs" />
+    <Compile Include="Services\SalesService.cs" />
+    <Compile Include="Models\Sale.cs" />
+    <Compile Include="Models\SaleItem.cs" />
+    <Compile Include="Data\Repositories\SaleRepository.cs" />
     <Compile Include="Hardware\IReceiptPrinter.cs" />
     <Compile Include="Hardware\ICashDrawer.cs" />
     <Compile Include="Hardware\RawPrinterHelper.cs" />
