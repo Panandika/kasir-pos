@@ -67,6 +67,7 @@
     <Compile Include="Services\PaymentCalculatorTests.cs" />
     <Compile Include="Services\SalesServiceTests.cs" />
     <Compile Include="Services\ReceiptBuilderTests.cs" />
+    <Compile Include="Services\InventoryServiceTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

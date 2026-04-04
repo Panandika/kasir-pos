@@ -90,6 +90,8 @@
     <Compile Include="Data\Repositories\LocationRepository.cs" />
     <Compile Include="Data\Repositories\PriceHistoryRepository.cs" />
     <Compile Include="Services\PriceChangeService.cs" />
+    <Compile Include="Services\InventoryService.cs" />
+    <Compile Include="Data\Repositories\StockMovementRepository.cs" />
     <Compile Include="Forms\Master\VendorForm.cs" />
     <Compile Include="Forms\Master\PriceChangeForm.cs" />
     <Compile Include="Services\PricingEngine.cs" />

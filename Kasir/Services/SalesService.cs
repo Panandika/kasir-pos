@@ -18,6 +18,7 @@ namespace Kasir.Services
         private readonly PricingEngine _pricingEngine;
         private readonly DiscountEngine _discountEngine;
         private readonly PaymentCalculator _paymentCalc;
+        private readonly InventoryService _inventoryService;
         private readonly IClock _clock;
 
         private readonly List<SaleItem> _currentItems;
@@ -36,6 +37,7 @@ namespace Kasir.Services
             _pricingEngine = new PricingEngine();
             _discountEngine = new DiscountEngine();
             _paymentCalc = new PaymentCalculator();
+            _inventoryService = new InventoryService(db);
             _clock = clock;
             _currentItems = new List<SaleItem>();
             _currentShift = "1";
@@ -230,6 +232,20 @@ namespace Kasir.Services
             };
 
             _saleRepo.Insert(sale, _currentItems);
+
+            // Create stock movements for each sold item
+            foreach (var item in _currentItems)
+            {
+                int costPrice = _inventoryService.CalculateAverageCost(item.ProductCode);
+                _inventoryService.RecordStockOut(
+                    item.ProductCode,
+                    item.Quantity,
+                    costPrice,
+                    "SALE",
+                    journalNo,
+                    today,
+                    _cashierUserId);
+            }
 
             return sale;
         }
