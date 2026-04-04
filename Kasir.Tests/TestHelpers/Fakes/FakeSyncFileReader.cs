@@ -17,8 +17,10 @@ namespace Kasir.Tests.TestHelpers.Fakes
 
         public string[] ListFiles(string directory, string pattern)
         {
+            // Normalize: ensure directory ends with separator for prefix matching
+            string prefix = directory.TrimEnd('\\', '/');
             return Files.Keys
-                .Where(f => f.StartsWith(directory))
+                .Where(f => f.StartsWith(prefix + "\\") || f.StartsWith(prefix + "/"))
                 .OrderBy(f => f)
                 .ToArray();
         }
