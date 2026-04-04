@@ -213,7 +213,7 @@ namespace Kasir.Sync
 
         private static string SerializeBatch(SyncBatch batch)
         {
-            return JsonConvert.SerializeObject(batch, Formatting.None);
+            return JsonConvert.SerializeObject(batch, Newtonsoft.Json.Formatting.None);
         }
     }
 
