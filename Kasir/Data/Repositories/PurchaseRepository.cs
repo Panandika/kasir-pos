@@ -21,11 +21,11 @@ namespace Kasir.Data.Repositories
                 {
                     SqlHelper.ExecuteNonQuery(_db,
                         @"INSERT INTO purchases (doc_type, journal_no, doc_date, account_code, sub_code,
-                          ref_no, remark, warehouse, disc_pct, disc2_pct, vat_flag, gross_amount,
-                          total_disc, vat_amount, total_value, due_date, terms, control,
+                          ref_no, remark, warehouse, disc_pct, disc2, vat_flag, gross_amount,
+                          total_disc, vat_amount, total_value, due_date, control,
                           period_code, register_id, changed_by, changed_at)
                           VALUES (@type, @jnl, @date, @acc, @sub, @ref, @remark, @wh, @disc, @disc2,
-                          @vat, @gross, @totalDisc, @vatAmt, @total, @due, @terms, @control,
+                          @vat, @gross, @totalDisc, @vatAmt, @total, @due, @control,
                           @period, @reg, @changedBy, datetime('now','localtime'))",
                         SqlHelper.Param("@type", purchase.DocType),
                         SqlHelper.Param("@jnl", purchase.JournalNo),
@@ -43,7 +43,6 @@ namespace Kasir.Data.Repositories
                         SqlHelper.Param("@vatAmt", purchase.VatAmount),
                         SqlHelper.Param("@total", purchase.TotalValue),
                         SqlHelper.Param("@due", purchase.DueDate ?? ""),
-                        SqlHelper.Param("@terms", purchase.Terms),
                         SqlHelper.Param("@control", purchase.Control),
                         SqlHelper.Param("@period", purchase.PeriodCode),
                         SqlHelper.Param("@reg", purchase.RegisterId ?? "01"),
@@ -53,8 +52,8 @@ namespace Kasir.Data.Repositories
                     {
                         SqlHelper.ExecuteNonQuery(_db,
                             @"INSERT INTO purchase_items (journal_no, product_code, remark, quantity,
-                              value, unit_price, disc_pct, disc_value, unit)
-                              VALUES (@jnl, @product, @remark, @qty, @val, @price, @disc, @discVal, @unit)",
+                              value, unit_price, disc_pct, disc_value)
+                              VALUES (@jnl, @product, @remark, @qty, @val, @price, @disc, @discVal)",
                             SqlHelper.Param("@jnl", purchase.JournalNo),
                             SqlHelper.Param("@product", item.ProductCode),
                             SqlHelper.Param("@remark", item.Remark ?? ""),
@@ -62,8 +61,7 @@ namespace Kasir.Data.Repositories
                             SqlHelper.Param("@val", item.Value),
                             SqlHelper.Param("@price", item.UnitPrice),
                             SqlHelper.Param("@disc", item.DiscPct),
-                            SqlHelper.Param("@discVal", item.DiscValue),
-                            SqlHelper.Param("@unit", item.Unit ?? ""));
+                            SqlHelper.Param("@discVal", item.DiscValue));
                     }
 
                     txn.Commit();

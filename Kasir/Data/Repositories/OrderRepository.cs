@@ -21,38 +21,34 @@ namespace Kasir.Data.Repositories
                 {
                     SqlHelper.ExecuteNonQuery(_db,
                         @"INSERT INTO orders (doc_type, journal_no, doc_date, account_code, sub_code,
-                          ref_no, remark, warehouse, disc_pct, total_value, due_date, control,
-                          period_code, register_id, changed_by, changed_at)
-                          VALUES (@type, @jnl, @date, @acc, @sub, @ref, @remark, @wh, @disc,
-                          @total, @due, @control, @period, @reg, @changedBy, datetime('now','localtime'))",
+                          remark, disc_pct, total_value, due_date, control,
+                          period_code, changed_by, changed_at)
+                          VALUES (@type, @jnl, @date, @acc, @sub, @remark, @disc,
+                          @total, @due, @control, @period, @changedBy, datetime('now','localtime'))",
                         SqlHelper.Param("@type", order.DocType ?? "PURCHASE_ORDER"),
                         SqlHelper.Param("@jnl", order.JournalNo),
                         SqlHelper.Param("@date", order.DocDate),
                         SqlHelper.Param("@acc", order.AccountCode ?? ""),
                         SqlHelper.Param("@sub", order.SubCode ?? ""),
-                        SqlHelper.Param("@ref", order.RefNo ?? ""),
                         SqlHelper.Param("@remark", order.Remark ?? ""),
-                        SqlHelper.Param("@wh", order.Warehouse ?? ""),
                         SqlHelper.Param("@disc", order.DiscPct),
                         SqlHelper.Param("@total", order.TotalValue),
                         SqlHelper.Param("@due", order.DueDate ?? ""),
                         SqlHelper.Param("@control", order.Control),
                         SqlHelper.Param("@period", order.PeriodCode),
-                        SqlHelper.Param("@reg", order.RegisterId ?? "01"),
                         SqlHelper.Param("@changedBy", order.ChangedBy));
 
                     foreach (var item in items)
                     {
                         SqlHelper.ExecuteNonQuery(_db,
-                            @"INSERT INTO order_items (journal_no, product_code, remark, quantity, value, unit_price, unit)
-                              VALUES (@jnl, @product, @remark, @qty, @val, @price, @unit)",
+                            @"INSERT INTO order_items (journal_no, product_code, remark, quantity, value, unit_price)
+                              VALUES (@jnl, @product, @remark, @qty, @val, @price)",
                             SqlHelper.Param("@jnl", order.JournalNo),
                             SqlHelper.Param("@product", item.ProductCode),
                             SqlHelper.Param("@remark", item.Remark ?? ""),
                             SqlHelper.Param("@qty", item.Quantity),
                             SqlHelper.Param("@val", item.Value),
-                            SqlHelper.Param("@price", item.UnitPrice),
-                            SqlHelper.Param("@unit", item.Unit ?? ""));
+                            SqlHelper.Param("@price", item.UnitPrice));
                     }
 
                     txn.Commit();
