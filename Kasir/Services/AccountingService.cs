@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 

@@ -76,7 +76,7 @@ namespace Kasir.Forms.Bank
             var dialog = new InputDialog("Tambah Bank", new[]
             {
                 "Kode Bank", "Nama Bank", "No. Rekening", "Cabang", "Atas Nama"
-            });
+            }, new[] { "", "", "", "", "" });
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {

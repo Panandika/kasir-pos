@@ -123,7 +123,7 @@ namespace Kasir.Forms.Accounting
             var dialog = new InputDialog("Tambah Perkiraan", new[]
             {
                 "Kode Perkiraan", "Nama", "Induk (kosong=root)", "Grup (1-5)", "D/K"
-            });
+            }, new[] { "", "", "", "", "D" });
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
