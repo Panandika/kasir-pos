@@ -106,10 +106,10 @@ namespace Kasir.Tests.Services
         }
 
         // Loyalty points tests
-        [TestCase(1000000L, 10, Description = "Rp 10,000 = 10 stickers")]
-        [TestCase(500000L, 5, Description = "Rp 5,000 = 5 stickers")]
-        [TestCase(999900L, 9, Description = "Rp 9,999 = 9 stickers (floor)")]
-        [TestCase(50000L, 0, Description = "Rp 500 = 0 stickers")]
+        [TestCase(1000000L, 1, Description = "Rp 10,000 = 1 sticker")]
+        [TestCase(5000000L, 5, Description = "Rp 50,000 = 5 stickers")]
+        [TestCase(9999900L, 9, Description = "Rp 99,999 = 9 stickers (floor)")]
+        [TestCase(500000L, 0, Description = "Rp 5,000 = 0 stickers (below threshold)")]
         [TestCase(0L, 0, Description = "Rp 0 = 0 stickers")]
         public void CalculateLoyaltyPoints_Correct(long totalCents, int expectedPoints)
         {
