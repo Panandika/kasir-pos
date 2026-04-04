@@ -58,6 +58,13 @@
     <Compile Include="Models\SyncQueueEntry.cs" />
     <Compile Include="Hardware\IReceiptPrinter.cs" />
     <Compile Include="Hardware\ICashDrawer.cs" />
+    <Compile Include="Hardware\RawPrinterHelper.cs" />
+    <Compile Include="Hardware\EscPosCommands.cs" />
+    <Compile Include="Hardware\ReceiptPrinter.cs" />
+    <Compile Include="Hardware\CashDrawer.cs" />
+    <Compile Include="Hardware\BarcodeScanner.cs" />
+    <Compile Include="Auth\AuthService.cs" />
+    <Compile Include="Auth\PermissionService.cs" />
     <Compile Include="Sync\ISyncFileWriter.cs" />
     <Compile Include="Sync\ISyncFileReader.cs" />
     <Compile Include="Utils\IClock.cs" />
