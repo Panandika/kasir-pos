@@ -161,26 +161,29 @@ namespace Kasir.Forms
 
         private void OnDepartmentClick(object sender, EventArgs e)
         {
-            // Will be wired to DepartmentForm in Chunk E
-            MessageBox.Show("Department form will be added in Chunk E.", "Coming Soon");
+            ShowChildForm(new Master.DepartmentForm());
         }
 
         private void OnUserManagementClick(object sender, EventArgs e)
         {
-            // Will be wired to UserForm in Chunk E
-            MessageBox.Show("User Management will be added in Chunk E.", "Coming Soon");
+            ShowChildForm(new Admin.UserForm());
         }
 
         private void OnPrinterConfigClick(object sender, EventArgs e)
         {
-            // Will be wired to PrinterConfigForm in Chunk E
-            MessageBox.Show("Printer Config will be added in Chunk E.", "Coming Soon");
+            ShowChildForm(new Admin.PrinterConfigForm());
         }
 
         private void OnBackupClick(object sender, EventArgs e)
         {
-            // Will be wired to BackupForm in Chunk E
-            MessageBox.Show("Backup will be added in Chunk E.", "Coming Soon");
+            ShowChildForm(new Admin.BackupForm());
+        }
+
+        private void ShowChildForm(Form childForm)
+        {
+            this.Hide();
+            childForm.FormClosed += (s, ev) => this.Show();
+            childForm.Show();
         }
 
         private void OnStubClick(object sender, EventArgs e)

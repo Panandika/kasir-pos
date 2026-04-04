@@ -47,6 +47,7 @@
     <Compile Include="Data\CounterRepositoryTests.cs" />
     <Compile Include="Auth\AuthServiceTests.cs" />
     <Compile Include="Auth\PermissionServiceTests.cs" />
+    <Compile Include="Data\DepartmentRepositoryTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

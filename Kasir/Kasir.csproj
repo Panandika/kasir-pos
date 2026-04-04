@@ -69,6 +69,11 @@
     <Compile Include="Forms\BaseForm.cs" />
     <Compile Include="Forms\LoginForm.cs" />
     <Compile Include="Forms\MainMenuForm.cs" />
+    <Compile Include="Forms\Shared\InputDialog.cs" />
+    <Compile Include="Forms\Admin\UserForm.cs" />
+    <Compile Include="Forms\Admin\PrinterConfigForm.cs" />
+    <Compile Include="Forms\Admin\BackupForm.cs" />
+    <Compile Include="Forms\Master\DepartmentForm.cs" />
     <Compile Include="Sync\ISyncFileWriter.cs" />
     <Compile Include="Sync\ISyncFileReader.cs" />
     <Compile Include="Utils\IClock.cs" />
