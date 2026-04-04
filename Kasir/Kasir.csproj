@@ -67,6 +67,10 @@
     <Compile Include="Models\SyncQueueEntry.cs" />
     <Compile Include="Models\Product.cs" />
     <Compile Include="Models\ProductBarcode.cs" />
+    <Compile Include="Models\Discount.cs" />
+    <Compile Include="Services\PricingEngine.cs" />
+    <Compile Include="Services\DiscountEngine.cs" />
+    <Compile Include="Services\PaymentCalculator.cs" />
     <Compile Include="Hardware\IReceiptPrinter.cs" />
     <Compile Include="Hardware\ICashDrawer.cs" />
     <Compile Include="Hardware\RawPrinterHelper.cs" />
