@@ -186,10 +186,6 @@
     <Compile Include="Utils\Formatting.cs" />
     <Compile Include="Utils\Validators.cs" />
     <Compile Include="Utils\Numbering.cs" />
-    <Compile Include="Migration\FieldMappings.cs" />
-    <Compile Include="Migration\MigrationTransforms.cs" />
-    <Compile Include="Migration\MigrationResult.cs" />
-    <Compile Include="Migration\DbfMigrator.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Data\Schema.sql" />

@@ -72,7 +72,6 @@
     <Compile Include="Services\AccountingServiceTests.cs" />
     <Compile Include="Services\PostingServiceTests.cs" />
     <Compile Include="Services\PayablesServiceTests.cs" />
-    <Compile Include="Migration\MigrationTransformTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
