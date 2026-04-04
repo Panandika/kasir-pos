@@ -85,31 +85,30 @@ namespace Kasir.Forms
             AddMenuItem(masterMenu, "Barang", "master.product", OnProductClick);
             AddMenuItem(masterMenu, "Credit Card", "master.credit_card", OnCreditCardClick);
             AddMenuItem(masterMenu, "Ganti Harga Jual", "master.price_change", OnPriceChangeClick);
-            AddMenuItem(masterMenu, "Stok Opname", "master.stock_opname", OnStubClick);
+            AddMenuItem(masterMenu, "Stok Opname", "master.stock_opname", (s, e) => ShowChildForm(new Inventory.OpnameForm()));
 
             // Transaksi menu
             var transMenu = new ToolStripMenuItem("&Transaksi");
-            AddMenuItem(transMenu, "Pemesanan/Order", "transaction.purchase", OnStubClick);
-            AddMenuItem(transMenu, "Pembelian", "transaction.purchase", OnStubClick);
+            AddMenuItem(transMenu, "Pemesanan/Order", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.PurchaseOrderForm()));
+            AddMenuItem(transMenu, "Penerimaan Barang", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.GoodsReceiptForm()));
+            AddMenuItem(transMenu, "Nota Pembelian", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.PurchaseInvoiceForm()));
             AddMenuItem(transMenu, "Hutang", "transaction.purchase", OnStubClick);
             transMenu.DropDownItems.Add(new ToolStripSeparator());
-            AddMenuItem(transMenu, "Retur Faktur Pembelian", "transaction.return", OnStubClick);
-            AddMenuItem(transMenu, "Retur Tanpa Faktur", "transaction.return", OnStubClick);
-            AddMenuItem(transMenu, "Pemakaian/Rusak/Hilang", "transaction.stock_out", OnStubClick);
+            AddMenuItem(transMenu, "Retur Pembelian", "transaction.return", (s, e) => ShowChildForm(new Purchasing.ReturnForm()));
+            AddMenuItem(transMenu, "Pemakaian/Rusak/Hilang", "transaction.stock_out", (s, e) => ShowChildForm(new Inventory.StockOutForm()));
             transMenu.DropDownItems.Add(new ToolStripSeparator());
             AddMenuItem(transMenu, "Penjualan", "transaction.sales", OnPenjualanClick);
-            AddMenuItem(transMenu, "Transfer", "transaction.transfer", OnStubClick);
+            AddMenuItem(transMenu, "Transfer", "transaction.transfer", (s, e) => ShowChildForm(new Inventory.TransferForm()));
 
             // Laporan menu
             var reportMenu = new ToolStripMenuItem("&Laporan");
             AddMenuItem(reportMenu, "Cetak Master (Barang)", "reports.master", OnStubClick);
             AddMenuItem(reportMenu, "Cetak Master (Supplier)", "reports.master", OnStubClick);
-            AddMenuItem(reportMenu, "Pembelian", "reports.purchase", OnStubClick);
+            AddMenuItem(reportMenu, "Pembelian/Stok", "reports.purchase", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
             AddMenuItem(reportMenu, "Hutang", "reports.purchase", OnStubClick);
-            AddMenuItem(reportMenu, "Retur Pembelian", "reports.purchase", OnStubClick);
             AddMenuItem(reportMenu, "Penjualan", "reports.sales", OnSalesReportClick);
             AddMenuItem(reportMenu, "Laba", "reports.sales", OnStubClick);
-            AddMenuItem(reportMenu, "Transfer", "reports.stock", OnStubClick);
+            AddMenuItem(reportMenu, "Transfer/Stok", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
             AddMenuItem(reportMenu, "Pemakaian/Rusak/Hilang", "reports.stock", OnStubClick);
             AddMenuItem(reportMenu, "Stok Barang", "reports.stock", OnStubClick);
             AddMenuItem(reportMenu, "Stok Opname", "reports.stock", OnStubClick);

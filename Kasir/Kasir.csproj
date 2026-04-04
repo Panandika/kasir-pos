@@ -142,6 +142,7 @@
     <Compile Include="Forms\Reports\SalesReportForm.cs" />
     <Compile Include="Utils\ExcelExporter.cs" />
     <Compile Include="Data\Repositories\SubsidiaryRepository.cs" />
+    <Compile Include="Forms\Reports\InventoryReportForm.cs" />
     <Compile Include="Sync\ISyncFileWriter.cs" />
     <Compile Include="Sync\ISyncFileReader.cs" />
     <Compile Include="Sync\SyncConfig.cs" />
