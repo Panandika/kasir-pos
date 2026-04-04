@@ -32,7 +32,7 @@ namespace Kasir.Tests.Sync
             SqlHelper.ExecuteNonQuery(_db,
                 @"INSERT OR IGNORE INTO config (key, value) VALUES
                   ('register_id', '02'),
-                  ('sync_hub_share', '\\\\KASIR01\\kasir\\sync'),
+                  ('sync_hub_share', 'C:\\kasir\\sync'),
                   ('sync_hmac_key', 'test-secret-key-32bytes!!')");
 
             _configRepo = new ConfigRepository(_db);
@@ -53,7 +53,7 @@ namespace Kasir.Tests.Sync
             batch.Signature = "tampered-signature";
             string json = JsonConvert.SerializeObject(batch);
 
-            _fileReader.Files["\\\\KASIR01\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json"] = json;
+            _fileReader.Files["C:\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json"] = json;
 
             var result = _pullService.Pull();
 
@@ -69,7 +69,7 @@ namespace Kasir.Tests.Sync
             batch.SchemaVersion = 999;
             string json = SignAndSerialize(batch);
 
-            _fileReader.Files["\\\\KASIR01\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json"] = json;
+            _fileReader.Files["C:\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json"] = json;
 
             var result = _pullService.Pull();
 
@@ -85,7 +85,7 @@ namespace Kasir.Tests.Sync
             batch.Events[0].TableName = "evil_table";
             string json = SignAndSerialize(batch);
 
-            _fileReader.Files["\\\\KASIR01\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json"] = json;
+            _fileReader.Files["C:\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json"] = json;
 
             var result = _pullService.Pull();
 
@@ -106,7 +106,7 @@ namespace Kasir.Tests.Sync
             batch.Events[0].Data["name"] = "TEST DEPT FROM SYNC";
 
             string json = SignAndSerialize(batch);
-            _fileReader.Files["\\\\KASIR01\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json"] = json;
+            _fileReader.Files["C:\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json"] = json;
 
             var result = _pullService.Pull();
 
@@ -125,7 +125,7 @@ namespace Kasir.Tests.Sync
             var batch = CreateValidBatch("02"); // Same as our register_id
             string json = SignAndSerialize(batch);
 
-            _fileReader.Files["\\\\KASIR01\\kasir\\sync\\outbox\\02_20260404_120000_abc123.json"] = json;
+            _fileReader.Files["C:\\kasir\\sync\\outbox\\02_20260404_120000_abc123.json"] = json;
 
             var result = _pullService.Pull();
 
