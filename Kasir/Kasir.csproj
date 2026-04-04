@@ -42,6 +42,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="System.Data.SQLite" Version="2.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Data\DbConnection.cs" />
     <Compile Include="Data\SqlHelper.cs" />
@@ -93,7 +98,6 @@
     <EmbeddedResource Include="Data\Schema.sql" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
     <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

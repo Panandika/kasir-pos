@@ -16,11 +16,8 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v2
-
-    - name: Restore NuGet packages
-      run: nuget restore Kasir.sln
+    - name: Restore packages
+      run: msbuild Kasir.sln /t:Restore /p:Configuration=Release /p:Platform=x86
 
     - name: Build solution
       run: msbuild Kasir.sln /p:Configuration=Release /p:Platform=x86 /p:TreatWarningsAsErrors=true
