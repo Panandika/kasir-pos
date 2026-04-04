@@ -92,6 +92,14 @@
     <Compile Include="Services\PriceChangeService.cs" />
     <Compile Include="Services\InventoryService.cs" />
     <Compile Include="Data\Repositories\StockMovementRepository.cs" />
+    <Compile Include="Data\Repositories\OrderRepository.cs" />
+    <Compile Include="Data\Repositories\PurchaseRepository.cs" />
+    <Compile Include="Data\Repositories\PayablesRepository.cs" />
+    <Compile Include="Services\PurchasingService.cs" />
+    <Compile Include="Forms\Purchasing\PurchaseOrderForm.cs" />
+    <Compile Include="Forms\Purchasing\GoodsReceiptForm.cs" />
+    <Compile Include="Forms\Purchasing\PurchaseInvoiceForm.cs" />
+    <Compile Include="Forms\Purchasing\ReturnForm.cs" />
     <Compile Include="Forms\Master\VendorForm.cs" />
     <Compile Include="Forms\Master\PriceChangeForm.cs" />
     <Compile Include="Services\PricingEngine.cs" />
