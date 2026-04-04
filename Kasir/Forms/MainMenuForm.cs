@@ -3,6 +3,8 @@ using System.Configuration;
 using System.Drawing;
 using System.Windows.Forms;
 using Kasir.Auth;
+using Kasir.Data;
+using Kasir.Sync;
 
 namespace Kasir.Forms
 {
@@ -193,13 +195,45 @@ namespace Kasir.Forms
             MessageBox.Show(name + " — coming in Phase 2+.", "Not Yet Implemented");
         }
 
+        private void RunSync()
+        {
+            SetAction("Syncing...");
+            try
+            {
+                var engine = new SyncEngine(DbConnection.GetConnection());
+                var result = engine.RunOnce();
+
+                string msg2 = string.Format("Push: {0} events. Pull: {1} events.{2}",
+                    result.PushEventCount,
+                    result.PullAppliedCount,
+                    result.Success ? "" : " (errors occurred)");
+
+                SetAction(string.Format("Last sync: {0} — {1}",
+                    engine.LastSyncTime.ToString("HH:mm:ss"), msg2));
+
+                if (!result.Success)
+                {
+                    MessageBox.Show(
+                        string.Format("Sync completed with issues:\n\nPush: {0}\nPull: {1}",
+                            engine.LastPushResult, engine.LastPullResult),
+                        "Sync Warning",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                SetAction("Sync failed: " + ex.Message);
+                MessageBox.Show("Sync error: " + ex.Message, "Error");
+            }
+        }
+
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             switch (keyData)
             {
                 case Keys.F12:
-                    // Sync trigger — will be wired in Chunk F
-                    MessageBox.Show("Sync will be added in Chunk F.", "Coming Soon");
+                    RunSync();
                     return true;
                 case Keys.Escape:
                     this.Close();

@@ -48,6 +48,10 @@
     <Compile Include="Auth\AuthServiceTests.cs" />
     <Compile Include="Auth\PermissionServiceTests.cs" />
     <Compile Include="Data\DepartmentRepositoryTests.cs" />
+    <Compile Include="TestHelpers\Fakes\FakeSyncFileWriter.cs" />
+    <Compile Include="TestHelpers\Fakes\FakeSyncFileReader.cs" />
+    <Compile Include="TestHelpers\Fakes\FakeClock.cs" />
+    <Compile Include="Sync\PullServiceTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

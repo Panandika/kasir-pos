@@ -76,6 +76,13 @@
     <Compile Include="Forms\Master\DepartmentForm.cs" />
     <Compile Include="Sync\ISyncFileWriter.cs" />
     <Compile Include="Sync\ISyncFileReader.cs" />
+    <Compile Include="Sync\SyncConfig.cs" />
+    <Compile Include="Sync\SyncBatch.cs" />
+    <Compile Include="Sync\SyncFileWriter.cs" />
+    <Compile Include="Sync\SyncFileReader.cs" />
+    <Compile Include="Sync\PushService.cs" />
+    <Compile Include="Sync\PullService.cs" />
+    <Compile Include="Sync\SyncEngine.cs" />
     <Compile Include="Utils\IClock.cs" />
     <Compile Include="Utils\ClockImpl.cs" />
     <Compile Include="Utils\Formatting.cs" />
