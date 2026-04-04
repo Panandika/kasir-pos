@@ -97,7 +97,7 @@ namespace Kasir.Forms
             AddMenuItem(transMenu, "Retur Tanpa Faktur", "transaction.return", OnStubClick);
             AddMenuItem(transMenu, "Pemakaian/Rusak/Hilang", "transaction.stock_out", OnStubClick);
             transMenu.DropDownItems.Add(new ToolStripSeparator());
-            AddMenuItem(transMenu, "Penjualan", "transaction.sales", OnStubClick);
+            AddMenuItem(transMenu, "Penjualan", "transaction.sales", OnPenjualanClick);
             AddMenuItem(transMenu, "Transfer", "transaction.transfer", OnStubClick);
 
             // Laporan menu
@@ -119,6 +119,7 @@ namespace Kasir.Forms
             AddMenuItem(utilMenu, "User Management", "utility.users", OnUserManagementClick);
             AddMenuItem(utilMenu, "Printer Config", "utility.printer", OnPrinterConfigClick);
             AddMenuItem(utilMenu, "Backup", "utility.backup", OnBackupClick);
+            AddMenuItem(utilMenu, "Shift Management", "pos", OnShiftClick);
 
             // Bank menu
             var bankMenu = new ToolStripMenuItem("&Bank");
@@ -186,6 +187,16 @@ namespace Kasir.Forms
             this.Hide();
             childForm.FormClosed += (s, ev) => this.Show();
             childForm.Show();
+        }
+
+        private void OnPenjualanClick(object sender, EventArgs e)
+        {
+            ShowChildForm(new POS.SaleForm(_auth));
+        }
+
+        private void OnShiftClick(object sender, EventArgs e)
+        {
+            ShowChildForm(new POS.ShiftForm(_auth.CurrentUser.Id));
         }
 
         private void OnStubClick(object sender, EventArgs e)
