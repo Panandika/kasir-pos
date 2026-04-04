@@ -26,14 +26,7 @@ namespace Kasir
                 return;
             }
 
-            // Stub: show message until LoginForm is implemented in Chunk D
-            MessageBox.Show(
-                "Kasir POS initialized successfully.\n\n" +
-                "Database: data\\kasir.db\n" +
-                "LoginForm will be added in Chunk D.",
-                "Kasir - Phase 1",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            Application.Run(new Forms.LoginForm());
         }
     }
 }

@@ -34,6 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Security" />
@@ -65,6 +66,9 @@
     <Compile Include="Hardware\BarcodeScanner.cs" />
     <Compile Include="Auth\AuthService.cs" />
     <Compile Include="Auth\PermissionService.cs" />
+    <Compile Include="Forms\BaseForm.cs" />
+    <Compile Include="Forms\LoginForm.cs" />
+    <Compile Include="Forms\MainMenuForm.cs" />
     <Compile Include="Sync\ISyncFileWriter.cs" />
     <Compile Include="Sync\ISyncFileReader.cs" />
     <Compile Include="Utils\IClock.cs" />
