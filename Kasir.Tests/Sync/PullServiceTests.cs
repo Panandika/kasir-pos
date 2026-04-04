@@ -28,14 +28,12 @@ namespace Kasir.Tests.Sync
             _db = TestDb.Create();
             _fileReader = new FakeSyncFileReader();
 
-            // Seed config
-            SqlHelper.ExecuteNonQuery(_db,
-                @"INSERT OR IGNORE INTO config (key, value) VALUES
-                  ('register_id', '02'),
-                  ('sync_hub_share', 'C:\\kasir\\sync'),
-                  ('sync_hmac_key', 'test-secret-key-32bytes!!')");
-
+            // Seed config — use parameterized insert to avoid backslash escaping issues
             _configRepo = new ConfigRepository(_db);
+            _configRepo.Set("register_id", "02");
+            _configRepo.Set("sync_hub_share", "C:\\kasir\\sync");
+            _configRepo.Set("sync_hmac_key", "test-secret-key-32bytes!!");
+
             _pullService = new PullService(_db, _fileReader);
         }
 
@@ -46,7 +44,7 @@ namespace Kasir.Tests.Sync
             _db.Dispose();
         }
 
-        [Test, Ignore("TODO: debug path matching in FakeSyncFileReader on CI")]
+        [Test]
         public void Pull_TamperedSignature_SkipsFile()
         {
             var batch = CreateValidBatch("01");
@@ -62,7 +60,7 @@ namespace Kasir.Tests.Sync
             result.Error.Should().Contain("HMAC");
         }
 
-        [Test, Ignore("TODO: debug path matching in FakeSyncFileReader on CI")]
+        [Test]
         public void Pull_WrongSchemaVersion_SkipsFile()
         {
             var batch = CreateValidBatch("01");
@@ -78,7 +76,7 @@ namespace Kasir.Tests.Sync
             result.Error.Should().Contain("Schema version");
         }
 
-        [Test, Ignore("TODO: debug path matching in FakeSyncFileReader on CI")]
+        [Test]
         public void Pull_TableNotInWhitelist_SkipsFile()
         {
             var batch = CreateValidBatch("01");
@@ -94,7 +92,7 @@ namespace Kasir.Tests.Sync
             result.Error.Should().Contain("whitelist");
         }
 
-        [Test, Ignore("TODO: debug path matching in FakeSyncFileReader on CI")]
+        [Test]
         public void Pull_ValidBatch_AppliesInsert()
         {
             var batch = CreateValidBatch("01");
