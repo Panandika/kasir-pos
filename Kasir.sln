@@ -1,0 +1,25 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kasir", "Kasir\Kasir.csproj", "{09430435-C7B9-4CBB-BB09-E8D541835FAB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kasir.Tests", "Kasir.Tests\Kasir.Tests.csproj", "{57F7DAB3-2389-4F39-BE71-DBACA759B05B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{09430435-C7B9-4CBB-BB09-E8D541835FAB}.Debug|x86.ActiveCfg = Debug|x86
+		{09430435-C7B9-4CBB-BB09-E8D541835FAB}.Debug|x86.Build.0 = Debug|x86
+		{09430435-C7B9-4CBB-BB09-E8D541835FAB}.Release|x86.ActiveCfg = Release|x86
+		{09430435-C7B9-4CBB-BB09-E8D541835FAB}.Release|x86.Build.0 = Release|x86
+		{57F7DAB3-2389-4F39-BE71-DBACA759B05B}.Debug|x86.ActiveCfg = Debug|x86
+		{57F7DAB3-2389-4F39-BE71-DBACA759B05B}.Debug|x86.Build.0 = Debug|x86
+		{57F7DAB3-2389-4F39-BE71-DBACA759B05B}.Release|x86.ActiveCfg = Release|x86
+		{57F7DAB3-2389-4F39-BE71-DBACA759B05B}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+EndGlobal
