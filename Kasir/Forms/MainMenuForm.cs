@@ -41,8 +41,8 @@ namespace Kasir.Forms
 
             // Branding footer
             string storeName = ConfigurationManager.AppSettings["StoreName"] ?? "TOKO SINAR MAKMUR";
-            string storeBrand = ConfigurationManager.AppSettings["StoreBrand"] ?? "Andal Cash System";
-            string storeFooter = ConfigurationManager.AppSettings["StoreFooter"] ?? "DNC Computer Center";
+            string storeBrand = ConfigurationManager.AppSettings["StoreBrand"] ?? "Semoga Berbahagia";
+            string storeFooter = ConfigurationManager.AppSettings["StoreFooter"] ?? "Sadhu Sadhu Sadhu";
 
             lblBranding = new Label
             {

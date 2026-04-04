@@ -104,6 +104,7 @@ namespace Kasir.Services
             receipt.Add(EscPosCommands.Text("================================\n"));
             receipt.Add(EscPosCommands.CenterAlign);
             receipt.Add(EscPosCommands.Text("Terima kasih!\n"));
+            receipt.Add(EscPosCommands.Text("Semoga Anda Berbahagia!\n"));
             receipt.Add(EscPosCommands.LeftAlign);
             receipt.Add(EscPosCommands.Text("\n\n\n"));
             receipt.Add(EscPosCommands.PartialCut);
