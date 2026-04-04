@@ -54,6 +54,8 @@ namespace Kasir.Auth
                 case "reports.stock":
                 case "reports.master":
                 case "inventory":
+                case "accounting":
+                case "bank":
                 case "utility.backup":
                 case "utility.printer":
                     return true;

@@ -183,7 +183,12 @@ namespace Kasir.Data
                         ('RMS', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
                         ('TRM', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
                         ('OPN', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
-                        ('OTM', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}');";
+                        ('OTM', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('UMH', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('KMS', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('KKL', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('BMS', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}'),
+                        ('BKL', '01', 0, '{prefix}-{REG}-{YYMM}-{SEQ:04d}');";
                     cmd.ExecuteNonQuery();
                 }
 

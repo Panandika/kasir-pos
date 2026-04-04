@@ -19,6 +19,11 @@ namespace Kasir.Utils
             return whole.ToString("N0", Indonesian);
         }
 
+        public static string FormatMoney(long amountCents)
+        {
+            return FormatCurrencyShort(amountCents);
+        }
+
         public static string FormatDate(string isoDate)
         {
             if (string.IsNullOrEmpty(isoDate))
