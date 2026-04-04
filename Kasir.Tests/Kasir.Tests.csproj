@@ -61,6 +61,7 @@
     <Compile Include="TestHelpers\Fakes\FakeSyncFileReader.cs" />
     <Compile Include="TestHelpers\Fakes\FakeClock.cs" />
     <Compile Include="Sync\PullServiceTests.cs" />
+    <Compile Include="Data\ProductRepositoryTests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

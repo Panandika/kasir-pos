@@ -57,12 +57,16 @@
     <Compile Include="Data\Repositories\ConfigRepository.cs" />
     <Compile Include="Data\Repositories\CounterRepository.cs" />
     <Compile Include="Data\Repositories\SyncQueueRepository.cs" />
+    <Compile Include="Data\Repositories\ProductRepository.cs" />
+    <Compile Include="Data\Repositories\ProductBarcodeRepository.cs" />
     <Compile Include="Models\User.cs" />
     <Compile Include="Models\Role.cs" />
     <Compile Include="Models\Department.cs" />
     <Compile Include="Models\ConfigEntry.cs" />
     <Compile Include="Models\Counter.cs" />
     <Compile Include="Models\SyncQueueEntry.cs" />
+    <Compile Include="Models\Product.cs" />
+    <Compile Include="Models\ProductBarcode.cs" />
     <Compile Include="Hardware\IReceiptPrinter.cs" />
     <Compile Include="Hardware\ICashDrawer.cs" />
     <Compile Include="Hardware\RawPrinterHelper.cs" />
