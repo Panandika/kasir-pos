@@ -41,6 +41,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TestHelpers\TestDb.cs" />
+    <Compile Include="Utils\FormattingTests.cs" />
+    <Compile Include="Utils\ValidatorTests.cs" />
+    <Compile Include="Data\CounterRepositoryTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

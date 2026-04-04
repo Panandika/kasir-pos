@@ -43,12 +43,28 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Data\DbConnection.cs" />
+    <Compile Include="Data\SqlHelper.cs" />
+    <Compile Include="Data\Repositories\UserRepository.cs" />
+    <Compile Include="Data\Repositories\RoleRepository.cs" />
+    <Compile Include="Data\Repositories\DepartmentRepository.cs" />
+    <Compile Include="Data\Repositories\ConfigRepository.cs" />
+    <Compile Include="Data\Repositories\CounterRepository.cs" />
+    <Compile Include="Data\Repositories\SyncQueueRepository.cs" />
     <Compile Include="Models\User.cs" />
     <Compile Include="Models\Role.cs" />
     <Compile Include="Models\Department.cs" />
     <Compile Include="Models\ConfigEntry.cs" />
     <Compile Include="Models\Counter.cs" />
     <Compile Include="Models\SyncQueueEntry.cs" />
+    <Compile Include="Hardware\IReceiptPrinter.cs" />
+    <Compile Include="Hardware\ICashDrawer.cs" />
+    <Compile Include="Sync\ISyncFileWriter.cs" />
+    <Compile Include="Sync\ISyncFileReader.cs" />
+    <Compile Include="Utils\IClock.cs" />
+    <Compile Include="Utils\ClockImpl.cs" />
+    <Compile Include="Utils\Formatting.cs" />
+    <Compile Include="Utils\Validators.cs" />
+    <Compile Include="Utils\Numbering.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Data\Schema.sql" />
