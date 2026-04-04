@@ -96,6 +96,13 @@
     <Compile Include="Data\Repositories\PurchaseRepository.cs" />
     <Compile Include="Data\Repositories\PayablesRepository.cs" />
     <Compile Include="Services\PurchasingService.cs" />
+    <Compile Include="Services\StockTransferService.cs" />
+    <Compile Include="Services\StockOpnameService.cs" />
+    <Compile Include="Data\Repositories\StockTransferRepository.cs" />
+    <Compile Include="Data\Repositories\StockAdjustmentRepository.cs" />
+    <Compile Include="Forms\Inventory\StockOutForm.cs" />
+    <Compile Include="Forms\Inventory\TransferForm.cs" />
+    <Compile Include="Forms\Inventory\OpnameForm.cs" />
     <Compile Include="Forms\Purchasing\PurchaseOrderForm.cs" />
     <Compile Include="Forms\Purchasing\GoodsReceiptForm.cs" />
     <Compile Include="Forms\Purchasing\PurchaseInvoiceForm.cs" />
