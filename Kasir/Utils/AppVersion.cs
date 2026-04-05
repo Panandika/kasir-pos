@@ -8,15 +8,19 @@ namespace Kasir.Utils
         public static bool JustUpdated { get; set; }
         public static string PatchNotes { get; set; }
 
+        private static readonly string _current = ComputeCurrent();
+
         public static string Current
         {
-            get
-            {
-                var asm = Assembly.GetExecutingAssembly();
-                var attr = (AssemblyInformationalVersionAttribute)
-                    Attribute.GetCustomAttribute(asm, typeof(AssemblyInformationalVersionAttribute));
-                return attr != null ? attr.InformationalVersion : "0.0.0";
-            }
+            get { return _current; }
+        }
+
+        private static string ComputeCurrent()
+        {
+            var asm = typeof(AppVersion).Assembly;
+            var attr = (AssemblyInformationalVersionAttribute)
+                Attribute.GetCustomAttribute(asm, typeof(AssemblyInformationalVersionAttribute));
+            return attr != null ? attr.InformationalVersion : "0.0.0";
         }
 
         public static bool IsNewerThan(string candidate, string current)

@@ -83,9 +83,9 @@ namespace Updater
             }
 
             // Step 4: Backup current files
-            WriteState(target, "BACKUP_COMPLETE");
             string backupPath = Path.Combine(target, BackupDir);
             BackupCurrentFiles(target, backupPath);
+            WriteState(target, "BACKUP_COMPLETE");
             Log("Backup complete.");
 
             // Step 5: Copy new files

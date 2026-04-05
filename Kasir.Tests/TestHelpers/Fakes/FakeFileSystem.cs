@@ -14,12 +14,13 @@ namespace Kasir.Tests.TestHelpers.Fakes
 
         public void AddFile(string path, string content)
         {
-            _files[NormalizePath(path)] = content;
-            // Auto-create parent directory
-            string dir = Path.GetDirectoryName(path);
+            string normalized = NormalizePath(path);
+            _files[normalized] = content;
+            // Auto-create parent directory using normalized path
+            string dir = GetParentPath(normalized);
             if (!string.IsNullOrEmpty(dir))
             {
-                _directories.Add(NormalizePath(dir));
+                _directories.Add(dir);
             }
         }
 
@@ -59,7 +60,7 @@ namespace Kasir.Tests.TestHelpers.Fakes
             return _files.Keys
                 .Where(f => recurse
                     ? f.StartsWith(normalDir + "\\", StringComparison.OrdinalIgnoreCase)
-                    : Path.GetDirectoryName(f).Equals(normalDir, StringComparison.OrdinalIgnoreCase))
+                    : GetParentPath(f).Equals(normalDir, StringComparison.OrdinalIgnoreCase))
                 .ToArray();
         }
 
@@ -68,8 +69,14 @@ namespace Kasir.Tests.TestHelpers.Fakes
             string normalDir = NormalizePath(path);
             return _directories
                 .Where(d => !d.Equals(normalDir, StringComparison.OrdinalIgnoreCase) &&
-                            Path.GetDirectoryName(d).Equals(normalDir, StringComparison.OrdinalIgnoreCase))
+                            GetParentPath(d).Equals(normalDir, StringComparison.OrdinalIgnoreCase))
                 .ToArray();
+        }
+
+        private static string GetParentPath(string normalizedPath)
+        {
+            int idx = normalizedPath.LastIndexOf('\\');
+            return idx < 0 ? "" : normalizedPath.Substring(0, idx);
         }
 
         public void CopyFile(string source, string dest, bool overwrite)

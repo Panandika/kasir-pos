@@ -58,8 +58,15 @@ namespace Kasir.Services
 
         public Task<UpdateCheckResult> CheckForUpdateAsync()
         {
-            var cts = new CancellationTokenSource(_timeoutMs);
-            return Task.Run(() => CheckForUpdate(), cts.Token);
+            var workTask = Task.Run(() => CheckForUpdate());
+            var timeoutTask = Task.Delay(_timeoutMs).ContinueWith(_ =>
+                new UpdateCheckResult
+                {
+                    CurrentVersion = AppVersion.Current,
+                    Error = UpdateMessages.Unreachable
+                });
+            return Task.WhenAny(workTask, timeoutTask)
+                .ContinueWith(t => t.Result.Result);
         }
 
         public UpdateCheckResult CheckForUpdate()
@@ -226,10 +233,14 @@ namespace Kasir.Services
             string checksumFile = Path.Combine(directory, "checksum.sha256");
             string hmacFile = Path.Combine(directory, "checksum.sha256.hmac");
 
+            if (!_fs.FileExists(checksumFile) && !_fs.FileExists(hmacFile))
+            {
+                return true; // Neither file present — local/manual update, skip verification
+            }
+
             if (!_fs.FileExists(checksumFile) || !_fs.FileExists(hmacFile))
             {
-                // No HMAC files = skip verification (for local/manual updates)
-                return !_fs.FileExists(checksumFile) || true;
+                return false; // One exists without the other — tampered or incomplete
             }
 
             string hmacKey = _configRepo.Get("sync_hmac_key") ?? "default-hmac-key-change-me";

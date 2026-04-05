@@ -78,7 +78,7 @@ namespace Kasir.Forms.Admin
 
             lblKeys = new Label
             {
-                Text = "F5=Periksa  F8=Update  Esc=Tutup",
+                Text = "F5=Periksa  Esc=Tutup",
                 Dock = DockStyle.Bottom,
                 Height = 30,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -162,8 +162,8 @@ namespace Kasir.Forms.Admin
                     lblStatus.Text = string.Format(UpdateMessages.Available, result.NewVersion);
                     lblStatus.ForeColor = Color.FromArgb(0, 255, 0);
 
-                    // Load patch notes
-                    string notes = _updateService.GetPatchNotes();
+                    // Load patch notes (async to avoid UI freeze on slow UNC)
+                    string notes = await Task.Run(() => _updateService.GetPatchNotes());
                     if (!string.IsNullOrEmpty(notes))
                     {
                         txtPatchNotes.Text = notes;

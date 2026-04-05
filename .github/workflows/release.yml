@@ -86,7 +86,7 @@ jobs:
           }
 
         $checksumContent = $checksumLines -join "`n"
-        Set-Content "$releaseDir/checksum.sha256" $checksumContent -NoNewline
+        [System.IO.File]::WriteAllText("$releaseDir/checksum.sha256", $checksumContent, [System.Text.Encoding]::UTF8)
         Write-Host "Generated checksums for $($checksumLines.Count) files"
 
     - name: Sign checksums with HMAC
@@ -99,21 +99,23 @@ jobs:
 
         if ([string]::IsNullOrEmpty($env:SYNC_HMAC_KEY)) {
           Write-Host "WARNING: SYNC_HMAC_KEY secret not set. Skipping HMAC signing."
-          "unsigned" | Set-Content "$releaseDir/checksum.sha256.hmac" -NoNewline
+          [System.IO.File]::WriteAllText("$releaseDir/checksum.sha256.hmac", "unsigned", [System.Text.Encoding]::UTF8)
         } else {
           $hmac = New-Object System.Security.Cryptography.HMACSHA256
           $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($env:SYNC_HMAC_KEY)
           $checksumBytes = [System.Text.Encoding]::UTF8.GetBytes($checksumContent)
           $signature = $hmac.ComputeHash($checksumBytes)
           $hexSig = [BitConverter]::ToString($signature).Replace("-", "").ToLower()
-          Set-Content "$releaseDir/checksum.sha256.hmac" $hexSig -NoNewline
+          [System.IO.File]::WriteAllText("$releaseDir/checksum.sha256.hmac", $hexSig, [System.Text.Encoding]::UTF8)
           Write-Host "HMAC signature generated"
         }
 
     - name: Create release ZIP
       shell: pwsh
       run: |
-        Compress-Archive -Path "Kasir/bin/Release/*" -DestinationPath "kasir-${{ steps.version.outputs.VERSION }}.zip"
+        Push-Location "Kasir/bin/Release"
+        Compress-Archive -Path "*" -DestinationPath "../../../kasir-${{ steps.version.outputs.VERSION }}.zip"
+        Pop-Location
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
