@@ -12,6 +12,7 @@ namespace Kasir.Data.Migrations
 
         public void Up(SQLiteConnection db)
         {
+            // Add columns if they don't already exist (fresh DBs have them from Schema.sql)
             string[] columns = new string[]
             {
                 "ALTER TABLE discounts ADD COLUMN dept_code TEXT NOT NULL DEFAULT ''",
@@ -27,8 +28,15 @@ namespace Kasir.Data.Migrations
             {
                 foreach (string sql in columns)
                 {
-                    cmd.CommandText = sql;
-                    cmd.ExecuteNonQuery();
+                    try
+                    {
+                        cmd.CommandText = sql;
+                        cmd.ExecuteNonQuery();
+                    }
+                    catch (SQLiteException)
+                    {
+                        // Column already exists (fresh DB from Schema.sql)
+                    }
                 }
             }
         }

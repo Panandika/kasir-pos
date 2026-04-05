@@ -15,34 +15,19 @@ namespace Kasir.Data.Repositories
 
         public List<Discount> GetActiveForProduct(string productCode, string deptCode, string dateIso, string timeHms = null)
         {
-            string sql = @"SELECT * FROM discounts
+            // Time filtering is NOT done in SQL — DiscountEngine.IsWithinTimeWindow
+            // handles midnight-crossing time ranges that SQL can't express simply.
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM discounts
                   WHERE is_active = 1
                   AND (product_code = @product OR dept_code = @dept OR (product_code = '' AND dept_code = ''))
                   AND (date_start IS NULL OR date_start = '' OR date_start <= @date)
-                  AND (date_end IS NULL OR date_end = '' OR date_end >= @date)";
-
-            if (!string.IsNullOrEmpty(timeHms))
-            {
-                sql += @"
-                  AND (time_start IS NULL OR time_start = '' OR time_start <= @time)
-                  AND (time_end IS NULL OR time_end = '' OR time_end >= @time)";
-            }
-
-            sql += " ORDER BY priority DESC";
-
-            var parameters = new List<SQLiteParameter>
-            {
+                  AND (date_end IS NULL OR date_end = '' OR date_end >= @date)
+                  ORDER BY priority DESC",
+                MapDiscount,
                 SqlHelper.Param("@product", productCode ?? ""),
                 SqlHelper.Param("@dept", deptCode ?? ""),
-                SqlHelper.Param("@date", dateIso)
-            };
-
-            if (!string.IsNullOrEmpty(timeHms))
-            {
-                parameters.Add(SqlHelper.Param("@time", timeHms));
-            }
-
-            return SqlHelper.Query(_db, sql, MapDiscount, parameters.ToArray());
+                SqlHelper.Param("@date", dateIso));
         }
 
         public List<Discount> GetAll()
