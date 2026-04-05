@@ -75,6 +75,9 @@
     <Compile Include="Data\StockAdjustmentRepositoryTests.cs" />
     <Compile Include="Models\OpnameReportRowTests.cs" />
     <Compile Include="Auth\PermissionServiceDbTests.cs" />
+    <Compile Include="Utils\AppVersionTests.cs" />
+    <Compile Include="Services\UpdateServiceTests.cs" />
+    <Compile Include="TestHelpers\Fakes\FakeFileSystem.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

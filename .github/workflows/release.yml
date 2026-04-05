@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract version from tag
+      id: version
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $ver = $tag -replace '^v', ''
+        echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+        $parts = $ver -split '\.'
+        $asmVer = "$($parts[0]).$($parts[1]).$($parts[2]).0"
+        echo "ASM_VERSION=$asmVer" >> $env:GITHUB_OUTPUT
+
+    - name: Patch AssemblyInfo with tag version
+      shell: pwsh
+      run: |
+        $ver = "${{ steps.version.outputs.VERSION }}"
+        $asmVer = "${{ steps.version.outputs.ASM_VERSION }}"
+        $file = "Kasir/Properties/AssemblyInfo.cs"
+        $content = Get-Content $file -Raw
+        $content = $content -replace 'AssemblyVersion\(".*?"\)', "AssemblyVersion(`"$asmVer`")"
+        $content = $content -replace 'AssemblyFileVersion\(".*?"\)', "AssemblyFileVersion(`"$asmVer`")"
+        $content = $content -replace 'AssemblyInformationalVersion\(".*?"\)', "AssemblyInformationalVersion(`"$ver`")"
+        Set-Content $file $content -NoNewline
+        Write-Host "Patched AssemblyInfo to version $ver ($asmVer)"
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore packages
+      run: msbuild Kasir.sln /t:Restore /p:Configuration=Release /p:Platform=x86
+
+    - name: Build solution
+      run: msbuild Kasir.sln /p:Configuration=Release /p:Platform=x86 /p:TreatWarningsAsErrors=true
+
+    - name: Setup VSTest
+      uses: darenm/Setup-VSTest@v1.3
+
+    - name: Run tests
+      run: vstest.console.exe Kasir.Tests\bin\Release\Kasir.Tests.dll
+
+    - name: Prepare release directory
+      shell: pwsh
+      run: |
+        $releaseDir = "Kasir/bin/Release"
+
+        # Remove files that should not be in the update ZIP
+        Remove-Item "$releaseDir/Kasir.exe.config" -ErrorAction SilentlyContinue
+        Remove-Item "$releaseDir/data" -Recurse -ErrorAction SilentlyContinue
+        Remove-Item "$releaseDir/*.pdb" -ErrorAction SilentlyContinue
+        Remove-Item "$releaseDir/*.xml" -ErrorAction SilentlyContinue
+
+        # Write version.txt
+        "${{ steps.version.outputs.VERSION }}" | Set-Content "$releaseDir/version.txt" -NoNewline
+
+        # Copy whatsnew.txt
+        if (Test-Path "whatsnew.txt") {
+          Copy-Item "whatsnew.txt" "$releaseDir/"
+        } else {
+          "No release notes." | Set-Content "$releaseDir/whatsnew.txt"
+        }
+
+    - name: Generate checksums
+      shell: pwsh
+      run: |
+        $releaseDir = "Kasir/bin/Release"
+        $checksumLines = @()
+
+        Get-ChildItem $releaseDir -Recurse -File |
+          Where-Object { $_.Name -ne "checksum.sha256" -and $_.Name -ne "checksum.sha256.hmac" } |
+          ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            $relativePath = $_.FullName.Substring((Resolve-Path $releaseDir).Path.Length + 1).Replace("\", "/")
+            $checksumLines += "$hash  $relativePath"
+          }
+
+        $checksumContent = $checksumLines -join "`n"
+        Set-Content "$releaseDir/checksum.sha256" $checksumContent -NoNewline
+        Write-Host "Generated checksums for $($checksumLines.Count) files"
+
+    - name: Sign checksums with HMAC
+      shell: pwsh
+      env:
+        SYNC_HMAC_KEY: ${{ secrets.SYNC_HMAC_KEY }}
+      run: |
+        $releaseDir = "Kasir/bin/Release"
+        $checksumContent = Get-Content "$releaseDir/checksum.sha256" -Raw
+
+        if ([string]::IsNullOrEmpty($env:SYNC_HMAC_KEY)) {
+          Write-Host "WARNING: SYNC_HMAC_KEY secret not set. Skipping HMAC signing."
+          "unsigned" | Set-Content "$releaseDir/checksum.sha256.hmac" -NoNewline
+        } else {
+          $hmac = New-Object System.Security.Cryptography.HMACSHA256
+          $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($env:SYNC_HMAC_KEY)
+          $checksumBytes = [System.Text.Encoding]::UTF8.GetBytes($checksumContent)
+          $signature = $hmac.ComputeHash($checksumBytes)
+          $hexSig = [BitConverter]::ToString($signature).Replace("-", "").ToLower()
+          Set-Content "$releaseDir/checksum.sha256.hmac" $hexSig -NoNewline
+          Write-Host "HMAC signature generated"
+        }
+
+    - name: Create release ZIP
+      shell: pwsh
+      run: |
+        Compress-Archive -Path "Kasir/bin/Release/*" -DestinationPath "kasir-${{ steps.version.outputs.VERSION }}.zip"
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          kasir-${{ steps.version.outputs.VERSION }}.zip
+        generate_release_notes: true

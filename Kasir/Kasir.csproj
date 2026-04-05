@@ -41,6 +41,8 @@
     <Reference Include="System.Security" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
@@ -188,6 +190,17 @@
     <Compile Include="Utils\Formatting.cs" />
     <Compile Include="Utils\Validators.cs" />
     <Compile Include="Utils\Numbering.cs" />
+    <Compile Include="Utils\AppVersion.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Forms\Admin\AboutForm.cs" />
+    <Compile Include="Forms\Admin\UpdateForm.cs" />
+    <Compile Include="Services\UpdateService.cs" />
+    <Compile Include="Services\UpdateMessages.cs" />
+    <Compile Include="Utils\IFileSystem.cs" />
+    <Compile Include="Utils\FileSystemImpl.cs" />
+    <Compile Include="Data\MigrationRunner.cs" />
+    <Compile Include="Data\Migrations\IMigration.cs" />
+    <Compile Include="Data\Migrations\Migration_002.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Data\Schema.sql" />
@@ -201,5 +214,19 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Updater\Updater.csproj">
+      <Project>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</Project>
+      <Name>Updater</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="CopyUpdater" AfterTargets="Build">
+    <Copy SourceFiles="..\Updater\bin\$(Configuration)\Updater.exe"
+          DestinationFolder="$(OutputPath)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('..\Updater\bin\$(Configuration)\Updater.exe')" />
+  </Target>
 </Project>

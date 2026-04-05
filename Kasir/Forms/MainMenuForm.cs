@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using Kasir.Auth;
 using Kasir.Data;
 using Kasir.Sync;
+using Kasir.Utils;
 
 namespace Kasir.Forms
 {
@@ -20,9 +21,20 @@ namespace Kasir.Forms
             _auth = auth;
             _perms = new PermissionService(DbConnection.GetConnection());
             InitializeLayout();
-            SetAction(string.Format("Logged in as {0} ({1})",
+            SetAction(string.Format("Kasir v{0} — {1} ({2})",
+                AppVersion.Current,
                 _auth.CurrentUser.DisplayName,
                 _auth.CurrentUser.Alias));
+
+            // Show patch notes after successful update
+            if (AppVersion.JustUpdated && !string.IsNullOrEmpty(AppVersion.PatchNotes))
+            {
+                AppVersion.JustUpdated = false;
+                MessageBox.Show(AppVersion.PatchNotes,
+                    "Update Berhasil — v" + AppVersion.Current,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
         }
 
         private void InitializeLayout()
@@ -126,6 +138,9 @@ namespace Kasir.Forms
             AddMenuItem(utilMenu, "&Printer Config", "utility.printer", OnPrinterConfigClick);
             AddMenuItem(utilMenu, "&Backup", "utility.backup", OnBackupClick);
             AddMenuItem(utilMenu, "&Shift Management", "pos", OnShiftClick);
+            utilMenu.DropDownItems.Add(new ToolStripSeparator());
+            AddMenuItem(utilMenu, "Periksa &Update", "utility.backup", OnUpdateClick);
+            AddMenuItem(utilMenu, "&Tentang", "pos", OnAboutClick);
 
             // Akuntansi menu (K)
             var accMenu = new ToolStripMenuItem("A&kuntansi");
@@ -252,6 +267,16 @@ namespace Kasir.Forms
         private void OnShiftClick(object sender, EventArgs e)
         {
             ShowChildForm(new POS.ShiftForm(_auth.CurrentUser.Id));
+        }
+
+        private void OnUpdateClick(object sender, EventArgs e)
+        {
+            ShowChildForm(new Admin.UpdateForm());
+        }
+
+        private void OnAboutClick(object sender, EventArgs e)
+        {
+            ShowChildForm(new Admin.AboutForm());
         }
 
         private void RunSync()

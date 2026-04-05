@@ -65,6 +65,9 @@ namespace Kasir.Data
                     ExecuteSchema(conn, schema);
                     SeedDefaultData(conn);
                 }
+
+                // Run pending schema migrations (for existing databases)
+                MigrationRunner.Run(conn);
             }
         }
 
@@ -173,7 +176,11 @@ namespace Kasir.Data
                         ('printer_name', 'EPSON TM-U220 Receipt', 'Receipt printer name'),
                         ('sync_enabled', 'false', 'Enable multi-register sync'),
                         ('sync_role', 'hub', 'Sync role: hub or slave'),
-                        ('sync_hub_share', '\\\\KASIR01\\kasir\\sync', 'UNC path to sync share');";
+                        ('sync_hub_share', '\\\\KASIR01\\kasir\\sync', 'UNC path to sync share'),
+                        ('sync_hmac_key', 'default-hmac-key-change-me', 'HMAC-SHA256 key for sync and update signing'),
+                        ('update_share', '\\\\KASIR01\\kasir\\updates\\latest', 'UNC path to update share'),
+                        ('update_auto_check', 'false', 'Auto-check for updates after login'),
+                        ('last_update_check', '', 'Timestamp of last update check');";
                     cmd.ExecuteNonQuery();
 
                     // Seed counter prefixes to avoid race on first use

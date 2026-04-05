@@ -1,0 +1,8 @@
+Versi pertama dengan fitur auto-update.
+
+Fitur baru:
+- Periksa Update (F5) di menu Utility
+- Import ZIP untuk hub register
+- Versi ditampilkan di status bar
+- Dialog Tentang dengan info register
+- Update otomatis dengan backup dan rollback
