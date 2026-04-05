@@ -122,11 +122,9 @@ namespace Kasir.Tests.Auth
         [Test]
         public void DbDriven_OldObjectFormat_AllKey_MapsToWildcard()
         {
-            InsertRole(1, "admin", "{\"all\":true}");
-            var perms = new PermissionService(_db);
-            // RoleId=1 is admin, always true via hardcoded fast path
-            // Test with roleId 99 to exercise the DB path
+            // Insert role 99 BEFORE constructing PermissionService (permissions load at construction)
             InsertRole(99, "custom", "{\"all\":true}");
+            var perms = new PermissionService(_db);
             var custom = new User { RoleId = 99 };
 
             perms.HasPermission(custom, "anything").Should().BeTrue();
