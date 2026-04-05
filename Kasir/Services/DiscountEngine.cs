@@ -83,18 +83,27 @@ namespace Kasir.Services
                 if (disc.MinQty > 0 && qty < disc.MinQty) continue;
                 if (disc.MaxQty > 0 && qty > disc.MaxQty) continue;
 
-                long discAmount = 0;
-                if (disc.PriceOverride > 0 && product.Price > disc.PriceOverride)
+                // PriceOverride: per-unit target price takes precedence over DiscPct
+                if (disc.PriceOverride > 0)
                 {
-                    // PriceOverride is a per-unit target price; discount = (normal - override) * qty
-                    discAmount = ((long)product.Price - disc.PriceOverride) * qty;
+                    if (product.Price > disc.PriceOverride)
+                    {
+                        long discAmount = ((long)product.Price - disc.PriceOverride) * qty;
+                        return new DiscountResult
+                        {
+                            DiscPct = 0,
+                            DiscAmount = discAmount,
+                            Source = "discounts_table"
+                        };
+                    }
+                    // Override >= price: no discount from this rule, skip to next
+                    continue;
                 }
 
                 return new DiscountResult
                 {
                     DiscPct = disc.DiscPct,
                     Disc2Pct = disc.Disc2Pct,
-                    DiscAmount = discAmount,
                     Source = "discounts_table"
                 };
             }

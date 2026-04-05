@@ -20,7 +20,8 @@ namespace Kasir.Data.Repositories
             return SqlHelper.Query(_db,
                 @"SELECT * FROM discounts
                   WHERE is_active = 1
-                  AND (product_code = @product OR dept_code = @dept OR (product_code = '' AND dept_code = ''))
+                  AND (product_code = @product OR dept_code = @dept
+                       OR ((product_code IS NULL OR product_code = '') AND (dept_code IS NULL OR dept_code = '')))
                   AND (date_start IS NULL OR date_start = '' OR date_start <= @date)
                   AND (date_end IS NULL OR date_end = '' OR date_end >= @date)
                   ORDER BY priority DESC",
