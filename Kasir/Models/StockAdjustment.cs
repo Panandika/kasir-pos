@@ -27,5 +27,19 @@ namespace Kasir.Models
 
         // Transient
         public string ProductName { get; set; }
+        public string DocDate { get; set; }
+        public string DocType { get; set; }
+    }
+
+    public class OpnameReportRow
+    {
+        public string ProductCode { get; set; }
+        public string ProductName { get; set; }
+        public int QtySystem { get; set; }
+        public int QtyActual { get; set; }
+        public int CostPrice { get; set; }
+        public string DocDate { get; set; }
+        public int Variance { get { return QtyActual - QtySystem; } }
+        public long VarianceValue { get { return (long)Variance * CostPrice; } }
     }
 }

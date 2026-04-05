@@ -33,9 +33,11 @@ namespace Kasir.Forms.Master
 
         private Product _currentProduct;
         private bool _isEditing;
+        private int _currentUserId;
 
-        public ProductForm()
+        public ProductForm(int userId = 1)
         {
+            _currentUserId = userId;
             var conn = DbConnection.GetConnection();
             _productRepo = new ProductRepository(conn);
             _deptRepo = new DepartmentRepository(conn);
@@ -376,7 +378,7 @@ namespace Kasir.Forms.Master
                 p.DeptCode = dashIndex > 0 ? deptItem.Substring(0, dashIndex) : "";
             }
 
-            p.ChangedBy = 1;
+            p.ChangedBy = _currentUserId;
 
             return p;
         }

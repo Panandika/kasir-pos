@@ -46,6 +46,13 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@offset", offset));
         }
 
+        public List<Product> GetAllActive()
+        {
+            return SqlHelper.Query(_db,
+                "SELECT * FROM products WHERE status = 'A' ORDER BY name",
+                MapProduct);
+        }
+
         public List<Product> SearchByCodePrefix(string prefix, int limit)
         {
             if (string.IsNullOrWhiteSpace(prefix))

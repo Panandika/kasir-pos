@@ -13,9 +13,11 @@ namespace Kasir.Forms.Master
     {
         private DataGridView dgvDepts;
         private DepartmentRepository _deptRepo;
+        private int _currentUserId;
 
-        public DepartmentForm()
+        public DepartmentForm(int userId = 1)
         {
+            _currentUserId = userId;
             _deptRepo = new DepartmentRepository(DbConnection.GetConnection());
             InitializeLayout();
             SetAction("Input Label Departemen — Ins: Tambah, Enter: Ubah, Del: Hapus, Esc: Keluar");
@@ -111,7 +113,7 @@ namespace Kasir.Forms.Master
                     {
                         DeptCode = code,
                         Name = name,
-                        ChangedBy = 1 // TODO: get from current user
+                        ChangedBy = _currentUserId // TODO: get from current user
                     };
 
                     _deptRepo.Insert(dept);
@@ -141,7 +143,7 @@ namespace Kasir.Forms.Master
                     }
 
                     dept.Name = name;
-                    dept.ChangedBy = 1; // TODO: get from current user
+                    dept.ChangedBy = _currentUserId; // TODO: get from current user
 
                     _deptRepo.Update(dept);
                     LoadData();

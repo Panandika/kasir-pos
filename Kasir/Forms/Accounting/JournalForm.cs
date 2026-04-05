@@ -21,10 +21,12 @@ namespace Kasir.Forms.Accounting
         private AccountingService _accountingService;
         private AccountRepository _accountRepo;
         private bool _readOnly;
+        private int _currentUserId;
 
-        public JournalForm(bool readOnly = false)
+        public JournalForm(bool readOnly = false, int userId = 1)
         {
             _readOnly = readOnly;
+            _currentUserId = userId;
             var conn = DbConnection.GetConnection();
             _accountingService = new AccountingService(conn);
             _accountRepo = new AccountRepository(conn);
@@ -155,7 +157,7 @@ namespace Kasir.Forms.Accounting
                 DocDate = txtDate.Text.Trim(),
                 Remark = txtRemark.Text.Trim(),
                 PeriodCode = txtDate.Text.Substring(0, 4) + txtDate.Text.Substring(5, 2),
-                ChangedBy = 1,
+                ChangedBy = _currentUserId,
                 Lines = new List<JournalLine>()
             };
 

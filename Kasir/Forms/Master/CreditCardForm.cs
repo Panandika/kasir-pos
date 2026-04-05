@@ -11,9 +11,11 @@ namespace Kasir.Forms.Master
     {
         private DataGridView dgvCards;
         private CreditCardRepository _cardRepo;
+        private int _currentUserId;
 
-        public CreditCardForm()
+        public CreditCardForm(int userId = 1)
         {
+            _currentUserId = userId;
             _cardRepo = new CreditCardRepository(DbConnection.GetConnection());
             InitializeLayout();
             SetAction("Credit Card — Ins: Tambah, Enter: Ubah, Del: Hapus, Esc: Keluar");
@@ -90,7 +92,7 @@ namespace Kasir.Forms.Master
                         Name = dlg.Values[1],
                         FeePct = (int)(fee * 100),
                         AccountCode = dlg.Values[3],
-                        ChangedBy = 1
+                        ChangedBy = _currentUserId
                     };
 
                     _cardRepo.Insert(card);
@@ -117,7 +119,7 @@ namespace Kasir.Forms.Master
                     card.Name = dlg.Values[0];
                     card.FeePct = (int)(fee * 100);
                     card.AccountCode = dlg.Values[2];
-                    card.ChangedBy = 1;
+                    card.ChangedBy = _currentUserId;
 
                     _cardRepo.Update(card);
                     LoadData();

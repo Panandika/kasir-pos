@@ -13,9 +13,11 @@ namespace Kasir.Forms.Master
         private DataGridView dgvVendors;
         private TextBox txtSearch;
         private SubsidiaryRepository _vendorRepo;
+        private int _currentUserId;
 
-        public VendorForm()
+        public VendorForm(int userId = 1)
         {
+            _currentUserId = userId;
             _vendorRepo = new SubsidiaryRepository(DbConnection.GetConnection());
             InitializeLayout();
             SetAction("Input Data Supplier — F2: Search, Ins: Tambah, Enter: Ubah, Esc: Keluar");
@@ -101,7 +103,7 @@ namespace Kasir.Forms.Master
                         City = dlg.Values[3],
                         GroupCode = "1",
                         Status = "A",
-                        ChangedBy = 1
+                        ChangedBy = _currentUserId
                     };
                     _vendorRepo.Insert(vendor);
                     LoadData();
@@ -125,7 +127,7 @@ namespace Kasir.Forms.Master
                     vendor.Address = dlg.Values[1];
                     vendor.City = dlg.Values[2];
                     vendor.Phone = dlg.Values[3];
-                    vendor.ChangedBy = 1;
+                    vendor.ChangedBy = _currentUserId;
                     _vendorRepo.Update(vendor);
                     LoadData();
                 }

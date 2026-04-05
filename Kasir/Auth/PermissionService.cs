@@ -1,24 +1,128 @@
+using System.Collections.Generic;
+using System.Data.SQLite;
+using Kasir.Data;
 using Kasir.Models;
+using Newtonsoft.Json;
 
 namespace Kasir.Auth
 {
     public class PermissionService
     {
-        // Phase 1: hard-coded permission map for 3 roles
-        // Phase 2: parse JSON from Role.Permissions
+        private Dictionary<int, HashSet<string>> _rolePermissions;
+
+        public PermissionService()
+        {
+            // Fallback: hardcoded permissions (backward compat for tests)
+        }
+
+        public PermissionService(SQLiteConnection db)
+        {
+            LoadPermissionsFromDb(db);
+        }
+
+        private void LoadPermissionsFromDb(SQLiteConnection db)
+        {
+            try
+            {
+                _rolePermissions = new Dictionary<int, HashSet<string>>();
+                var roles = SqlHelper.Query(db,
+                    "SELECT id, permissions FROM roles WHERE permissions IS NOT NULL",
+                    r => new { Id = SqlHelper.GetInt(r, "id"), Perms = SqlHelper.GetString(r, "permissions") });
+
+                foreach (var role in roles)
+                {
+                    if (string.IsNullOrWhiteSpace(role.Perms))
+                    {
+                        continue;
+                    }
+
+                    var perms = ParsePermissions(role.Perms);
+                    if (perms != null)
+                    {
+                        _rolePermissions[role.Id] = perms;
+                    }
+                }
+            }
+            catch
+            {
+                _rolePermissions = null; // fallback to hardcoded
+            }
+        }
+
+        private static HashSet<string> ParsePermissions(string json)
+        {
+            json = json.Trim();
+
+            // Array format: ["pos","master","master.department"]
+            if (json.StartsWith("["))
+            {
+                try
+                {
+                    var list = JsonConvert.DeserializeObject<List<string>>(json);
+                    return list != null ? new HashSet<string>(list) : null;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            // Object format (legacy): {"pos":true,"master":true}
+            if (json.StartsWith("{"))
+            {
+                try
+                {
+                    var dict = JsonConvert.DeserializeObject<Dictionary<string, bool>>(json);
+                    if (dict == null) return null;
+                    var set = new HashSet<string>();
+                    foreach (var kv in dict)
+                    {
+                        if (kv.Value)
+                        {
+                            set.Add(kv.Key);
+                        }
+                    }
+                    // Legacy "all" key maps to wildcard
+                    if (set.Contains("all"))
+                    {
+                        set.Remove("all");
+                        set.Add("*");
+                    }
+                    return set;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            return null;
+        }
 
         public bool HasPermission(User user, string permissionKey)
         {
             if (user == null) return false;
 
-            // Admin can do everything
+            // Admin can do everything (hardcoded fast path)
             if (user.RoleId == 1) return true;
 
+            // DB-driven permissions
+            if (_rolePermissions != null)
+            {
+                HashSet<string> perms;
+                if (_rolePermissions.TryGetValue(user.RoleId, out perms))
+                {
+                    return perms.Contains("*") || perms.Contains(permissionKey);
+                }
+                return false;
+            }
+
+            // Fallback: hardcoded
             switch (user.RoleId)
             {
-                case 2: // supervisor
+                case 2:
                     return IsSupervisorPermission(permissionKey);
-                case 3: // cashier
+                case 3:
                     return IsCashierPermission(permissionKey);
                 default:
                     return false;

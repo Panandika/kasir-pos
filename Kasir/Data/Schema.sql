@@ -866,7 +866,7 @@ CREATE TABLE stock_transfer_items (
 -- Not a transfer (no destination). Not a general journal (has product qty).
 CREATE TABLE stock_adjustments (
     id              INTEGER PRIMARY KEY,
-    doc_type        TEXT    NOT NULL CHECK(doc_type IN ('USAGE','DAMAGE','LOSS')),
+    doc_type        TEXT    NOT NULL CHECK(doc_type IN ('USAGE','DAMAGE','LOSS','OPNAME')),
     journal_no      TEXT    NOT NULL UNIQUE,    -- REFNO C(15) from OTHDR
     doc_date        TEXT    NOT NULL CHECK(doc_date GLOB '????-??-??'),
     location_code   TEXT    NOT NULL DEFAULT '', -- LCODE C(3) — FK to locations

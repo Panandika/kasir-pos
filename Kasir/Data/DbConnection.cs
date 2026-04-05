@@ -144,12 +144,13 @@ namespace Kasir.Data
             {
                 using (var cmd = new SQLiteCommand(conn))
                 {
-                    // Seed roles
+                    // Seed roles — UPSERT to update permissions on existing DBs
                     cmd.CommandText = @"
-                        INSERT OR IGNORE INTO roles (id, name, permissions) VALUES
-                        (1, 'admin', '{""all"": true}'),
-                        (2, 'supervisor', '{""pos"": true, ""master"": true, ""reports"": true, ""inventory"": true}'),
-                        (3, 'cashier', '{""pos"": true}');";
+                        INSERT INTO roles (id, name, permissions) VALUES
+                        (1, 'admin', '[""*""]'),
+                        (2, 'supervisor', '[""pos"",""master"",""master.department"",""master.supplier"",""master.product"",""master.credit_card"",""master.price_change"",""master.stock_opname"",""transaction"",""transaction.purchase"",""transaction.sales"",""transaction.return"",""transaction.transfer"",""transaction.stock_out"",""reports"",""reports.sales"",""reports.purchase"",""reports.stock"",""reports.master"",""inventory"",""accounting"",""bank"",""utility.backup"",""utility.printer""]'),
+                        (3, 'cashier', '[""pos"",""transaction.sales"",""reports.sales""]')
+                        ON CONFLICT(id) DO UPDATE SET permissions = excluded.permissions;";
                     cmd.ExecuteNonQuery();
 
                     // Seed admin user (password: admin, BCrypt cost 10)

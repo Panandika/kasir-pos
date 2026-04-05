@@ -18,7 +18,7 @@ namespace Kasir.Forms
         public MainMenuForm(AuthService auth)
         {
             _auth = auth;
-            _perms = new PermissionService();
+            _perms = new PermissionService(DbConnection.GetConnection());
             InitializeLayout();
             SetAction(string.Format("Logged in as {0} ({1})",
                 _auth.CurrentUser.DisplayName,
@@ -109,16 +109,16 @@ namespace Kasir.Forms
 
             // Laporan menu (L)
             var reportMenu = new ToolStripMenuItem("&Laporan");
-            AddMenuItem(reportMenu, "Cetak Master (&Barang)", "reports.master", OnStubClick);
-            AddMenuItem(reportMenu, "Cetak Master (&Supplier)", "reports.master", OnStubClick);
+            AddMenuItem(reportMenu, "Cetak Master (&Barang)", "reports.master", (s, e) => ShowChildForm(new Reports.ProductReportForm()));
+            AddMenuItem(reportMenu, "Cetak Master (&Supplier)", "reports.master", (s, e) => ShowChildForm(new Reports.ProductReportForm()));
             AddMenuItem(reportMenu, "&Pembelian/Stok", "reports.purchase", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
             AddMenuItem(reportMenu, "&Hutang", "reports.purchase", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
             AddMenuItem(reportMenu, "Pen&jualan", "reports.sales", OnSalesReportClick);
             AddMenuItem(reportMenu, "&Laba", "reports.sales", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
             AddMenuItem(reportMenu, "&Transfer/Stok", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
-            AddMenuItem(reportMenu, "Pema&kaian/Rusak/Hilang", "reports.stock", OnStubClick);
-            AddMenuItem(reportMenu, "St&ok Barang", "reports.stock", OnStubClick);
-            AddMenuItem(reportMenu, "Stok Op&name", "reports.stock", OnStubClick);
+            AddMenuItem(reportMenu, "Pema&kaian/Rusak/Hilang", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm(4)));
+            AddMenuItem(reportMenu, "St&ok Barang", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm(0)));
+            AddMenuItem(reportMenu, "Stok Op&name", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm(5)));
 
             // Utility menu (U)
             var utilMenu = new ToolStripMenuItem("&Utility");
@@ -130,21 +130,21 @@ namespace Kasir.Forms
             // Akuntansi menu (K)
             var accMenu = new ToolStripMenuItem("A&kuntansi");
             AddMenuItem(accMenu, "&Daftar Perkiraan", "accounting", (s, e) => ShowChildForm(new Accounting.AccountsForm()));
-            AddMenuItem(accMenu, "&Jurnal Memorial", "accounting", (s, e) => ShowChildForm(new Accounting.JournalForm()));
-            AddMenuItem(accMenu, "Penerimaan &Kas", "accounting", (s, e) => ShowChildForm(new Accounting.CashReceiptForm()));
-            AddMenuItem(accMenu, "&Pengeluaran Kas", "accounting", (s, e) => ShowChildForm(new Accounting.CashDisbursementForm()));
-            AddMenuItem(accMenu, "Penerimaan &Bank", "accounting", (s, e) => ShowChildForm(new Accounting.CashReceiptForm(true)));
-            AddMenuItem(accMenu, "P&engeluaran Bank", "accounting", (s, e) => ShowChildForm(new Accounting.CashDisbursementForm(true)));
+            AddMenuItem(accMenu, "&Jurnal Memorial", "accounting", (s, e) => ShowChildForm(new Accounting.JournalForm(false, _auth.CurrentUser.Id)));
+            AddMenuItem(accMenu, "Penerimaan &Kas", "accounting", (s, e) => ShowChildForm(new Accounting.CashReceiptForm(false, _auth.CurrentUser.Id)));
+            AddMenuItem(accMenu, "&Pengeluaran Kas", "accounting", (s, e) => ShowChildForm(new Accounting.CashDisbursementForm(false, _auth.CurrentUser.Id)));
+            AddMenuItem(accMenu, "Penerimaan &Bank", "accounting", (s, e) => ShowChildForm(new Accounting.CashReceiptForm(true, _auth.CurrentUser.Id)));
+            AddMenuItem(accMenu, "P&engeluaran Bank", "accounting", (s, e) => ShowChildForm(new Accounting.CashDisbursementForm(true, _auth.CurrentUser.Id)));
             accMenu.DropDownItems.Add(new ToolStripSeparator());
             AddMenuItem(accMenu, "Pr&oses Posting", "accounting", (s, e) => ShowChildForm(new Accounting.PostingProgressForm()));
 
             // Informasi menu (I)
             var infoMenu = new ToolStripMenuItem("&Informasi");
             AddMenuItem(infoMenu, "Info &Perkiraan", "accounting", (s, e) => ShowChildForm(new Accounting.AccountsForm(true)));
-            AddMenuItem(infoMenu, "Info &Jurnal", "accounting", (s, e) => ShowChildForm(new Accounting.JournalForm(true)));
-            AddMenuItem(infoMenu, "Info &Supplier", "master.supplier", (s, e) => ShowChildForm(new Master.VendorForm()));
+            AddMenuItem(infoMenu, "Info &Jurnal", "accounting", (s, e) => ShowChildForm(new Accounting.JournalForm(true, _auth.CurrentUser.Id)));
+            AddMenuItem(infoMenu, "Info &Supplier", "master.supplier", (s, e) => ShowChildForm(new Master.VendorForm(_auth.CurrentUser.Id)));
             AddMenuItem(infoMenu, "Info &Giro", "bank", (s, e) => ShowChildForm(new Bank.BankGiroForm(true)));
-            AddMenuItem(infoMenu, "Info &Barang", "master.product", (s, e) => ShowChildForm(new Master.ProductForm()));
+            AddMenuItem(infoMenu, "Info &Barang", "master.product", (s, e) => ShowChildForm(new Master.ProductForm(_auth.CurrentUser.Id)));
 
             // Bank menu (B)
             var bankMenu = new ToolStripMenuItem("&Bank");
@@ -189,7 +189,7 @@ namespace Kasir.Forms
 
         private void OnDepartmentClick(object sender, EventArgs e)
         {
-            ShowChildForm(new Master.DepartmentForm());
+            ShowChildForm(new Master.DepartmentForm(_auth.CurrentUser.Id));
         }
 
         private void OnUserManagementClick(object sender, EventArgs e)
@@ -221,7 +221,7 @@ namespace Kasir.Forms
 
         private void OnVendorClick(object sender, EventArgs e)
         {
-            ShowChildForm(new Master.VendorForm());
+            ShowChildForm(new Master.VendorForm(_auth.CurrentUser.Id));
         }
 
         private void OnPriceChangeClick(object sender, EventArgs e)
@@ -231,12 +231,12 @@ namespace Kasir.Forms
 
         private void OnProductClick(object sender, EventArgs e)
         {
-            ShowChildForm(new Master.ProductForm());
+            ShowChildForm(new Master.ProductForm(_auth.CurrentUser.Id));
         }
 
         private void OnCreditCardClick(object sender, EventArgs e)
         {
-            ShowChildForm(new Master.CreditCardForm());
+            ShowChildForm(new Master.CreditCardForm(_auth.CurrentUser.Id));
         }
 
         private void OnSalesReportClick(object sender, EventArgs e)
@@ -252,13 +252,6 @@ namespace Kasir.Forms
         private void OnShiftClick(object sender, EventArgs e)
         {
             ShowChildForm(new POS.ShiftForm(_auth.CurrentUser.Id));
-        }
-
-        private void OnStubClick(object sender, EventArgs e)
-        {
-            var item = sender as ToolStripMenuItem;
-            string name = item != null ? item.Text : "Unknown";
-            MessageBox.Show(name + " — coming in Phase 2+.", "Not Yet Implemented");
         }
 
         private void RunSync()

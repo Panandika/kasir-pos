@@ -19,10 +19,12 @@ namespace Kasir.Forms.Accounting
         private CounterRepository _counterRepo;
         private AccountRepository _accountRepo;
         private bool _isBankMode;
+        private int _currentUserId;
 
-        public CashReceiptForm(bool bankMode = false)
+        public CashReceiptForm(bool bankMode = false, int userId = 1)
         {
             _isBankMode = bankMode;
+            _currentUserId = userId;
             var conn = DbConnection.GetConnection();
             _cashTxnRepo = new CashTransactionRepository(conn);
             _counterRepo = new CounterRepository(conn);
@@ -163,7 +165,7 @@ namespace Kasir.Forms.Accounting
                     Control = 1,
                     PeriodCode = periodCode,
                     RegisterId = "01",
-                    ChangedBy = 1
+                    ChangedBy = _currentUserId
                 }, lines);
 
                 MessageBox.Show("Transaksi " + jnl + " tersimpan.", "Sukses",

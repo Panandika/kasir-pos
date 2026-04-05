@@ -37,7 +37,7 @@ namespace Kasir.Data.Repositories
                     foreach (var item in items)
                     {
                         SqlHelper.ExecuteNonQuery(_db,
-                            @"INSERT INTO stock_adjustment_items (journal_no, product_code, quantity, cost_price, value, reason)
+                            @"INSERT INTO stock_adjustment_items (journal_no, product_code, quantity, unit_price, value, remark)
                               VALUES (@jnl, @product, @qty, @cost, @val, @reason)",
                             SqlHelper.Param("@jnl", header.JournalNo),
                             SqlHelper.Param("@product", item.ProductCode),
@@ -52,6 +52,52 @@ namespace Kasir.Data.Repositories
                 }
                 catch { txn.Rollback(); throw; }
             }
+        }
+
+        public List<StockAdjustmentItem> GetAllItemsByDateRange(string from, string to)
+        {
+            return SqlHelper.Query(_db,
+                @"SELECT sai.id, sai.journal_no, sai.product_code, sai.quantity,
+                         sai.unit_price, sai.value, sai.remark,
+                         sa.doc_date, sa.doc_type, p.name AS product_name
+                  FROM stock_adjustment_items sai
+                  JOIN stock_adjustments sa ON sai.journal_no = sa.journal_no
+                  LEFT JOIN products p ON sai.product_code = p.product_code
+                  WHERE sa.doc_date >= @from AND sa.doc_date <= @to
+                  ORDER BY sa.doc_date, sai.journal_no, sai.id",
+                r => new StockAdjustmentItem
+                {
+                    Id = SqlHelper.GetInt(r, "id"),
+                    JournalNo = SqlHelper.GetString(r, "journal_no"),
+                    ProductCode = SqlHelper.GetString(r, "product_code"),
+                    Quantity = SqlHelper.GetInt(r, "quantity"),
+                    CostPrice = SqlHelper.GetInt(r, "unit_price"),
+                    Value = SqlHelper.GetInt(r, "value"),
+                    Reason = SqlHelper.GetString(r, "remark"),
+                    DocDate = SqlHelper.GetString(r, "doc_date"),
+                    DocType = SqlHelper.GetString(r, "doc_type"),
+                    ProductName = SqlHelper.GetString(r, "product_name")
+                },
+                SqlHelper.Param("@from", from), SqlHelper.Param("@to", to));
+        }
+
+        public List<OpnameReportRow> GetOpnameByDateRange(string from, string to)
+        {
+            return SqlHelper.Query(_db,
+                @"SELECT product_code, product_name, qty_system, qty_actual, cost_price, doc_date
+                  FROM stock_opname
+                  WHERE doc_date >= @from AND doc_date <= @to
+                  ORDER BY product_code",
+                r => new OpnameReportRow
+                {
+                    ProductCode = SqlHelper.GetString(r, "product_code"),
+                    ProductName = SqlHelper.GetString(r, "product_name"),
+                    QtySystem = SqlHelper.GetInt(r, "qty_system"),
+                    QtyActual = SqlHelper.GetInt(r, "qty_actual"),
+                    CostPrice = SqlHelper.GetInt(r, "cost_price"),
+                    DocDate = SqlHelper.GetString(r, "doc_date")
+                },
+                SqlHelper.Param("@from", from), SqlHelper.Param("@to", to));
         }
 
         public List<StockAdjustment> GetByDateRange(string from, string to)

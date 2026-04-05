@@ -15,12 +15,16 @@ namespace Kasir.Forms.Reports
         private DataGridView dgvReport;
         private Label lblSummary;
 
-        public InventoryReportForm()
+        public InventoryReportForm(int preSelectedIndex = 0)
         {
             InitializeLayout();
             SetAction("Inventory Reports — F5: Generate, F7: Export, Esc: Close");
             txtDateFrom.Text = DateTime.Now.ToString("yyyy-MM-dd");
             txtDateTo.Text = DateTime.Now.ToString("yyyy-MM-dd");
+            if (preSelectedIndex >= 0 && preSelectedIndex < cboReportType.Items.Count)
+            {
+                cboReportType.SelectedIndex = preSelectedIndex;
+            }
         }
 
         private void InitializeLayout()
@@ -84,6 +88,9 @@ namespace Kasir.Forms.Reports
                 case 4: // Stock Out
                     GenerateStockOut(conn);
                     break;
+                case 5: // Stock Opname
+                    GenerateStockOpname(conn);
+                    break;
                 default:
                     MessageBox.Show("Report type not yet implemented.");
                     break;
@@ -100,7 +107,7 @@ namespace Kasir.Forms.Reports
 
             var productRepo = new ProductRepository(conn);
             var invService = new InventoryService(conn);
-            var products = productRepo.GetAll(1000, 0);
+            var products = productRepo.GetAllActive();
             long totalValue = 0;
 
             foreach (var p in products)
@@ -170,17 +177,79 @@ namespace Kasir.Forms.Reports
 
         private void GenerateStockOut(System.Data.SQLite.SQLiteConnection conn)
         {
-            dgvReport.Columns.Add("No", "No. Dokumen"); dgvReport.Columns["No"].Width = 160;
-            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].Width = 100;
-            dgvReport.Columns.Add("Type", "Jenis"); dgvReport.Columns["Type"].Width = 100;
+            dgvReport.Columns.Add("No", "No. Dokumen"); dgvReport.Columns["No"].Width = 140;
+            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].Width = 90;
+            dgvReport.Columns.Add("Type", "Jenis"); dgvReport.Columns["Type"].Width = 80;
+            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].Width = 120;
+            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].Width = 200;
+            dgvReport.Columns.Add("Qty", "Qty"); dgvReport.Columns["Qty"].Width = 60;
+            dgvReport.Columns.Add("Cost", "Harga"); dgvReport.Columns["Cost"].Width = 100;
+            dgvReport.Columns.Add("Value", "Nilai"); dgvReport.Columns["Value"].Width = 120;
+            dgvReport.Columns.Add("Remark", "Keterangan"); dgvReport.Columns["Remark"].Width = 100;
 
             var adjRepo = new StockAdjustmentRepository(conn);
-            var adjustments = adjRepo.GetByDateRange(txtDateFrom.Text, txtDateTo.Text);
-            foreach (var a in adjustments)
+            var items = adjRepo.GetAllItemsByDateRange(txtDateFrom.Text, txtDateTo.Text);
+            long totalValue = 0;
+            foreach (var item in items)
             {
-                dgvReport.Rows.Add(a.JournalNo, Formatting.FormatDate(a.DocDate), a.DocType);
+                dgvReport.Rows.Add(
+                    item.JournalNo,
+                    Formatting.FormatDate(item.DocDate),
+                    item.DocType,
+                    item.ProductCode,
+                    item.ProductName ?? "",
+                    item.Quantity,
+                    Formatting.FormatCurrencyShort(item.CostPrice),
+                    Formatting.FormatCurrencyShort(item.Value),
+                    item.Reason ?? "");
+                totalValue += item.Value;
             }
-            lblSummary.Text = string.Format("{0} adjustments", adjustments.Count);
+            lblSummary.Text = string.Format("Total: {0}  ({1} items)", Formatting.FormatCurrency(totalValue), items.Count);
+        }
+
+        private void GenerateStockOpname(System.Data.SQLite.SQLiteConnection conn)
+        {
+            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].Width = 120;
+            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].Width = 250;
+            dgvReport.Columns.Add("QtySystem", "Stok Sistem"); dgvReport.Columns["QtySystem"].Width = 80;
+            dgvReport.Columns.Add("QtyActual", "Stok Fisik"); dgvReport.Columns["QtyActual"].Width = 80;
+            dgvReport.Columns.Add("Variance", "Selisih"); dgvReport.Columns["Variance"].Width = 80;
+            dgvReport.Columns.Add("Cost", "HPP"); dgvReport.Columns["Cost"].Width = 100;
+            dgvReport.Columns.Add("VarValue", "Nilai Selisih"); dgvReport.Columns["VarValue"].Width = 120;
+
+            var adjRepo = new StockAdjustmentRepository(conn);
+            var rows = adjRepo.GetOpnameByDateRange(txtDateFrom.Text, txtDateTo.Text);
+            long totalShortage = 0;
+            long totalSurplus = 0;
+
+            foreach (var row in rows)
+            {
+                int idx = dgvReport.Rows.Add(
+                    row.ProductCode,
+                    row.ProductName ?? "",
+                    row.QtySystem,
+                    row.QtyActual,
+                    row.Variance,
+                    Formatting.FormatCurrencyShort(row.CostPrice),
+                    Formatting.FormatCurrencyShort(row.VarianceValue));
+
+                if (row.Variance < 0)
+                {
+                    dgvReport.Rows[idx].DefaultCellStyle.ForeColor = Color.FromArgb(255, 80, 80);
+                    totalShortage += row.VarianceValue;
+                }
+                else if (row.Variance > 0)
+                {
+                    dgvReport.Rows[idx].DefaultCellStyle.ForeColor = Color.LimeGreen;
+                    totalSurplus += row.VarianceValue;
+                }
+            }
+
+            lblSummary.Text = string.Format("Kurang: {0}  Lebih: {1}  Nett: {2}  ({3} items)",
+                Formatting.FormatCurrency(totalShortage),
+                Formatting.FormatCurrency(totalSurplus),
+                Formatting.FormatCurrency(totalShortage + totalSurplus),
+                rows.Count);
         }
 
         private void Export()

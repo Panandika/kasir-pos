@@ -173,6 +173,7 @@
     <Compile Include="Data\Repositories\SubsidiaryRepository.cs" />
     <Compile Include="Forms\Reports\InventoryReportForm.cs" />
     <Compile Include="Forms\Reports\FinancialReportForm.cs" />
+    <Compile Include="Forms\Reports\ProductReportForm.cs" />
     <Compile Include="Sync\ISyncFileWriter.cs" />
     <Compile Include="Sync\ISyncFileReader.cs" />
     <Compile Include="Sync\SyncConfig.cs" />
