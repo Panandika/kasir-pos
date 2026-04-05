@@ -1495,7 +1495,9 @@ END;
 INSERT INTO config(key, value, description) VALUES
     ('schema_version', '1', 'Database schema version — incremented by each migration script'),
     ('register_id', NULL, 'REQUIRED: Set to 01, 02, or 03 before first use — app refuses to start if NULL'),
-    ('store_name', 'TOKO YONICO', 'Store name for receipts'),
+    ('store_name', 'TOKO SINAR MAKMUR', 'Store name for receipts'),
+    ('store_address', 'JL PULAU BATAM NO. 26', 'Store address for receipts'),
+    ('store_tagline', 'ALAT LISTRIK & KEBUTUHAN SEHARI-HARI', 'Store tagline for receipts'),
     ('current_period', NULL, 'Current accounting period YYYYMM — set on first use');
 
 -- ============================================================

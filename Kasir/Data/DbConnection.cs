@@ -165,6 +165,8 @@ namespace Kasir.Data
                         ('register_id', '01', 'This register machine ID'),
                         ('schema_version', '1', 'Database schema version'),
                         ('store_name', 'TOKO SINAR MAKMUR', 'Store name for receipts'),
+                        ('store_address', 'JL PULAU BATAM NO. 26', 'Store address for receipts'),
+                        ('store_tagline', 'ALAT LISTRIK & KEBUTUHAN SEHARI-HARI', 'Store tagline for receipts'),
                         ('store_brand', 'Semoga Berbahagia', 'Brand name for receipts'),
                         ('store_footer', 'Sadhu Sadhu Sadhu', 'Footer text for receipts'),
                         ('printer_name', 'EPSON TM-U220 Receipt', 'Receipt printer name'),

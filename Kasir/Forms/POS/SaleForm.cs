@@ -408,6 +408,8 @@ namespace Kasir.Forms.POS
         private byte[] BuildReceiptBytes(Sale sale, List<SaleItem> items)
         {
             string storeName = _configRepo.Get("store_name") ?? "TOKO";
+            string storeAddress = _configRepo.Get("store_address");
+            string storeTagline = _configRepo.Get("store_tagline");
             var receipt = new List<byte[]>();
 
             receipt.Add(EscPosCommands.Init);
@@ -415,6 +417,14 @@ namespace Kasir.Forms.POS
             receipt.Add(EscPosCommands.BoldOn);
             receipt.Add(EscPosCommands.Text(storeName + "\n"));
             receipt.Add(EscPosCommands.BoldOff);
+            if (!string.IsNullOrEmpty(storeAddress))
+            {
+                receipt.Add(EscPosCommands.Text(storeAddress + "\n"));
+            }
+            if (!string.IsNullOrEmpty(storeTagline))
+            {
+                receipt.Add(EscPosCommands.Text(storeTagline + "\n"));
+            }
             receipt.Add(EscPosCommands.LeftAlign);
             receipt.Add(EscPosCommands.Text(string.Format("Date: {0}\n", sale.DocDate)));
             receipt.Add(EscPosCommands.Text(string.Format("No: {0}  Cashier: {1}\n", sale.JournalNo, sale.Cashier)));

@@ -8,7 +8,8 @@ namespace Kasir.Services
 {
     public class ReceiptBuilder
     {
-        public byte[] BuildSaleReceipt(Sale sale, List<SaleItem> items, string storeName, string cashierAlias)
+        public byte[] BuildSaleReceipt(Sale sale, List<SaleItem> items, string storeName, string cashierAlias,
+            string storeAddress = null, string storeTagline = null)
         {
             var receipt = new List<byte[]>();
 
@@ -18,6 +19,14 @@ namespace Kasir.Services
             receipt.Add(EscPosCommands.BoldOn);
             receipt.Add(EscPosCommands.Text(storeName + "\n"));
             receipt.Add(EscPosCommands.BoldOff);
+            if (!string.IsNullOrEmpty(storeAddress))
+            {
+                receipt.Add(EscPosCommands.Text(storeAddress + "\n"));
+            }
+            if (!string.IsNullOrEmpty(storeTagline))
+            {
+                receipt.Add(EscPosCommands.Text(storeTagline + "\n"));
+            }
             receipt.Add(EscPosCommands.LeftAlign);
 
             receipt.Add(EscPosCommands.Text(string.Format("Date: {0}\n",
