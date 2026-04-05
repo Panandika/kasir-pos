@@ -170,7 +170,7 @@ namespace Kasir.Tests.Services
         public void GetStockOnHandByLocation_FiltersCorrectly()
         {
             // Stock in at location TOKO
-            var m1 = new Models.StockMovement
+            var m1 = new Kasir.Models.StockMovement
             {
                 ProductCode = "P001",
                 JournalNo = "BPB-01-2604-0001",
@@ -185,7 +185,7 @@ namespace Kasir.Tests.Services
             _movementRepo.Insert(m1);
 
             // Stock in at location GUDANG
-            var m2 = new Models.StockMovement
+            var m2 = new Kasir.Models.StockMovement
             {
                 ProductCode = "P001",
                 JournalNo = "BPB-01-2604-0002",
