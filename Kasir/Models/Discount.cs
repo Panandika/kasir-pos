@@ -16,6 +16,8 @@ namespace Kasir.Models
         public string Description { get; set; }
         public int Priority { get; set; }
         public int IsActive { get; set; }
+        public string TimeStart { get; set; }
+        public string TimeEnd { get; set; }
     }
 
     public class DiscountResult

@@ -309,20 +309,28 @@ CREATE TABLE members (
 -- Source: SM CREATE.BAK d_dis()
 CREATE TABLE discounts (
     id             INTEGER PRIMARY KEY,
-    product_code   TEXT    NOT NULL,            -- INV C(20)
+    product_code   TEXT    NOT NULL DEFAULT '', -- INV C(20)
+    dept_code      TEXT    NOT NULL DEFAULT '', -- department-level discount
+    sub_code       TEXT    DEFAULT '',          -- subdivision
     date_start     TEXT,                        -- DATE1
     date_end       TEXT,                        -- DATE2
     time_start     TEXT,                        -- TIME1 C(10)
     time_end       TEXT,                        -- TIME2 C(10)
     disc_pct       INTEGER DEFAULT 0,          -- DISC N(6,2) × 100
-    disc1_pct      INTEGER DEFAULT 0,          -- DISC1 N(5,2) × 100
+    disc1_pct      INTEGER DEFAULT 0,          -- DISC1 N(5,2) × 100 (legacy)
     disc2_pct      INTEGER DEFAULT 0,          -- DISC2 N(5,2) × 100
-    disc3_pct      INTEGER DEFAULT 0,          -- DISC3 N(5,2) × 100
-    disc_amount    INTEGER DEFAULT 0,          -- DISCRP N(7,0)
-    value          INTEGER DEFAULT 0,          -- VAL N(15,2) × 100
-    value1         INTEGER DEFAULT 0,          -- VAL1 N(15,2) × 100
-    value2         INTEGER DEFAULT 0,          -- VAL2 N(15,2) × 100
-    value3         INTEGER DEFAULT 0,          -- VAL3 N(15,2) × 100
+    disc3_pct      INTEGER DEFAULT 0,          -- DISC3 N(5,2) × 100 (legacy)
+    disc_amount    INTEGER DEFAULT 0,          -- DISCRP N(7,0) (legacy)
+    value          INTEGER DEFAULT 0,          -- VAL N(15,2) × 100 (legacy)
+    value1         INTEGER DEFAULT 0,          -- VAL1 (legacy)
+    value2         INTEGER DEFAULT 0,          -- VAL2 (legacy)
+    value3         INTEGER DEFAULT 0,          -- VAL3 (legacy)
+    min_qty        INTEGER DEFAULT 0,          -- quantity threshold
+    max_qty        INTEGER DEFAULT 0,          -- quantity cap
+    price_override INTEGER DEFAULT 0,          -- flat override price
+    description    TEXT    DEFAULT '',          -- human label
+    priority       INTEGER DEFAULT 0,          -- resolution order (higher = first)
+    is_active      INTEGER DEFAULT 1,          -- 1=active, 0=inactive
     changed_by     INTEGER,
     changed_at     TEXT
 );

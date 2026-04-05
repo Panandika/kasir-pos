@@ -16,5 +16,6 @@ namespace Kasir.Models
 
         // Transient (not persisted, used during sale entry)
         public string ProductName { get; set; }
+        public bool IsPriceOverridden { get; set; }
     }
 }

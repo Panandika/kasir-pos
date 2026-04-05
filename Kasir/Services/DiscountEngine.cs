@@ -27,7 +27,9 @@ namespace Kasir.Services
             int partnerDiscPct,
             int accountDiscPct,
             string accountDiscDateStart,
-            string accountDiscDateEnd)
+            string accountDiscDateEnd,
+            string saleTimeHms = null,
+            int qty = 1)
         {
             // Priority 1: Partner discount (vendor-specific per-product)
             if (partnerDiscPct > 0)
@@ -39,12 +41,12 @@ namespace Kasir.Services
                 };
             }
 
-            // Priority 2: Discounts table (rule-based, date-windowed)
+            // Priority 2: Discounts table (rule-based, date/time-windowed)
             foreach (var disc in activeDiscounts)
             {
                 if (disc.IsActive != 1) continue;
 
-                // Check product/department match
+                // Check product/department/store-wide match
                 bool matches = false;
 
                 if (!string.IsNullOrEmpty(disc.ProductCode) &&
@@ -57,6 +59,11 @@ namespace Kasir.Services
                 {
                     matches = true;
                 }
+                else if (string.IsNullOrEmpty(disc.ProductCode) &&
+                    string.IsNullOrEmpty(disc.DeptCode))
+                {
+                    matches = true; // Store-wide discount
+                }
 
                 if (!matches) continue;
 
@@ -65,6 +72,16 @@ namespace Kasir.Services
                 {
                     continue;
                 }
+
+                // Check time window (with midnight-crossing support)
+                if (!IsWithinTimeWindow(saleTimeHms, disc.TimeStart, disc.TimeEnd))
+                {
+                    continue;
+                }
+
+                // Check quantity threshold
+                if (disc.MinQty > 0 && qty < disc.MinQty) continue;
+                if (disc.MaxQty > 0 && qty > disc.MaxQty) continue;
 
                 return new DiscountResult
                 {
@@ -97,6 +114,45 @@ namespace Kasir.Services
             }
 
             return DiscountResult.None;
+        }
+
+        private static bool IsWithinTimeWindow(string currentTimeHms, string startTime, string endTime)
+        {
+            if (string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime))
+            {
+                return true; // No time constraint
+            }
+
+            if (string.IsNullOrEmpty(currentTimeHms))
+            {
+                return true; // No current time provided — skip time check
+            }
+
+            bool hasStart = !string.IsNullOrEmpty(startTime);
+            bool hasEnd = !string.IsNullOrEmpty(endTime);
+
+            // Midnight crossing (e.g., 22:00:00 to 02:00:00)
+            if (hasStart && hasEnd &&
+                string.Compare(startTime, endTime, StringComparison.Ordinal) > 0)
+            {
+                return string.Compare(currentTimeHms, startTime, StringComparison.Ordinal) >= 0 ||
+                       string.Compare(currentTimeHms, endTime, StringComparison.Ordinal) <= 0;
+            }
+
+            // Normal range: start <= current <= end
+            if (hasStart &&
+                string.Compare(currentTimeHms, startTime, StringComparison.Ordinal) < 0)
+            {
+                return false;
+            }
+
+            if (hasEnd &&
+                string.Compare(currentTimeHms, endTime, StringComparison.Ordinal) > 0)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static bool IsWithinDateWindow(string currentDateIso, string startDate, string endDate)

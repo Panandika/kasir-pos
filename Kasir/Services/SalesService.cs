@@ -17,6 +17,7 @@ namespace Kasir.Services
         private readonly ConfigRepository _configRepo;
         private readonly PricingEngine _pricingEngine;
         private readonly DiscountEngine _discountEngine;
+        private readonly DiscountRepository _discountRepo;
         private readonly PaymentCalculator _paymentCalc;
         private readonly InventoryService _inventoryService;
         private readonly IClock _clock;
@@ -36,6 +37,7 @@ namespace Kasir.Services
             _configRepo = new ConfigRepository(db);
             _pricingEngine = new PricingEngine();
             _discountEngine = new DiscountEngine();
+            _discountRepo = new DiscountRepository(db);
             _paymentCalc = new PaymentCalculator();
             _inventoryService = new InventoryService(db);
             _clock = clock;
@@ -105,14 +107,21 @@ namespace Kasir.Services
                 barcodeOverride: barcodeOverridePrice);
 
             // Resolve discount
+            string saleDateIso = _clock.Now.ToString("yyyy-MM-dd");
+            string saleTimeHms = _clock.Now.ToString("HH:mm:ss");
+            var activeDiscounts = _discountRepo.GetActiveForProduct(
+                product.ProductCode, product.DeptCode ?? "", saleDateIso, saleTimeHms);
+
             var discountResult = _discountEngine.ResolveDiscount(
                 product,
-                _clock.Now.ToString("yyyy-MM-dd"),
-                new List<Discount>(), // TODO: load active discounts from repo
+                saleDateIso,
+                activeDiscounts,
                 partnerDiscPct: 0,
                 accountDiscPct: 0,
                 accountDiscDateStart: null,
-                accountDiscDateEnd: null);
+                accountDiscDateEnd: null,
+                saleTimeHms: saleTimeHms,
+                qty: effectiveQty);
 
             // Calculate line total
             long lineGross = (long)unitPrice * effectiveQty;
@@ -128,7 +137,8 @@ namespace Kasir.Services
                 DiscPct = discountResult.DiscPct,
                 DiscValue = lineDiscount,
                 Value = lineNet,
-                Cogs = (long)product.CostPrice * effectiveQty
+                Cogs = (long)product.CostPrice * effectiveQty,
+                IsPriceOverridden = overridePrice > 0 || barcodeOverridePrice > 0
             };
 
             _currentItems.Add(item);
@@ -150,12 +160,44 @@ namespace Kasir.Services
             var item = _currentItems[index];
             item.Quantity = newQty;
 
-            long lineGross = (long)item.UnitPrice * newQty;
-            var discResult = new DiscountResult { DiscPct = item.DiscPct };
-            long lineDiscount = discResult.CalculateDiscount(lineGross);
+            var product = _productRepo.GetByCode(item.ProductCode);
+            if (product != null)
+            {
+                // Re-resolve price (unless manually overridden)
+                if (!item.IsPriceOverridden)
+                {
+                    item.UnitPrice = _pricingEngine.GetUnitPrice(product, newQty);
+                }
 
-            item.DiscValue = lineDiscount;
-            item.Value = lineGross - lineDiscount;
+                // Re-resolve discount
+                string dateIso = _clock.Now.ToString("yyyy-MM-dd");
+                string timeHms = _clock.Now.ToString("HH:mm:ss");
+                var discounts = _discountRepo.GetActiveForProduct(
+                    product.ProductCode, product.DeptCode ?? "", dateIso, timeHms);
+                var discResult = _discountEngine.ResolveDiscount(
+                    product, dateIso, discounts,
+                    partnerDiscPct: 0,
+                    accountDiscPct: 0,
+                    accountDiscDateStart: null,
+                    accountDiscDateEnd: null,
+                    saleTimeHms: timeHms,
+                    qty: newQty);
+
+                long lineGross = (long)item.UnitPrice * newQty;
+                long lineDiscount = discResult.CalculateDiscount(lineGross);
+                item.DiscPct = discResult.DiscPct;
+                item.DiscValue = lineDiscount;
+                item.Value = lineGross - lineDiscount;
+                item.Cogs = (long)product.CostPrice * newQty;
+            }
+            else
+            {
+                // Fallback: recalc with existing discount
+                long lineGross = (long)item.UnitPrice * newQty;
+                var discResult = new DiscountResult { DiscPct = item.DiscPct };
+                item.DiscValue = discResult.CalculateDiscount(lineGross);
+                item.Value = lineGross - item.DiscValue;
+            }
         }
 
         public SaleTotals GetTotals()

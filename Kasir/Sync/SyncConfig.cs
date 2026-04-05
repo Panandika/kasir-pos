@@ -7,7 +7,7 @@ namespace Kasir.Sync
         public const int MaxBatchSize = 100;
         public const int MaxFileSizeBytes = 1024 * 1024; // 1MB
         public const int MaxInboxFiles = 50;
-        public const int SchemaVersion = 1;
+        public const int SchemaVersion = 2;
 
         public static readonly HashSet<string> SyncedTables = new HashSet<string>
         {

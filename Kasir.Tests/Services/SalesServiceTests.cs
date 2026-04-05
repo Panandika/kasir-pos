@@ -132,6 +132,45 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
+        public void AddItem_WithDiscountsTableRule_AppliesTableDiscount()
+        {
+            // Insert a 10% discount rule for P001 valid for 2026
+            Kasir.Data.SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO discounts (product_code, dept_code, disc_pct, date_start, date_end,
+                  is_active, priority) VALUES (@code, '', @pct, @start, @end, 1, 10)",
+                Kasir.Data.SqlHelper.Param("@code", "P001"),
+                Kasir.Data.SqlHelper.Param("@pct", 1000),
+                Kasir.Data.SqlHelper.Param("@start", "2026-01-01"),
+                Kasir.Data.SqlHelper.Param("@end", "2026-12-31"));
+
+            var item = _service.AddItem("P001", 1);
+
+            item.DiscPct.Should().Be(1000); // 10%
+            // 3200000 * 10% = 320000
+            item.DiscValue.Should().Be(320000);
+            item.Value.Should().Be(2880000); // 3200000 - 320000
+        }
+
+        [Test]
+        public void AddItem_WithExpiredDiscount_NoDiscount()
+        {
+            // Insert an expired discount rule for P001
+            Kasir.Data.SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO discounts (product_code, dept_code, disc_pct, date_start, date_end,
+                  is_active, priority) VALUES (@code, '', @pct, @start, @end, 1, 10)",
+                Kasir.Data.SqlHelper.Param("@code", "P001"),
+                Kasir.Data.SqlHelper.Param("@pct", 2000),
+                Kasir.Data.SqlHelper.Param("@start", "2025-01-01"),
+                Kasir.Data.SqlHelper.Param("@end", "2025-12-31"));
+
+            var item = _service.AddItem("P001", 1);
+
+            item.DiscPct.Should().Be(0); // No discount — expired
+            item.DiscValue.Should().Be(0);
+            item.Value.Should().Be(3200000);
+        }
+
+        [Test]
         public void GetTotals_SingleItem_CorrectTotals()
         {
             _service.AddItem("P001", 1);

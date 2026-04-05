@@ -13,19 +13,36 @@ namespace Kasir.Data.Repositories
             _db = db;
         }
 
-        public List<Discount> GetActiveForProduct(string productCode, string deptCode, string dateIso)
+        public List<Discount> GetActiveForProduct(string productCode, string deptCode, string dateIso, string timeHms = null)
         {
-            return SqlHelper.Query(_db,
-                @"SELECT * FROM discounts
+            string sql = @"SELECT * FROM discounts
                   WHERE is_active = 1
                   AND (product_code = @product OR dept_code = @dept OR (product_code = '' AND dept_code = ''))
                   AND (date_start IS NULL OR date_start = '' OR date_start <= @date)
-                  AND (date_end IS NULL OR date_end = '' OR date_end >= @date)
-                  ORDER BY priority DESC",
-                MapDiscount,
+                  AND (date_end IS NULL OR date_end = '' OR date_end >= @date)";
+
+            if (!string.IsNullOrEmpty(timeHms))
+            {
+                sql += @"
+                  AND (time_start IS NULL OR time_start = '' OR time_start <= @time)
+                  AND (time_end IS NULL OR time_end = '' OR time_end >= @time)";
+            }
+
+            sql += " ORDER BY priority DESC";
+
+            var parameters = new List<SQLiteParameter>
+            {
                 SqlHelper.Param("@product", productCode ?? ""),
                 SqlHelper.Param("@dept", deptCode ?? ""),
-                SqlHelper.Param("@date", dateIso));
+                SqlHelper.Param("@date", dateIso)
+            };
+
+            if (!string.IsNullOrEmpty(timeHms))
+            {
+                parameters.Add(SqlHelper.Param("@time", timeHms));
+            }
+
+            return SqlHelper.Query(_db, sql, MapDiscount, parameters.ToArray());
         }
 
         public List<Discount> GetAll()
@@ -52,7 +69,9 @@ namespace Kasir.Data.Repositories
                 PriceOverride = SqlHelper.GetInt(reader, "price_override"),
                 Description = SqlHelper.GetString(reader, "description"),
                 Priority = SqlHelper.GetInt(reader, "priority"),
-                IsActive = SqlHelper.GetInt(reader, "is_active")
+                IsActive = SqlHelper.GetInt(reader, "is_active"),
+                TimeStart = SqlHelper.GetString(reader, "time_start"),
+                TimeEnd = SqlHelper.GetString(reader, "time_end")
             };
         }
     }
