@@ -46,6 +46,82 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@offset", offset));
         }
 
+        public List<Product> SearchByCodePrefix(string prefix, int limit)
+        {
+            if (string.IsNullOrWhiteSpace(prefix))
+            {
+                return new List<Product>();
+            }
+
+            // Exact code match first
+            var exact = GetByCode(prefix);
+            if (exact != null)
+            {
+                return new List<Product> { exact };
+            }
+
+            // Exact barcode match
+            var byBarcode = GetByBarcode(prefix);
+            if (byBarcode != null)
+            {
+                return new List<Product> { byBarcode };
+            }
+
+            // Prefix search on product_code and barcode
+            string likePrefix = prefix + "%";
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM products
+                  WHERE (product_code LIKE @q OR barcode LIKE @q)
+                  AND status = 'A'
+                  ORDER BY product_code
+                  LIMIT @limit",
+                MapProduct,
+                SqlHelper.Param("@q", likePrefix),
+                SqlHelper.Param("@limit", limit));
+        }
+
+        public List<Product> SearchByName(string query, int limit)
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            {
+                return new List<Product>();
+            }
+
+            // Try FTS5 on name
+            try
+            {
+                string ftsQuery = query.Replace("'", "''").Replace("\"", "\"\"") + "*";
+                var ftsResults = SqlHelper.Query(_db,
+                    @"SELECT p.* FROM products_fts f
+                      JOIN products p ON p.id = f.rowid
+                      WHERE products_fts MATCH @q
+                      LIMIT @limit",
+                    MapProduct,
+                    SqlHelper.Param("@q", ftsQuery),
+                    SqlHelper.Param("@limit", limit));
+
+                if (ftsResults.Count > 0)
+                {
+                    return ftsResults;
+                }
+            }
+            catch
+            {
+                // FTS5 not available — fall through to LIKE
+            }
+
+            // LIKE fallback on name only
+            string likeQuery = "%" + query + "%";
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM products
+                  WHERE name LIKE @q AND status = 'A'
+                  ORDER BY name
+                  LIMIT @limit",
+                MapProduct,
+                SqlHelper.Param("@q", likeQuery),
+                SqlHelper.Param("@limit", limit));
+        }
+
         public List<Product> SearchByText(string query, int limit)
         {
             if (string.IsNullOrWhiteSpace(query) || query.Length < 2)

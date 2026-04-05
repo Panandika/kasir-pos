@@ -39,6 +39,13 @@ namespace Kasir.Forms
             this.MainMenuStrip = menuStrip;
             this.Controls.Add(menuStrip);
 
+            // Auto-focus menu on load and after returning from child forms
+            this.Shown += (s, e) =>
+            {
+                menuStrip.Select();
+                menuStrip.Items[0].Select();
+            };
+
             // Branding footer
             string storeName = ConfigurationManager.AppSettings["StoreName"] ?? "TOKO SINAR MAKMUR";
             string storeBrand = ConfigurationManager.AppSettings["StoreBrand"] ?? "Semoga Berbahagia";
@@ -78,75 +85,75 @@ namespace Kasir.Forms
         {
             var user = _auth.CurrentUser;
 
-            // Master menu
+            // Master menu (M)
             var masterMenu = new ToolStripMenuItem("&Master");
-            AddMenuItem(masterMenu, "Departemen", "master.department", OnDepartmentClick);
-            AddMenuItem(masterMenu, "Supplier", "master.supplier", OnVendorClick);
-            AddMenuItem(masterMenu, "Barang", "master.product", OnProductClick);
-            AddMenuItem(masterMenu, "Credit Card", "master.credit_card", OnCreditCardClick);
-            AddMenuItem(masterMenu, "Ganti Harga Jual", "master.price_change", OnPriceChangeClick);
-            AddMenuItem(masterMenu, "Stok Opname", "master.stock_opname", (s, e) => ShowChildForm(new Inventory.OpnameForm()));
+            AddMenuItem(masterMenu, "&Departemen", "master.department", OnDepartmentClick);
+            AddMenuItem(masterMenu, "&Supplier", "master.supplier", OnVendorClick);
+            AddMenuItem(masterMenu, "&Barang", "master.product", OnProductClick);
+            AddMenuItem(masterMenu, "&Credit Card", "master.credit_card", OnCreditCardClick);
+            AddMenuItem(masterMenu, "&Ganti Harga Jual", "master.price_change", OnPriceChangeClick);
+            AddMenuItem(masterMenu, "Stok &Opname", "master.stock_opname", (s, e) => ShowChildForm(new Inventory.OpnameForm()));
 
-            // Transaksi menu
+            // Transaksi menu (T)
             var transMenu = new ToolStripMenuItem("&Transaksi");
-            AddMenuItem(transMenu, "Pemesanan/Order", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.PurchaseOrderForm()));
-            AddMenuItem(transMenu, "Penerimaan Barang", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.GoodsReceiptForm()));
-            AddMenuItem(transMenu, "Nota Pembelian", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.PurchaseInvoiceForm()));
-            AddMenuItem(transMenu, "Hutang", "transaction.purchase", (s, e) => ShowChildForm(new Accounting.PayablesForm()));
+            AddMenuItem(transMenu, "Pemesanan/&Order", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.PurchaseOrderForm()));
+            AddMenuItem(transMenu, "P&enerimaan Barang", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.GoodsReceiptForm()));
+            AddMenuItem(transMenu, "&Nota Pembelian", "transaction.purchase", (s, e) => ShowChildForm(new Purchasing.PurchaseInvoiceForm()));
+            AddMenuItem(transMenu, "&Hutang", "transaction.purchase", (s, e) => ShowChildForm(new Accounting.PayablesForm()));
             transMenu.DropDownItems.Add(new ToolStripSeparator());
-            AddMenuItem(transMenu, "Retur Pembelian", "transaction.return", (s, e) => ShowChildForm(new Purchasing.ReturnForm()));
-            AddMenuItem(transMenu, "Pemakaian/Rusak/Hilang", "transaction.stock_out", (s, e) => ShowChildForm(new Inventory.StockOutForm()));
+            AddMenuItem(transMenu, "&Retur Pembelian", "transaction.return", (s, e) => ShowChildForm(new Purchasing.ReturnForm()));
+            AddMenuItem(transMenu, "Pema&kaian/Rusak/Hilang", "transaction.stock_out", (s, e) => ShowChildForm(new Inventory.StockOutForm()));
             transMenu.DropDownItems.Add(new ToolStripSeparator());
-            AddMenuItem(transMenu, "Penjualan", "transaction.sales", OnPenjualanClick);
-            AddMenuItem(transMenu, "Transfer", "transaction.transfer", (s, e) => ShowChildForm(new Inventory.TransferForm()));
+            AddMenuItem(transMenu, "&Penjualan", "transaction.sales", OnPenjualanClick);
+            AddMenuItem(transMenu, "&Transfer", "transaction.transfer", (s, e) => ShowChildForm(new Inventory.TransferForm()));
 
-            // Laporan menu
+            // Laporan menu (L)
             var reportMenu = new ToolStripMenuItem("&Laporan");
-            AddMenuItem(reportMenu, "Cetak Master (Barang)", "reports.master", OnStubClick);
-            AddMenuItem(reportMenu, "Cetak Master (Supplier)", "reports.master", OnStubClick);
-            AddMenuItem(reportMenu, "Pembelian/Stok", "reports.purchase", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
-            AddMenuItem(reportMenu, "Hutang", "reports.purchase", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
-            AddMenuItem(reportMenu, "Penjualan", "reports.sales", OnSalesReportClick);
-            AddMenuItem(reportMenu, "Laba", "reports.sales", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
-            AddMenuItem(reportMenu, "Transfer/Stok", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
-            AddMenuItem(reportMenu, "Pemakaian/Rusak/Hilang", "reports.stock", OnStubClick);
-            AddMenuItem(reportMenu, "Stok Barang", "reports.stock", OnStubClick);
-            AddMenuItem(reportMenu, "Stok Opname", "reports.stock", OnStubClick);
+            AddMenuItem(reportMenu, "Cetak Master (&Barang)", "reports.master", OnStubClick);
+            AddMenuItem(reportMenu, "Cetak Master (&Supplier)", "reports.master", OnStubClick);
+            AddMenuItem(reportMenu, "&Pembelian/Stok", "reports.purchase", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
+            AddMenuItem(reportMenu, "&Hutang", "reports.purchase", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
+            AddMenuItem(reportMenu, "Pen&jualan", "reports.sales", OnSalesReportClick);
+            AddMenuItem(reportMenu, "&Laba", "reports.sales", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
+            AddMenuItem(reportMenu, "&Transfer/Stok", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
+            AddMenuItem(reportMenu, "Pema&kaian/Rusak/Hilang", "reports.stock", OnStubClick);
+            AddMenuItem(reportMenu, "St&ok Barang", "reports.stock", OnStubClick);
+            AddMenuItem(reportMenu, "Stok Op&name", "reports.stock", OnStubClick);
 
-            // Utility menu
+            // Utility menu (U)
             var utilMenu = new ToolStripMenuItem("&Utility");
-            AddMenuItem(utilMenu, "User Management", "utility.users", OnUserManagementClick);
-            AddMenuItem(utilMenu, "Printer Config", "utility.printer", OnPrinterConfigClick);
-            AddMenuItem(utilMenu, "Backup", "utility.backup", OnBackupClick);
-            AddMenuItem(utilMenu, "Shift Management", "pos", OnShiftClick);
+            AddMenuItem(utilMenu, "&User Management", "utility.users", OnUserManagementClick);
+            AddMenuItem(utilMenu, "&Printer Config", "utility.printer", OnPrinterConfigClick);
+            AddMenuItem(utilMenu, "&Backup", "utility.backup", OnBackupClick);
+            AddMenuItem(utilMenu, "&Shift Management", "pos", OnShiftClick);
 
-            // Akuntansi menu
+            // Akuntansi menu (K)
             var accMenu = new ToolStripMenuItem("A&kuntansi");
-            AddMenuItem(accMenu, "Daftar Perkiraan", "accounting", (s, e) => ShowChildForm(new Accounting.AccountsForm()));
-            AddMenuItem(accMenu, "Jurnal Memorial", "accounting", (s, e) => ShowChildForm(new Accounting.JournalForm()));
-            AddMenuItem(accMenu, "Penerimaan Kas", "accounting", (s, e) => ShowChildForm(new Accounting.CashReceiptForm()));
-            AddMenuItem(accMenu, "Pengeluaran Kas", "accounting", (s, e) => ShowChildForm(new Accounting.CashDisbursementForm()));
-            AddMenuItem(accMenu, "Penerimaan Bank", "accounting", (s, e) => ShowChildForm(new Accounting.CashReceiptForm(true)));
-            AddMenuItem(accMenu, "Pengeluaran Bank", "accounting", (s, e) => ShowChildForm(new Accounting.CashDisbursementForm(true)));
+            AddMenuItem(accMenu, "&Daftar Perkiraan", "accounting", (s, e) => ShowChildForm(new Accounting.AccountsForm()));
+            AddMenuItem(accMenu, "&Jurnal Memorial", "accounting", (s, e) => ShowChildForm(new Accounting.JournalForm()));
+            AddMenuItem(accMenu, "Penerimaan &Kas", "accounting", (s, e) => ShowChildForm(new Accounting.CashReceiptForm()));
+            AddMenuItem(accMenu, "&Pengeluaran Kas", "accounting", (s, e) => ShowChildForm(new Accounting.CashDisbursementForm()));
+            AddMenuItem(accMenu, "Penerimaan &Bank", "accounting", (s, e) => ShowChildForm(new Accounting.CashReceiptForm(true)));
+            AddMenuItem(accMenu, "P&engeluaran Bank", "accounting", (s, e) => ShowChildForm(new Accounting.CashDisbursementForm(true)));
             accMenu.DropDownItems.Add(new ToolStripSeparator());
-            AddMenuItem(accMenu, "Proses Posting", "accounting", (s, e) => ShowChildForm(new Accounting.PostingProgressForm()));
+            AddMenuItem(accMenu, "Pr&oses Posting", "accounting", (s, e) => ShowChildForm(new Accounting.PostingProgressForm()));
 
-            // Informasi menu
+            // Informasi menu (I)
             var infoMenu = new ToolStripMenuItem("&Informasi");
-            AddMenuItem(infoMenu, "Info Perkiraan", "accounting", (s, e) => ShowChildForm(new Accounting.AccountsForm(true)));
-            AddMenuItem(infoMenu, "Info Jurnal", "accounting", (s, e) => ShowChildForm(new Accounting.JournalForm(true)));
-            AddMenuItem(infoMenu, "Info Supplier", "master.supplier", (s, e) => ShowChildForm(new Master.VendorForm()));
-            AddMenuItem(infoMenu, "Info Giro", "bank", (s, e) => ShowChildForm(new Bank.BankGiroForm(true)));
-            AddMenuItem(infoMenu, "Info Barang", "master.product", (s, e) => ShowChildForm(new Master.ProductForm()));
+            AddMenuItem(infoMenu, "Info &Perkiraan", "accounting", (s, e) => ShowChildForm(new Accounting.AccountsForm(true)));
+            AddMenuItem(infoMenu, "Info &Jurnal", "accounting", (s, e) => ShowChildForm(new Accounting.JournalForm(true)));
+            AddMenuItem(infoMenu, "Info &Supplier", "master.supplier", (s, e) => ShowChildForm(new Master.VendorForm()));
+            AddMenuItem(infoMenu, "Info &Giro", "bank", (s, e) => ShowChildForm(new Bank.BankGiroForm(true)));
+            AddMenuItem(infoMenu, "Info &Barang", "master.product", (s, e) => ShowChildForm(new Master.ProductForm()));
 
-            // Bank menu
+            // Bank menu (B)
             var bankMenu = new ToolStripMenuItem("&Bank");
-            AddMenuItem(bankMenu, "Input Tabel Bank", "bank", (s, e) => ShowChildForm(new Bank.BankForm()));
-            AddMenuItem(bankMenu, "Giro Tolakan/Cair", "bank", (s, e) => ShowChildForm(new Bank.BankGiroForm()));
-            AddMenuItem(bankMenu, "Laporan Buku Bank", "bank", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
+            AddMenuItem(bankMenu, "&Input Tabel Bank", "bank", (s, e) => ShowChildForm(new Bank.BankForm()));
+            AddMenuItem(bankMenu, "&Giro Tolakan/Cair", "bank", (s, e) => ShowChildForm(new Bank.BankGiroForm()));
+            AddMenuItem(bankMenu, "&Laporan Buku Bank", "bank", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
 
-            // Keluar
-            var exitMenu = new ToolStripMenuItem("&Keluar");
+            // Keluar (E) — changed from &K to avoid conflict with A&kuntansi
+            var exitMenu = new ToolStripMenuItem("K&eluar");
             exitMenu.Click += (s, e) => this.Close();
 
             menuStrip.Items.AddRange(new ToolStripItem[] {
@@ -203,7 +210,12 @@ namespace Kasir.Forms
         private void ShowChildForm(Form childForm)
         {
             this.Hide();
-            childForm.FormClosed += (s, ev) => this.Show();
+            childForm.FormClosed += (s, ev) =>
+            {
+                this.Show();
+                menuStrip.Select();
+                menuStrip.Items[0].Select();
+            };
             childForm.Show();
         }
 

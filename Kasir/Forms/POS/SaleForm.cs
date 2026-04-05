@@ -19,11 +19,12 @@ namespace Kasir.Forms.POS
     {
         private TextBox txtBarcode;
         private DataGridView dgvItems;
-        private Label lblSubtotal;
-        private Label lblDiscount;
-        private Label lblGrandTotal;
+        private Label lblSubtotalHeader;
+        private Label lblSubtotalValue;
+        private Label lblTotalRow;
+        private Label lblTotalCount;
         private Label lblFooter;
-        private Label lblSyncStatus;
+        private Label lblFooterClock;
         private SalesService _salesService;
         private ConfigRepository _configRepo;
         private ShiftRepository _shiftRepo;
@@ -31,6 +32,7 @@ namespace Kasir.Forms.POS
         private PermissionService _perms;
         private int _dailyCount;
         private Shift _currentShift;
+        private System.Windows.Forms.Timer _posClock;
 
         public SaleForm(AuthService auth)
         {
@@ -52,37 +54,41 @@ namespace Kasir.Forms.POS
 
         private void InitializeLayout()
         {
-            SetAction("POS — Scan barcode or type code, Enter to add. F1=Search F5=Payment F10=Drawer Esc=Cancel");
+            SetAction("F1=Kode F2=Nama F3=Qty F5=Bayar F8=Void F9=Calc F10=Batal F11=Drawer +=Pas Esc=Keluar");
 
-            // Barcode input
-            var pnlTop = new Panel
+            // === 1. SUBTOTAL header panel ===
+            var pnlHeader = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 40,
-                BackColor = Color.FromArgb(0, 30, 0)
+                Height = 70,
+                BackColor = Color.FromArgb(0, 20, 0)
             };
 
-            var lblScan = new Label
+            lblSubtotalHeader = new Label
             {
-                Text = "KODE:",
-                Location = new Point(5, 10),
+                Text = "SUBTOTAL",
+                Location = new Point(10, 10),
                 AutoSize = true,
-                ForeColor = Color.Gray
+                ForeColor = Color.White,
+                Font = new Font("Consolas", 28f, FontStyle.Bold)
             };
 
-            txtBarcode = new TextBox
+            lblSubtotalValue = new Label
             {
-                Location = new Point(70, 5),
-                Width = 300,
-                BackColor = Color.FromArgb(20, 20, 20),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 16f)
+                Text = "0",
+                Dock = DockStyle.Right,
+                AutoSize = false,
+                Width = 400,
+                TextAlign = ContentAlignment.MiddleRight,
+                ForeColor = Color.White,
+                Font = new Font("Consolas", 42f, FontStyle.Bold),
+                Padding = new Padding(0, 0, 20, 0)
             };
-            txtBarcode.KeyDown += TxtBarcode_KeyDown;
 
-            pnlTop.Controls.AddRange(new Control[] { lblScan, txtBarcode });
+            pnlHeader.Controls.Add(lblSubtotalValue);
+            pnlHeader.Controls.Add(lblSubtotalHeader);
 
-            // Items DataGridView
+            // === 2. Items DataGridView ===
             dgvItems = new DataGridView { Dock = DockStyle.Fill };
             ApplyGridTheme(dgvItems);
             dgvItems.ReadOnly = true;
@@ -92,55 +98,77 @@ namespace Kasir.Forms.POS
             dgvItems.Columns.Add("Name", "NAMA BARANG");
             dgvItems.Columns.Add("Qty", "QTY");
             dgvItems.Columns.Add("Price", "HARGA");
-            dgvItems.Columns.Add("Disc", "DISC%");
             dgvItems.Columns.Add("Total", "TOTAL");
+            dgvItems.Columns.Add("Disc", "DISC");
 
             dgvItems.Columns["No"].Width = 40;
             dgvItems.Columns["Code"].Width = 150;
             dgvItems.Columns["Name"].Width = 250;
             dgvItems.Columns["Qty"].Width = 60;
             dgvItems.Columns["Price"].Width = 100;
-            dgvItems.Columns["Disc"].Width = 60;
             dgvItems.Columns["Total"].Width = 120;
+            dgvItems.Columns["Disc"].Width = 80;
 
-            // Totals panel
-            var pnlTotals = new Panel
+            // === 3. Barcode input panel (below grid) ===
+            var pnlInput = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 80,
+                Height = 35,
+                BackColor = Color.Black
+            };
+
+            var lblCursor = new Label
+            {
+                Text = ">",
+                Location = new Point(5, 5),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(0, 255, 0),
+                Font = new Font("Consolas", 16f)
+            };
+
+            txtBarcode = new TextBox
+            {
+                Location = new Point(25, 3),
+                Width = 300,
+                BackColor = Color.Black,
+                ForeColor = Color.FromArgb(0, 255, 0),
+                Font = new Font("Consolas", 16f),
+                BorderStyle = BorderStyle.None
+            };
+            txtBarcode.KeyDown += TxtBarcode_KeyDown;
+
+            pnlInput.Controls.AddRange(new Control[] { lblCursor, txtBarcode });
+
+            // === 4. TOTAL row ===
+            var pnlTotalRow = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 30,
                 BackColor = Color.FromArgb(0, 20, 0)
             };
 
-            lblSubtotal = new Label
+            lblTotalRow = new Label
             {
-                Text = "SUBTOTAL: Rp 0",
+                Text = "TOTAL\u2192  0.00",
                 Location = new Point(10, 5),
                 AutoSize = true,
-                ForeColor = Color.FromArgb(0, 200, 0),
-                Font = new Font("Consolas", 12f)
+                ForeColor = Color.White,
+                Font = new Font("Consolas", 14f, FontStyle.Bold)
             };
 
-            lblDiscount = new Label
+            lblTotalCount = new Label
             {
-                Text = "DISC: Rp 0",
-                Location = new Point(10, 25),
-                AutoSize = true,
-                ForeColor = Color.Yellow,
-                Font = new Font("Consolas", 12f)
-            };
-
-            lblGrandTotal = new Label
-            {
-                Text = "TOTAL: Rp 0",
-                Location = new Point(10, 50),
+                Dock = DockStyle.Right,
                 AutoSize = true,
                 ForeColor = Color.White,
-                Font = new Font("Consolas", 18f, FontStyle.Bold)
+                Font = new Font("Consolas", 12f),
+                Text = "0",
+                Padding = new Padding(0, 5, 20, 0)
             };
 
-            pnlTotals.Controls.AddRange(new Control[] { lblSubtotal, lblDiscount, lblGrandTotal });
+            pnlTotalRow.Controls.AddRange(new Control[] { lblTotalRow, lblTotalCount });
 
-            // Footer panel
+            // === 5. Footer bar (JAM + MESIN + JRNL) ===
             var pnlFooter = new Panel
             {
                 Dock = DockStyle.Bottom,
@@ -148,29 +176,38 @@ namespace Kasir.Forms.POS
                 BackColor = Color.FromArgb(0, 30, 0)
             };
 
-            lblFooter = new Label
+            lblFooterClock = new Label
             {
+                Text = string.Format("JAM\u2192 {0}", DateTime.Now.ToString("HH:mm:ss")),
                 Dock = DockStyle.Left,
                 AutoSize = true,
-                ForeColor = Color.FromArgb(0, 150, 0),
-                Font = new Font("Consolas", 9f)
+                ForeColor = Color.Yellow,
+                Font = new Font("Consolas", 10f)
             };
 
-            lblSyncStatus = new Label
+            lblFooter = new Label
             {
                 Dock = DockStyle.Right,
                 AutoSize = true,
                 ForeColor = Color.FromArgb(0, 150, 0),
-                Font = new Font("Consolas", 9f),
-                Text = "SYNC: --"
+                Font = new Font("Consolas", 10f)
             };
 
-            pnlFooter.Controls.AddRange(new Control[] { lblFooter, lblSyncStatus });
+            pnlFooter.Controls.AddRange(new Control[] { lblFooterClock, lblFooter });
 
-            // Add controls (order matters for Dock)
+            // === Clock timer for footer ===
+            _posClock = new System.Windows.Forms.Timer { Interval = 1000 };
+            _posClock.Tick += (s, e) =>
+            {
+                lblFooterClock.Text = string.Format("JAM\u2192 {0}", DateTime.Now.ToString("HH:mm:ss"));
+            };
+            _posClock.Start();
+
+            // === Add controls (order matters for Dock: Fill must be added first) ===
             this.Controls.Add(dgvItems);
-            this.Controls.Add(pnlTop);
-            this.Controls.Add(pnlTotals);
+            this.Controls.Add(pnlHeader);
+            this.Controls.Add(pnlInput);
+            this.Controls.Add(pnlTotalRow);
             this.Controls.Add(pnlFooter);
 
             txtBarcode.Focus();
@@ -214,6 +251,12 @@ namespace Kasir.Forms.POS
             var item = _salesService.AddItem(code, 1);
             if (item == null)
             {
+                // Smart display: if input is numeric, show it in SUBTOTAL area temporarily
+                long numVal;
+                if (long.TryParse(code, out numVal))
+                {
+                    lblSubtotalValue.Text = numVal.ToString("N0");
+                }
                 SetAction("Barang tidak ditemukan: " + code);
                 return;
             }
@@ -235,30 +278,30 @@ namespace Kasir.Forms.POS
                     item.ProductName ?? "",
                     item.Quantity,
                     Formatting.FormatCurrencyShort(item.UnitPrice),
-                    item.DiscPct > 0 ? (item.DiscPct / 100.0).ToString("F1") + "%" : "",
-                    Formatting.FormatCurrencyShort(item.Value));
+                    Formatting.FormatCurrencyShort(item.Value),
+                    item.DiscPct > 0 ? Formatting.FormatCurrencyShort((long)(item.UnitPrice * item.Quantity * item.DiscPct / 10000)) : "");
             }
         }
 
         private void UpdateTotals()
         {
             var totals = _salesService.GetTotals();
-            lblSubtotal.Text = string.Format("SUBTOTAL: {0}", Formatting.FormatCurrency(totals.GrossAmount));
-            lblDiscount.Text = string.Format("DISC: {0}", Formatting.FormatCurrency(totals.TotalDiscount));
-            lblGrandTotal.Text = string.Format("TOTAL: {0}", Formatting.FormatCurrency(totals.NetAmount));
+            lblSubtotalValue.Text = totals.NetAmount.ToString("N0");
+            lblTotalRow.Text = string.Format("TOTAL\u2192  {0}", Formatting.FormatCurrency(totals.NetAmount));
+            lblTotalCount.Text = _salesService.CurrentItems.Count.ToString();
         }
 
         private void UpdateFooter()
         {
             string registerId = _configRepo.Get("register_id") ?? "01";
             string today = DateTime.Now.ToString("yyyy-MM-dd");
-            _dailyCount = new SaleRepository(DbConnection.GetConnection()).GetDailyCount(today);
+            var saleRepo = new SaleRepository(DbConnection.GetConnection());
+            _dailyCount = saleRepo.GetDailyCount(today);
 
-            lblFooter.Text = string.Format("MESIN#{0}  ID#{1}  JMLH: {2}  Shift: {3}",
+            lblFooter.Text = string.Format("MESIN#{0}  ID#{1}  JRNL#{2}",
                 registerId,
                 _auth.CurrentUser.Id,
-                _dailyCount,
-                _currentShift != null ? _currentShift.ShiftNumber : "-");
+                _dailyCount.ToString("D5"));
         }
 
         private void OpenPayment()
@@ -283,27 +326,9 @@ namespace Kasir.Forms.POS
                             payForm.VoucherAmount,
                             payForm.CardCode,
                             payForm.CardType,
-                            ""); // memberCode — TODO: add member lookup
+                            "");
 
-                        SetAction(string.Format("SALE COMPLETE: {0} — Change: {1}",
-                            sale.JournalNo,
-                            Formatting.FormatCurrency(sale.ChangeAmount)));
-
-                        // Print receipt async
-                        PrintReceiptAsync(sale);
-
-                        // Open cash drawer
-                        if (payForm.CashAmount > 0)
-                        {
-                            OpenCashDrawer();
-                        }
-
-                        // Clear for next customer
-                        _salesService.ClearCurrentSale();
-                        RefreshGrid();
-                        UpdateTotals();
-                        UpdateFooter();
-                        txtBarcode.Focus();
+                        FinalizeSale(sale, payForm.CashAmount > 0);
                     }
                     catch (Exception ex)
                     {
@@ -311,6 +336,48 @@ namespace Kasir.Forms.POS
                     }
                 }
             }
+        }
+
+        private void DoExactPayment()
+        {
+            if (_salesService.CurrentItems.Count == 0)
+            {
+                SetAction("No items to pay.");
+                return;
+            }
+
+            try
+            {
+                var totals = _salesService.GetTotals();
+                var sale = _salesService.CompleteSale(
+                    totals.NetAmount, 0, 0, "", "", "");
+
+                FinalizeSale(sale, true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Payment error: " + ex.Message, "Error");
+            }
+        }
+
+        private void FinalizeSale(Sale sale, bool openDrawer)
+        {
+            SetAction(string.Format("SALE COMPLETE: {0} — Change: {1}",
+                sale.JournalNo,
+                Formatting.FormatCurrency(sale.ChangeAmount)));
+
+            PrintReceiptAsync(sale);
+
+            if (openDrawer)
+            {
+                OpenCashDrawer();
+            }
+
+            _salesService.ClearCurrentSale();
+            RefreshGrid();
+            UpdateTotals();
+            UpdateFooter();
+            txtBarcode.Focus();
         }
 
         private async void PrintReceiptAsync(Sale sale)
@@ -446,19 +513,37 @@ namespace Kasir.Forms.POS
             UpdateTotals();
         }
 
-        private void SearchProduct()
+        private void SearchByCode()
         {
             string query = InputDialog.ShowSingleInput(this,
-                "Product Search", "Search by name or code", "");
+                "Cari Kode", "Masukkan kode barang:", "");
 
             if (string.IsNullOrEmpty(query)) return;
 
             var results = new ProductRepository(DbConnection.GetConnection())
-                .SearchByText(query, 20);
+                .SearchByCodePrefix(query, 20);
 
+            ShowSearchResults(results);
+        }
+
+        private void SearchByName()
+        {
+            string query = InputDialog.ShowSingleInput(this,
+                "Cari Nama", "Masukkan nama barang:", "");
+
+            if (string.IsNullOrEmpty(query)) return;
+
+            var results = new ProductRepository(DbConnection.GetConnection())
+                .SearchByName(query, 20);
+
+            ShowSearchResults(results);
+        }
+
+        private void ShowSearchResults(List<Product> results)
+        {
             if (results.Count == 0)
             {
-                MessageBox.Show("No products found.", "Search");
+                MessageBox.Show("Barang tidak ditemukan.", "Cari");
                 return;
             }
 
@@ -471,7 +556,7 @@ namespace Kasir.Forms.POS
             // Show selection list
             using (var selectForm = new Form())
             {
-                selectForm.Text = "Select Product";
+                selectForm.Text = "Pilih Barang";
                 selectForm.Size = new Size(600, 400);
                 selectForm.StartPosition = FormStartPosition.CenterParent;
                 selectForm.BackColor = Color.Black;
@@ -526,11 +611,10 @@ namespace Kasir.Forms.POS
             switch (keyData)
             {
                 case Keys.F1:
-                    SearchProduct();
+                    SearchByCode();
                     return true;
                 case Keys.F2:
-                    OpenCashDrawer();
-                    SetAction("Cash drawer opened");
+                    SearchByName();
                     return true;
                 case Keys.F3:
                     ChangeQty();
@@ -540,6 +624,13 @@ namespace Kasir.Forms.POS
                     return true;
                 case Keys.F8:
                     VoidCurrentItem();
+                    return true;
+                case Keys.F9:
+                    using (var calc = new CalculatorDialog())
+                    {
+                        calc.ShowDialog(this);
+                    }
+                    txtBarcode.Focus();
                     return true;
                 case Keys.F10:
                     if (_salesService.CurrentItems.Count > 0)
@@ -554,6 +645,32 @@ namespace Kasir.Forms.POS
                         }
                     }
                     return true;
+                case Keys.F11:
+                    OpenCashDrawer();
+                    SetAction("Cash drawer opened");
+                    return true;
+                case Keys.Add:
+                    DoExactPayment();
+                    return true;
+                case Keys.Down:
+                    if (txtBarcode.Focused)
+                    {
+                        if (_salesService.CurrentItems.Count > 0)
+                        {
+                            if (MessageBox.Show("Batalkan transaksi?", "Konfirmasi",
+                                MessageBoxButtons.YesNo) == DialogResult.Yes)
+                            {
+                                _salesService.ClearCurrentSale();
+                                RefreshGrid();
+                                UpdateTotals();
+                                lblSubtotalValue.Text = "0";
+                                SetAction("Transaksi dibatalkan");
+                            }
+                        }
+                        txtBarcode.Focus();
+                        return true;
+                    }
+                    break;
                 case Keys.Escape:
                     if (_salesService.CurrentItems.Count > 0)
                     {
@@ -567,6 +684,16 @@ namespace Kasir.Forms.POS
                     return true;
             }
             return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            if (_posClock != null)
+            {
+                _posClock.Stop();
+                _posClock.Dispose();
+            }
+            base.OnFormClosed(e);
         }
     }
 }
