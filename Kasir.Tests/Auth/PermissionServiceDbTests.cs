@@ -36,15 +36,16 @@ namespace Kasir.Tests.Auth
         }
 
         [Test]
-        public void DbDriven_Admin_Wildcard_AllowsEverything()
+        public void DbDriven_Wildcard_AllowsEverything()
         {
-            InsertRole(1, "admin", "[\"*\"]");
+            // Use roleId 10 (not 1) to avoid hardcoded admin fast-path bypass
+            InsertRole(10, "superadmin", "[\"*\"]");
             var perms = new PermissionService(_db);
-            var admin = new User { RoleId = 1 };
+            var user = new User { RoleId = 10 };
 
-            perms.HasPermission(admin, "anything").Should().BeTrue();
-            perms.HasPermission(admin, "pos").Should().BeTrue();
-            perms.HasPermission(admin, "utility.users").Should().BeTrue();
+            perms.HasPermission(user, "anything").Should().BeTrue();
+            perms.HasPermission(user, "pos").Should().BeTrue();
+            perms.HasPermission(user, "utility.users").Should().BeTrue();
         }
 
         [Test]

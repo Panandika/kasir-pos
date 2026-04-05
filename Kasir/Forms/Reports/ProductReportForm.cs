@@ -44,7 +44,7 @@ namespace Kasir.Forms.Reports
             btnExport.Click += (s, e) => Export();
             pnlParams.Controls.Add(btnExport);
 
-            dgvReport = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };
+            dgvReport = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AllowUserToAddRows = false };
             ApplyGridTheme(dgvReport);
 
             var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = Color.FromArgb(0, 30, 0) };

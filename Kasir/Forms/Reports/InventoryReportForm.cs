@@ -236,7 +236,7 @@ namespace Kasir.Forms.Reports
                 if (row.Variance < 0)
                 {
                     dgvReport.Rows[idx].DefaultCellStyle.ForeColor = Color.FromArgb(255, 80, 80);
-                    totalShortage += row.VarianceValue;
+                    totalShortage += System.Math.Abs(row.VarianceValue);
                 }
                 else if (row.Variance > 0)
                 {
@@ -245,10 +245,10 @@ namespace Kasir.Forms.Reports
                 }
             }
 
-            lblSummary.Text = string.Format("Kurang: {0}  Lebih: {1}  Nett: {2}  ({3} items)",
+            lblSummary.Text = string.Format("Kurang: -{0}  Lebih: {1}  Nett: {2}  ({3} items)",
                 Formatting.FormatCurrency(totalShortage),
                 Formatting.FormatCurrency(totalSurplus),
-                Formatting.FormatCurrency(totalShortage + totalSurplus),
+                Formatting.FormatCurrency(totalSurplus - totalShortage),
                 rows.Count);
         }
 
