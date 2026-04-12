@@ -95,7 +95,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@reg", registerId));
         }
 
-        private static string FormatNumber(string format, string prefix, string registerId, int seq)
+        private string FormatNumber(string format, string prefix, string registerId, int seq)
         {
             // Format string supports: {prefix}, {REG}, {YYMM}, {SEQ:04d}
             string result = format;
