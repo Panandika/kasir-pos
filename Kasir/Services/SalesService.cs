@@ -228,6 +228,11 @@ namespace Kasir.Services
         public Sale CompleteSale(long cashAmount, long cardAmount, long voucherAmount,
             string cardCode, string cardType, string memberCode)
         {
+            if (_currentItems.Count == 0)
+            {
+                throw new InvalidOperationException("Cannot complete sale with no items");
+            }
+
             var totals = GetTotals();
 
             var validation = _paymentCalc.ValidatePayment(
@@ -273,20 +278,33 @@ namespace Kasir.Services
                 ChangedBy = _cashierUserId
             };
 
-            _saleRepo.Insert(sale, _currentItems);
-
-            // Create stock movements for each sold item
-            foreach (var item in _currentItems)
+            using (var txn = _db.BeginTransaction())
             {
-                int costPrice = _inventoryService.CalculateAverageCost(item.ProductCode);
-                _inventoryService.RecordStockOut(
-                    item.ProductCode,
-                    item.Quantity,
-                    costPrice,
-                    "SALE",
-                    journalNo,
-                    today,
-                    _cashierUserId);
+                try
+                {
+                    _saleRepo.InsertWithoutTransaction(sale, _currentItems);
+
+                    // Create stock movements for each sold item
+                    foreach (var item in _currentItems)
+                    {
+                        int costPrice = _inventoryService.CalculateAverageCost(item.ProductCode);
+                        _inventoryService.RecordStockOut(
+                            item.ProductCode,
+                            item.Quantity,
+                            costPrice,
+                            "SALE",
+                            journalNo,
+                            today,
+                            _cashierUserId);
+                    }
+
+                    txn.Commit();
+                }
+                catch
+                {
+                    txn.Rollback();
+                    throw;
+                }
             }
 
             return sale;

@@ -26,10 +26,12 @@ namespace Kasir.Forms.POS
         private Label lblFooter;
         private Label lblFooterClock;
         private SalesService _salesService;
+        private SaleRepository _saleRepo;
         private ConfigRepository _configRepo;
         private ShiftRepository _shiftRepo;
         private AuthService _auth;
         private PermissionService _perms;
+        private IClock _clock;
         private int _dailyCount;
         private Shift _currentShift;
         private System.Windows.Forms.Timer _posClock;
@@ -38,10 +40,12 @@ namespace Kasir.Forms.POS
         {
             _auth = auth;
             _perms = new PermissionService();
+            _clock = new ClockImpl();
             var conn = DbConnection.GetConnection();
             _configRepo = new ConfigRepository(conn);
             _shiftRepo = new ShiftRepository(conn);
-            _salesService = new SalesService(conn, new ClockImpl());
+            _saleRepo = new SaleRepository(conn);
+            _salesService = new SalesService(conn, _clock);
             _salesService.SetCashier(
                 _auth.CurrentUser.Alias,
                 _auth.CurrentUser.Id);
@@ -178,7 +182,7 @@ namespace Kasir.Forms.POS
 
             lblFooterClock = new Label
             {
-                Text = string.Format("JAM\u2192 {0}", DateTime.Now.ToString("HH:mm:ss")),
+                Text = string.Format("JAM\u2192 {0}", _clock.Now.ToString("HH:mm:ss")),
                 Dock = DockStyle.Left,
                 AutoSize = true,
                 ForeColor = Color.Yellow,
@@ -199,7 +203,7 @@ namespace Kasir.Forms.POS
             _posClock = new System.Windows.Forms.Timer { Interval = 1000 };
             _posClock.Tick += (s, e) =>
             {
-                lblFooterClock.Text = string.Format("JAM\u2192 {0}", DateTime.Now.ToString("HH:mm:ss"));
+                lblFooterClock.Text = string.Format("JAM\u2192 {0}", _clock.Now.ToString("HH:mm:ss"));
             };
             _posClock.Start();
 
@@ -279,7 +283,7 @@ namespace Kasir.Forms.POS
                     item.Quantity,
                     Formatting.FormatCurrencyShort(item.UnitPrice),
                     Formatting.FormatCurrencyShort(item.Value),
-                    item.DiscPct > 0 ? Formatting.FormatCurrencyShort((long)(item.UnitPrice * item.Quantity * item.DiscPct / 10000)) : "");
+                    item.DiscValue > 0 ? Formatting.FormatCurrencyShort(item.DiscValue) : "");
             }
         }
 
@@ -294,9 +298,8 @@ namespace Kasir.Forms.POS
         private void UpdateFooter()
         {
             string registerId = _configRepo.Get("register_id") ?? "01";
-            string today = DateTime.Now.ToString("yyyy-MM-dd");
-            var saleRepo = new SaleRepository(DbConnection.GetConnection());
-            _dailyCount = saleRepo.GetDailyCount(today);
+            string today = _clock.Now.ToString("yyyy-MM-dd");
+            _dailyCount = _saleRepo.GetDailyCount(today);
 
             lblFooter.Text = string.Format("MESIN#{0}  ID#{1}  JRNL#{2}",
                 registerId,
@@ -388,20 +391,22 @@ namespace Kasir.Forms.POS
                 if (string.IsNullOrEmpty(printerName)) return;
 
                 var printer = new ReceiptPrinter(printerName);
-                var items = new SaleRepository(DbConnection.GetConnection())
-                    .GetItemsByJournalNo(sale.JournalNo);
+                // Use separate connection for background thread
+                var items = _saleRepo.GetItemsByJournalNo(sale.JournalNo);
 
                 byte[] receiptData = BuildReceiptBytes(sale, items);
-                bool success = await Task.Run(() => printer.Print(receiptData));
+                bool success = await Task.Run(() => printer.Print(receiptData)).ConfigureAwait(true);
 
                 if (!success)
                 {
-                    SetAction("PRINTER ERROR — receipt not printed");
+                    MessageBox.Show("Receipt not printed. Use Utility > Reprint to try again.",
+                        "Printer Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
             {
-                SetAction("Print error: " + ex.Message);
+                MessageBox.Show("Print error: " + ex.Message + "\nUse Utility > Reprint to try again.",
+                    "Printer Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 

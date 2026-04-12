@@ -66,11 +66,23 @@ namespace Kasir.Services
             {
                 try
                 {
-                    var items = _saleRepo.GetItemsByJournalNo(sale.JournalNo);
-                    string cashAccount = GetCashAccountForSale(sale);
-                    _accountingService.PostSaleJournal(sale, items, cashAccount);
-                    MarkSalePosted(sale.JournalNo);
-                    result.PostedCount++;
+                    using (var txn = _db.BeginTransaction())
+                    {
+                        try
+                        {
+                            var items = _saleRepo.GetItemsByJournalNo(sale.JournalNo);
+                            string cashAccount = GetCashAccountForSale(sale);
+                            _accountingService.PostSaleJournal(sale, items, cashAccount);
+                            MarkSalePosted(sale.JournalNo);
+                            txn.Commit();
+                            result.PostedCount++;
+                        }
+                        catch
+                        {
+                            txn.Rollback();
+                            throw;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -92,9 +104,21 @@ namespace Kasir.Services
             {
                 try
                 {
-                    _accountingService.PostPurchaseJournal(purchase);
-                    MarkPurchasePosted(purchase.JournalNo);
-                    result.PostedCount++;
+                    using (var txn = _db.BeginTransaction())
+                    {
+                        try
+                        {
+                            _accountingService.PostPurchaseJournal(purchase);
+                            MarkPurchasePosted(purchase.JournalNo);
+                            txn.Commit();
+                            result.PostedCount++;
+                        }
+                        catch
+                        {
+                            txn.Rollback();
+                            throw;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -116,9 +140,21 @@ namespace Kasir.Services
             {
                 try
                 {
-                    _accountingService.PostReturnJournal(ret);
-                    MarkPurchasePosted(ret.JournalNo);
-                    result.PostedCount++;
+                    using (var txn = _db.BeginTransaction())
+                    {
+                        try
+                        {
+                            _accountingService.PostReturnJournal(ret);
+                            MarkPurchasePosted(ret.JournalNo);
+                            txn.Commit();
+                            result.PostedCount++;
+                        }
+                        catch
+                        {
+                            txn.Rollback();
+                            throw;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -136,19 +172,31 @@ namespace Kasir.Services
             var result = new PostingResult();
 
             var transactions = _cashTxnRepo.GetUnpostedByPeriod(periodCode);
-            foreach (var txn in transactions)
+            foreach (var cashTxn in transactions)
             {
                 try
                 {
-                    var lines = _cashTxnRepo.GetLines(txn.JournalNo);
-                    PostCashTransactionToGl(txn, lines);
-                    _cashTxnRepo.MarkPosted(txn.JournalNo);
-                    result.PostedCount++;
+                    using (var txn = _db.BeginTransaction())
+                    {
+                        try
+                        {
+                            var lines = _cashTxnRepo.GetLines(cashTxn.JournalNo);
+                            PostCashTransactionToGl(cashTxn, lines);
+                            _cashTxnRepo.MarkPosted(cashTxn.JournalNo);
+                            txn.Commit();
+                            result.PostedCount++;
+                        }
+                        catch
+                        {
+                            txn.Rollback();
+                            throw;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
                     result.ErrorCount++;
-                    result.Errors.Add(txn.JournalNo + ": " + ex.Message);
+                    result.Errors.Add(cashTxn.JournalNo + ": " + ex.Message);
                 }
             }
 
@@ -211,15 +259,18 @@ namespace Kasir.Services
 
             if (!result.IsBalanced)
             {
-                // Find accounts with mismatched totals
+                // Find accounts where GL detail totals don't match account_balances
                 var balances = _balanceRepo.GetAllForPeriod(periodCode);
                 foreach (var bal in balances)
                 {
-                    long net = bal.OpeningBalance + bal.DebitTotal - bal.CreditTotal;
-                    if (net != 0)
+                    long glDebit = _glRepo.GetDebitTotalForAccount(periodCode, bal.AccountCode);
+                    long glCredit = _glRepo.GetCreditTotalForAccount(periodCode, bal.AccountCode);
+
+                    if (glDebit != bal.DebitTotal || glCredit != bal.CreditTotal)
                     {
                         result.DiscrepancyAccounts.Add(
-                            string.Format("{0}: debit={1} credit={2}", bal.AccountCode, bal.DebitTotal, bal.CreditTotal));
+                            string.Format("{0}: bal(d={1},c={2}) vs gl(d={3},c={4})",
+                                bal.AccountCode, bal.DebitTotal, bal.CreditTotal, glDebit, glCredit));
                     }
                 }
             }

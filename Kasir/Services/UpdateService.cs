@@ -236,7 +236,7 @@ namespace Kasir.Services
 
             if (!_fs.FileExists(checksumFile) && !_fs.FileExists(hmacFile))
             {
-                return true; // Neither file present — local/manual update, skip verification
+                return false; // Neither file present — unsigned update, refuse to install
             }
 
             if (!_fs.FileExists(checksumFile) || !_fs.FileExists(hmacFile))
@@ -245,11 +245,17 @@ namespace Kasir.Services
             }
 
             string hmacKey = _configRepo.Get("sync_hmac_key") ?? "default-hmac-key-change-me";
+
+            if (hmacKey == "default-hmac-key-change-me")
+            {
+                return false; // HMAC key not configured — refuse to verify
+            }
+
             string checksumContent = _fs.ReadAllText(checksumFile);
             string expectedHmac = _fs.ReadAllText(hmacFile).Trim();
 
             string actualHmac = ComputeHmac(checksumContent, hmacKey);
-            return string.Equals(actualHmac, expectedHmac, StringComparison.OrdinalIgnoreCase);
+            return ConstantTimeHexEquals(actualHmac, expectedHmac);
         }
 
         public bool VerifyChecksums(string directory)
@@ -411,6 +417,19 @@ namespace Kasir.Services
                 byte[] hash = sha.ComputeHash(stream);
                 return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }
+        }
+
+        private static bool ConstantTimeHexEquals(string a, string b)
+        {
+            if (a == null || b == null) return false;
+            if (a.Length != b.Length) return false;
+
+            int diff = 0;
+            for (int i = 0; i < a.Length; i++)
+            {
+                diff |= char.ToLowerInvariant(a[i]) ^ char.ToLowerInvariant(b[i]);
+            }
+            return diff == 0;
         }
 
         public static string ComputeHmac(string content, string key)

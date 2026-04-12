@@ -73,10 +73,10 @@ namespace Kasir.Forms.Master
                 if (product == null) continue;
 
                 string newPriceStr = row.Cells["NewPrice"].Value?.ToString() ?? "";
-                double newPriceVal;
-                if (!double.TryParse(newPriceStr, out newPriceVal)) continue;
+                decimal newPriceVal;
+                if (!decimal.TryParse(newPriceStr, out newPriceVal)) continue;
 
-                int newPrice = (int)(newPriceVal * 100);
+                int newPrice = (int)(newPriceVal * 100m);
                 if (newPrice == product.Price) continue;
 
                 changes.Add(new PriceChangeEntry

@@ -1,12 +1,16 @@
 using System;
 using System.Data.SQLite;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Threading;
 
 namespace Kasir.Data
 {
     public static class DbConnection
     {
+        private static int _uiThreadId;
         private static readonly string DbDirectory = Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory, "data");
 
@@ -19,6 +23,14 @@ namespace Kasir.Data
 
         public static SQLiteConnection GetConnection()
         {
+            // Record UI thread on first call; warn if called from a background thread
+            if (_uiThreadId == 0)
+            {
+                _uiThreadId = Thread.CurrentThread.ManagedThreadId;
+            }
+            Debug.Assert(Thread.CurrentThread.ManagedThreadId == _uiThreadId,
+                "GetConnection() called from background thread — use CreateConnection() instead");
+
             if (_connection == null)
             {
                 _connection = new SQLiteConnection(ConnectionString);
@@ -30,6 +42,8 @@ namespace Kasir.Data
             if (_connection.State != System.Data.ConnectionState.Open)
             {
                 _connection.Open();
+                ConfigurePragmas(_connection);
+                TryLoadFts5(_connection);
             }
 
             return _connection;
@@ -163,6 +177,14 @@ namespace Kasir.Data
                         VALUES (1, 'ADMIN', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '', 'Administrator', 'ADM', 1, 1);";
                     cmd.ExecuteNonQuery();
 
+                    // Generate cryptographically random HMAC key for this installation
+                    byte[] hmacKeyBytes = new byte[32];
+                    using (var rng = new RNGCryptoServiceProvider())
+                    {
+                        rng.GetBytes(hmacKeyBytes);
+                    }
+                    string hmacKey = Convert.ToBase64String(hmacKeyBytes);
+
                     // Seed config
                     cmd.CommandText = @"
                         INSERT OR IGNORE INTO config (key, value, description) VALUES
@@ -177,10 +199,11 @@ namespace Kasir.Data
                         ('sync_enabled', 'false', 'Enable multi-register sync'),
                         ('sync_role', 'hub', 'Sync role: hub or slave'),
                         ('sync_hub_share', '\\\\KASIR01\\kasir\\sync', 'UNC path to sync share'),
-                        ('sync_hmac_key', 'default-hmac-key-change-me', 'HMAC-SHA256 key for sync and update signing'),
+                        ('sync_hmac_key', @hmacKey, 'HMAC-SHA256 key for sync and update signing'),
                         ('update_share', '\\\\KASIR01\\kasir\\updates\\latest', 'UNC path to update share'),
                         ('update_auto_check', 'false', 'Auto-check for updates after login'),
                         ('last_update_check', '', 'Timestamp of last update check');";
+                    cmd.Parameters.AddWithValue("@hmacKey", hmacKey);
                     cmd.ExecuteNonQuery();
 
                     // Seed counter prefixes to avoid race on first use

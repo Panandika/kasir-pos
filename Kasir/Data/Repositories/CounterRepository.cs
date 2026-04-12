@@ -1,15 +1,22 @@
 using System;
 using System.Data.SQLite;
+using Kasir.Utils;
 
 namespace Kasir.Data.Repositories
 {
     public class CounterRepository
     {
         private readonly SQLiteConnection _db;
+        private readonly IClock _clock;
 
-        public CounterRepository(SQLiteConnection db)
+        public CounterRepository(SQLiteConnection db) : this(db, null)
+        {
+        }
+
+        public CounterRepository(SQLiteConnection db, IClock clock)
         {
             _db = db;
+            _clock = clock ?? new ClockImpl();
         }
 
         public string GetNext(string prefix, string registerId)
@@ -69,7 +76,7 @@ namespace Kasir.Data.Repositories
                     return string.Format("{0}-{1}-{2}-{3}",
                         prefix,
                         registerId,
-                        DateTime.Now.ToString("yyMM"),
+                        _clock.Now.ToString("yyMM"),
                         nextValue.ToString("D4"));
                 }
                 catch
@@ -94,7 +101,7 @@ namespace Kasir.Data.Repositories
             string result = format;
             result = result.Replace("{prefix}", prefix);
             result = result.Replace("{REG}", registerId);
-            result = result.Replace("{YYMM}", DateTime.Now.ToString("yyMM"));
+            result = result.Replace("{YYMM}", _clock.Now.ToString("yyMM"));
 
             // Handle {SEQ:XXd} pattern
             int seqStart = result.IndexOf("{SEQ:", StringComparison.Ordinal);

@@ -4,6 +4,7 @@ using System.Data.SQLite;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Newtonsoft.Json;
@@ -12,6 +13,8 @@ namespace Kasir.Sync
 {
     public class PullService
     {
+        private static readonly Regex ValidColumnName = new Regex(@"^[a-z_][a-z0-9_]{0,63}$");
+
         private readonly SQLiteConnection _db;
         private readonly ConfigRepository _configRepo;
         private readonly ISyncFileReader _fileReader;
@@ -95,6 +98,12 @@ namespace Kasir.Sync
         private void VerifySignature(SyncBatch batch, string originalJson)
         {
             string hmacKey = _configRepo.Get("sync_hmac_key") ?? "default-hmac-key-change-me";
+
+            if (hmacKey == "default-hmac-key-change-me")
+            {
+                throw new SecurityException("sync_hmac_key has not been configured. Set a unique key before syncing.");
+            }
+
             byte[] keyBytes = Encoding.UTF8.GetBytes(hmacKey);
 
             // Recompute: serialize without signature, compute HMAC
@@ -110,11 +119,28 @@ namespace Kasir.Sync
                 byte[] expectedHash = hmac.ComputeHash(payloadBytes);
                 string expectedSig = Convert.ToBase64String(expectedHash);
 
-                if (savedSig != expectedSig)
+                if (!ConstantTimeEquals(savedSig, expectedSig))
                 {
                     throw new SecurityException("HMAC signature mismatch — batch may be tampered");
                 }
             }
+        }
+
+        private static bool ConstantTimeEquals(string a, string b)
+        {
+            if (a == null || b == null) return false;
+
+            byte[] ba = Convert.FromBase64String(a);
+            byte[] bb = Convert.FromBase64String(b);
+
+            if (ba.Length != bb.Length) return false;
+
+            int diff = 0;
+            for (int i = 0; i < ba.Length; i++)
+            {
+                diff |= ba[i] ^ bb[i];
+            }
+            return diff == 0;
         }
 
         private static void ValidateBatch(SyncBatch batch)
@@ -186,6 +212,7 @@ namespace Kasir.Sync
             int i = 0;
             foreach (var kvp in evt.Data)
             {
+                if (!ValidColumnName.IsMatch(kvp.Key)) continue;
                 columns.Add("[" + kvp.Key + "]");
                 string paramName = "@p" + i;
                 paramNames.Add(paramName);
@@ -227,6 +254,7 @@ namespace Kasir.Sync
             foreach (var kvp in evt.Data)
             {
                 if (kvp.Key == "id") continue; // Don't update PK
+                if (!ValidColumnName.IsMatch(kvp.Key)) continue;
                 string paramName = "@u" + i;
                 setClauses.Add(string.Format("[{0}] = {1}", kvp.Key, paramName));
                 parameters.Add(new SQLiteParameter(paramName, kvp.Value ?? DBNull.Value));

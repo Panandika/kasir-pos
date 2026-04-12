@@ -43,20 +43,14 @@ namespace Kasir.Services
         {
             var purchases = _movementRepo.GetPurchaseMovements(productCode);
 
-            // Calculate how much has already been consumed (sold/transferred out)
             int totalIn = 0;
-            int totalOut = _movementRepo.GetStockOnHand(productCode);
-            // totalOut here is net stock. consumed = totalPurchased - netStock
             foreach (var p in purchases)
             {
                 totalIn += p.QtyIn;
             }
-            int consumed = totalIn - (totalOut < 0 ? 0 : totalOut + qtyNeeded);
-            // Actually, simpler: walk layers, skip already-consumed qty
 
-            // Recalculate: total sold/out = totalIn - currentOnHand
             int currentOnHand = _movementRepo.GetStockOnHand(productCode);
-            int alreadyConsumed = totalIn - currentOnHand;
+            int alreadyConsumed = Math.Max(0, totalIn - currentOnHand);
 
             long totalCost = 0;
             int remaining = qtyNeeded;
@@ -95,7 +89,7 @@ namespace Kasir.Services
                   WHERE product_code = @code AND movement_type = 'PURCHASE'",
                 SqlHelper.Param("@code", productCode));
 
-            int totalQty = SqlHelper.ExecuteScalar<int>(_db,
+            long totalQty = SqlHelper.ExecuteScalar<long>(_db,
                 @"SELECT COALESCE(SUM(qty_in), 0) FROM stock_movements
                   WHERE product_code = @code AND movement_type = 'PURCHASE'",
                 SqlHelper.Param("@code", productCode));

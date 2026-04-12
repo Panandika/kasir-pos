@@ -350,21 +350,21 @@ namespace Kasir.Forms.Master
             p.Barcode = txtBarcode.Text.Trim();
             p.Unit = txtUnit.Text.Trim();
 
-            double val;
-            p.Price = double.TryParse(txtPrice.Text, out val) ? (int)(val * 100) : 0;
-            p.Price1 = double.TryParse(txtPrice1.Text, out val) ? (int)(val * 100) : 0;
-            p.Price2 = double.TryParse(txtPrice2.Text, out val) ? (int)(val * 100) : 0;
-            p.Price3 = double.TryParse(txtPrice3.Text, out val) ? (int)(val * 100) : 0;
-            p.Price4 = double.TryParse(txtPrice4.Text, out val) ? (int)(val * 100) : 0;
-            p.BuyingPrice = double.TryParse(txtBuyingPrice.Text, out val) ? (int)(val * 100) : 0;
-            p.CostPrice = double.TryParse(txtCostPrice.Text, out val) ? (int)(val * 100) : 0;
+            decimal val;
+            p.Price = decimal.TryParse(txtPrice.Text, out val) ? (int)(val * 100m) : 0;
+            p.Price1 = decimal.TryParse(txtPrice1.Text, out val) ? (int)(val * 100m) : 0;
+            p.Price2 = decimal.TryParse(txtPrice2.Text, out val) ? (int)(val * 100m) : 0;
+            p.Price3 = decimal.TryParse(txtPrice3.Text, out val) ? (int)(val * 100m) : 0;
+            p.Price4 = decimal.TryParse(txtPrice4.Text, out val) ? (int)(val * 100m) : 0;
+            p.BuyingPrice = decimal.TryParse(txtBuyingPrice.Text, out val) ? (int)(val * 100m) : 0;
+            p.CostPrice = decimal.TryParse(txtCostPrice.Text, out val) ? (int)(val * 100m) : 0;
 
             int intVal;
             p.QtyBreak2 = int.TryParse(txtQtyBreak2.Text, out intVal) ? intVal : 0;
             p.QtyBreak3 = int.TryParse(txtQtyBreak3.Text, out intVal) ? intVal : 0;
 
-            double discVal;
-            p.DiscPct = double.TryParse(txtDiscPct.Text, out discVal) ? (int)(discVal * 100) : 0;
+            decimal discVal;
+            p.DiscPct = decimal.TryParse(txtDiscPct.Text, out discVal) ? (int)(discVal * 100m) : 0;
 
             p.VendorCode = txtVendorCode.Text.Trim();
             p.OpenPrice = cboOpenPrice.SelectedIndex == 1 ? "Y" : "N";

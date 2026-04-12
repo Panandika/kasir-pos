@@ -65,8 +65,10 @@ namespace Kasir.Services
             switch (tier)
             {
                 case 1: return product.Price1;
-                case 2: return product.Price2;
-                case 3: return product.Price3;
+                // Price2/Price3 are shared with qty-break pricing.
+                // Only use as tier price if no qty-break threshold is configured for that tier.
+                case 2: return product.QtyBreak2 > 0 ? 0 : product.Price2;
+                case 3: return product.QtyBreak3 > 0 ? 0 : product.Price3;
                 case 4: return product.Price4;
                 default: return 0;
             }

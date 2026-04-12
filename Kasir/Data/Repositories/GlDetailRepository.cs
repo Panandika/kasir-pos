@@ -80,6 +80,22 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@period", periodCode));
         }
 
+        public long GetDebitTotalForAccount(string periodCode, string accountCode)
+        {
+            return SqlHelper.ExecuteScalar<long>(_db,
+                "SELECT COALESCE(SUM(debit), 0) FROM gl_details WHERE period_code = @period AND account_code = @acc",
+                SqlHelper.Param("@period", periodCode),
+                SqlHelper.Param("@acc", accountCode));
+        }
+
+        public long GetCreditTotalForAccount(string periodCode, string accountCode)
+        {
+            return SqlHelper.ExecuteScalar<long>(_db,
+                "SELECT COALESCE(SUM(credit), 0) FROM gl_details WHERE period_code = @period AND account_code = @acc",
+                SqlHelper.Param("@period", periodCode),
+                SqlHelper.Param("@acc", accountCode));
+        }
+
         private static GlDetail MapGlDetail(SQLiteDataReader r)
         {
             return new GlDetail

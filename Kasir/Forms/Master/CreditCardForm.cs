@@ -83,14 +83,14 @@ namespace Kasir.Forms.Master
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                 {
-                    double fee;
-                    if (!double.TryParse(dlg.Values[2], out fee)) fee = 0;
+                    decimal fee;
+                    if (!decimal.TryParse(dlg.Values[2], out fee)) fee = 0;
 
                     var card = new CreditCard
                     {
                         CardCode = dlg.Values[0],
                         Name = dlg.Values[1],
-                        FeePct = (int)(fee * 100),
+                        FeePct = (int)(fee * 100m),
                         AccountCode = dlg.Values[3],
                         ChangedBy = _currentUserId
                     };
@@ -113,11 +113,11 @@ namespace Kasir.Forms.Master
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                 {
-                    double fee;
-                    if (!double.TryParse(dlg.Values[1], out fee)) fee = 0;
+                    decimal fee;
+                    if (!decimal.TryParse(dlg.Values[1], out fee)) fee = 0;
 
                     card.Name = dlg.Values[0];
-                    card.FeePct = (int)(fee * 100);
+                    card.FeePct = (int)(fee * 100m);
                     card.AccountCode = dlg.Values[2];
                     card.ChangedBy = _currentUserId;
 

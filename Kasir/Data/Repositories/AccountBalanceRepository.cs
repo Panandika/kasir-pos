@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using Kasir.Models;
@@ -76,10 +77,40 @@ namespace Kasir.Data.Repositories
 
         public void CarryForward(string fromPeriod, string toPeriod)
         {
+            // Load all accounts to check normal balance direction
+            var accounts = SqlHelper.Query(_db,
+                "SELECT account_code, normal_balance FROM accounts",
+                r => new Tuple<string, string>(
+                    SqlHelper.GetString(r, "account_code"),
+                    SqlHelper.GetString(r, "normal_balance")));
+
+            var normalBalanceMap = new Dictionary<string, string>();
+            foreach (var acct in accounts)
+            {
+                normalBalanceMap[acct.Item1] = acct.Item2;
+            }
+
             var balances = GetAllForPeriod(fromPeriod);
             foreach (var bal in balances)
             {
-                long closing = bal.OpeningBalance + bal.DebitTotal - bal.CreditTotal;
+                string normalBal;
+                if (!normalBalanceMap.TryGetValue(bal.AccountCode, out normalBal))
+                {
+                    normalBal = "D";
+                }
+
+                long closing;
+                if (normalBal == "K")
+                {
+                    // Credit-normal: liability, equity, revenue
+                    closing = bal.OpeningBalance + bal.CreditTotal - bal.DebitTotal;
+                }
+                else
+                {
+                    // Debit-normal: asset, expense
+                    closing = bal.OpeningBalance + bal.DebitTotal - bal.CreditTotal;
+                }
+
                 SetOpeningBalance(bal.AccountCode, toPeriod, closing);
             }
         }

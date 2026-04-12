@@ -201,6 +201,8 @@ namespace Kasir.Forms.POS
             this.Close();
         }
 
+        // Indonesian convention: period is thousand separator (e.g., 100.000 = Rp 100,000).
+        // Both period and comma are stripped as separators; input is treated as whole Rupiah.
         private static long ParseAmount(string text)
         {
             long value;

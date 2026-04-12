@@ -89,10 +89,10 @@ namespace Kasir.Forms.Purchasing
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                 {
-                    int qty; double price;
+                    int qty; decimal price;
                     int.TryParse(dlg.Values[0], out qty);
-                    double.TryParse(dlg.Values[1], out price);
-                    _items.Add(new PurchaseItem { ProductCode = code, ProductName = product.Name, Quantity = qty, UnitPrice = (int)(price * 100), Value = (long)(price * 100) * qty });
+                    decimal.TryParse(dlg.Values[1], out price);
+                    _items.Add(new PurchaseItem { ProductCode = code, ProductName = product.Name, Quantity = qty, UnitPrice = (int)(price * 100m), Value = (long)(price * 100m) * qty });
                     RefreshGrid();
                 }
             }

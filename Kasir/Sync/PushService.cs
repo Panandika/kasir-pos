@@ -201,6 +201,12 @@ namespace Kasir.Sync
         private string SignPayload(string json)
         {
             string hmacKey = _configRepo.Get("sync_hmac_key") ?? "default-hmac-key-change-me";
+
+            if (hmacKey == "default-hmac-key-change-me")
+            {
+                throw new System.Security.SecurityException("sync_hmac_key has not been configured. Set a unique key before syncing.");
+            }
+
             byte[] keyBytes = Encoding.UTF8.GetBytes(hmacKey);
             byte[] payloadBytes = Encoding.UTF8.GetBytes(json);
 

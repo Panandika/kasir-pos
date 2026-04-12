@@ -19,52 +19,7 @@ namespace Kasir.Data.Repositories
             {
                 try
                 {
-                    SqlHelper.ExecuteNonQuery(_db,
-                        @"INSERT INTO sales (doc_type, journal_no, doc_date, account_code, sub_code,
-                          member_code, point_value, card_code, cashier, disc_pct, disc2_pct, shift,
-                          payment_amount, cash_amount, non_cash, total_value, change_amount, total_disc,
-                          card_type, gross_amount, voucher_amount, credit_amount, control,
-                          period_code, register_id, changed_by, changed_at)
-                          VALUES (@docType, @journalNo, @docDate, @acc, @sub,
-                          @member, @points, @card, @cashier, @disc, @disc2, @shift,
-                          @payment, @cash, @nonCash, @total, @change, @totalDisc,
-                          @cardType, @gross, @voucher, @credit, @control,
-                          @period, @register, @changedBy, datetime('now','localtime'))",
-                        SqlHelper.Param("@docType", sale.DocType ?? "SALE"),
-                        SqlHelper.Param("@journalNo", sale.JournalNo),
-                        SqlHelper.Param("@docDate", sale.DocDate),
-                        SqlHelper.Param("@acc", sale.AccountCode ?? ""),
-                        SqlHelper.Param("@sub", sale.SubCode ?? ""),
-                        SqlHelper.Param("@member", sale.MemberCode ?? ""),
-                        SqlHelper.Param("@points", sale.PointValue),
-                        SqlHelper.Param("@card", sale.CardCode ?? ""),
-                        SqlHelper.Param("@cashier", sale.Cashier ?? ""),
-                        SqlHelper.Param("@disc", sale.DiscPct),
-                        SqlHelper.Param("@disc2", sale.Disc2Pct),
-                        SqlHelper.Param("@shift", sale.Shift ?? "1"),
-                        SqlHelper.Param("@payment", sale.PaymentAmount),
-                        SqlHelper.Param("@cash", sale.CashAmount),
-                        SqlHelper.Param("@nonCash", sale.NonCash),
-                        SqlHelper.Param("@total", sale.TotalValue),
-                        SqlHelper.Param("@change", sale.ChangeAmount),
-                        SqlHelper.Param("@totalDisc", sale.TotalDisc),
-                        SqlHelper.Param("@cardType", sale.CardType ?? ""),
-                        SqlHelper.Param("@gross", sale.GrossAmount),
-                        SqlHelper.Param("@voucher", sale.VoucherAmount),
-                        SqlHelper.Param("@credit", sale.CreditAmount),
-                        SqlHelper.Param("@control", sale.Control),
-                        SqlHelper.Param("@period", sale.PeriodCode),
-                        SqlHelper.Param("@register", sale.RegisterId ?? "01"),
-                        SqlHelper.Param("@changedBy", sale.ChangedBy));
-
-                    int saleId = (int)_db.LastInsertRowId;
-
-                    foreach (var item in items)
-                    {
-                        item.JournalNo = sale.JournalNo;
-                        InsertItem(item);
-                    }
-
+                    int saleId = InsertWithoutTransaction(sale, items);
                     txn.Commit();
                     return saleId;
                 }
@@ -74,6 +29,57 @@ namespace Kasir.Data.Repositories
                     throw;
                 }
             }
+        }
+
+        public int InsertWithoutTransaction(Sale sale, List<SaleItem> items)
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO sales (doc_type, journal_no, doc_date, account_code, sub_code,
+                  member_code, point_value, card_code, cashier, disc_pct, disc2_pct, shift,
+                  payment_amount, cash_amount, non_cash, total_value, change_amount, total_disc,
+                  card_type, gross_amount, voucher_amount, credit_amount, control,
+                  period_code, register_id, changed_by, changed_at)
+                  VALUES (@docType, @journalNo, @docDate, @acc, @sub,
+                  @member, @points, @card, @cashier, @disc, @disc2, @shift,
+                  @payment, @cash, @nonCash, @total, @change, @totalDisc,
+                  @cardType, @gross, @voucher, @credit, @control,
+                  @period, @register, @changedBy, datetime('now','localtime'))",
+                SqlHelper.Param("@docType", sale.DocType ?? "SALE"),
+                SqlHelper.Param("@journalNo", sale.JournalNo),
+                SqlHelper.Param("@docDate", sale.DocDate),
+                SqlHelper.Param("@acc", sale.AccountCode ?? ""),
+                SqlHelper.Param("@sub", sale.SubCode ?? ""),
+                SqlHelper.Param("@member", sale.MemberCode ?? ""),
+                SqlHelper.Param("@points", sale.PointValue),
+                SqlHelper.Param("@card", sale.CardCode ?? ""),
+                SqlHelper.Param("@cashier", sale.Cashier ?? ""),
+                SqlHelper.Param("@disc", sale.DiscPct),
+                SqlHelper.Param("@disc2", sale.Disc2Pct),
+                SqlHelper.Param("@shift", sale.Shift ?? "1"),
+                SqlHelper.Param("@payment", sale.PaymentAmount),
+                SqlHelper.Param("@cash", sale.CashAmount),
+                SqlHelper.Param("@nonCash", sale.NonCash),
+                SqlHelper.Param("@total", sale.TotalValue),
+                SqlHelper.Param("@change", sale.ChangeAmount),
+                SqlHelper.Param("@totalDisc", sale.TotalDisc),
+                SqlHelper.Param("@cardType", sale.CardType ?? ""),
+                SqlHelper.Param("@gross", sale.GrossAmount),
+                SqlHelper.Param("@voucher", sale.VoucherAmount),
+                SqlHelper.Param("@credit", sale.CreditAmount),
+                SqlHelper.Param("@control", sale.Control),
+                SqlHelper.Param("@period", sale.PeriodCode),
+                SqlHelper.Param("@register", sale.RegisterId ?? "01"),
+                SqlHelper.Param("@changedBy", sale.ChangedBy));
+
+            int saleId = (int)_db.LastInsertRowId;
+
+            foreach (var item in items)
+            {
+                item.JournalNo = sale.JournalNo;
+                InsertItem(item);
+            }
+
+            return saleId;
         }
 
         private void InsertItem(SaleItem item)
