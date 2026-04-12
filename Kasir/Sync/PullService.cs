@@ -130,8 +130,17 @@ namespace Kasir.Sync
         {
             if (a == null || b == null) return false;
 
-            byte[] ba = Convert.FromBase64String(a);
-            byte[] bb = Convert.FromBase64String(b);
+            byte[] ba;
+            byte[] bb;
+            try
+            {
+                ba = Convert.FromBase64String(a);
+                bb = Convert.FromBase64String(b);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
 
             if (ba.Length != bb.Length) return false;
 
