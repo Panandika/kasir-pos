@@ -63,12 +63,12 @@ namespace Kasir
                 {
                     // Clean up state file
                     try { File.Delete(stateFile); }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Cleanup state file failed: " + ex.Message); }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Don't block startup for recovery issues
+                System.Diagnostics.Debug.WriteLine("Update recovery check failed: " + ex.Message);
             }
         }
 
@@ -93,13 +93,13 @@ namespace Kasir
                 AppVersion.JustUpdated = true;
 
                 // Clean up
-                try { File.Delete(markerFile); } catch { }
-                try { File.Delete(Path.Combine(basePath, "update-state.txt")); } catch { }
-                try { File.Delete(Path.Combine(basePath, "updater.log")); } catch { }
+                try { File.Delete(markerFile); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Delete marker failed: " + ex.Message); }
+                try { File.Delete(Path.Combine(basePath, "update-state.txt")); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Delete state failed: " + ex.Message); }
+                try { File.Delete(Path.Combine(basePath, "updater.log")); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Delete log failed: " + ex.Message); }
             }
-            catch
+            catch (Exception ex)
             {
-                // Don't block startup
+                System.Diagnostics.Debug.WriteLine("Update complete check failed: " + ex.Message);
             }
         }
     }

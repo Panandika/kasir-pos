@@ -122,12 +122,12 @@ namespace Kasir.Forms
             // Laporan menu (L)
             var reportMenu = new ToolStripMenuItem("&Laporan");
             AddMenuItem(reportMenu, "Cetak Master (&Barang)", "reports.master", (s, e) => ShowChildForm(new Reports.ProductReportForm()));
-            AddMenuItem(reportMenu, "Cetak Master (&Supplier)", "reports.master", (s, e) => ShowChildForm(new Reports.ProductReportForm()));
-            AddMenuItem(reportMenu, "&Pembelian/Stok", "reports.purchase", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
+            AddMenuItem(reportMenu, "Cetak Master (&Supplier)", "reports.master", (s, e) => ShowChildForm(new Reports.SupplierReportForm()));
+            AddMenuItem(reportMenu, "&Pembelian/Stok", "reports.purchase", (s, e) => ShowChildForm(new Reports.InventoryReportForm(1)));
             AddMenuItem(reportMenu, "&Hutang", "reports.purchase", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
             AddMenuItem(reportMenu, "Pen&jualan", "reports.sales", OnSalesReportClick);
             AddMenuItem(reportMenu, "&Laba", "reports.sales", (s, e) => ShowChildForm(new Reports.FinancialReportForm()));
-            AddMenuItem(reportMenu, "&Transfer/Stok", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm()));
+            AddMenuItem(reportMenu, "&Transfer/Stok", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm(3)));
             AddMenuItem(reportMenu, "Pema&kaian/Rusak/Hilang", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm(4)));
             AddMenuItem(reportMenu, "St&ok Barang", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm(0)));
             AddMenuItem(reportMenu, "Stok Op&name", "reports.stock", (s, e) => ShowChildForm(new Reports.InventoryReportForm(5)));

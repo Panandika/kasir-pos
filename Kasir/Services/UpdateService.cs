@@ -119,9 +119,9 @@ namespace Kasir.Services
                     return _fs.ReadAllText(notesFile);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore — patch notes are optional
+                System.Diagnostics.Debug.WriteLine("GetPatchNotes failed: " + ex.Message);
             }
             return "";
         }
@@ -194,8 +194,9 @@ namespace Kasir.Services
                 }
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("SaveUpdateState failed: " + ex.Message);
                 return false;
             }
         }
@@ -365,7 +366,7 @@ namespace Kasir.Services
             if (state == "COPY_COMPLETE" || state == "ROLLED_BACK")
             {
                 try { File.Delete(stateFile); }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Delete state file failed: " + ex.Message); }
             }
         }
 

@@ -91,6 +91,9 @@ namespace Kasir.Forms.Reports
                 case 5: // Stock Opname
                     GenerateStockOpname(conn);
                     break;
+                case 6: // Price History
+                    GeneratePriceHistory(conn);
+                    break;
                 default:
                     MessageBox.Show("Report type not yet implemented.");
                     break;
@@ -250,6 +253,52 @@ namespace Kasir.Forms.Reports
                 Formatting.FormatCurrency(totalSurplus),
                 Formatting.FormatCurrency(totalSurplus - totalShortage),
                 rows.Count);
+        }
+
+        private void GeneratePriceHistory(System.Data.SQLite.SQLiteConnection conn)
+        {
+            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].Width = 100;
+            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].Width = 120;
+            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].Width = 250;
+            dgvReport.Columns.Add("OldPrice", "Harga Lama"); dgvReport.Columns["OldPrice"].Width = 100;
+            dgvReport.Columns.Add("NewPrice", "Harga Baru"); dgvReport.Columns["NewPrice"].Width = 100;
+            dgvReport.Columns.Add("Vendor", "Supplier"); dgvReport.Columns["Vendor"].Width = 100;
+            dgvReport.Columns.Add("DocNo", "No. Dokumen"); dgvReport.Columns["DocNo"].Width = 140;
+
+            string sql = @"SELECT ph.doc_date, ph.product_code, COALESCE(p.name, ph.product_name) AS product_name,
+                                  ph.old_value, ph.value, ph.sub_code, ph.journal_no
+                           FROM price_history ph
+                           LEFT JOIN products p ON p.product_code = ph.product_code
+                           WHERE ph.doc_date BETWEEN @from AND @to
+                           ORDER BY ph.doc_date DESC, ph.product_code";
+
+            var rows = SqlHelper.Query(conn, sql,
+                reader => new
+                {
+                    Date = SqlHelper.GetString(reader, "doc_date"),
+                    Code = SqlHelper.GetString(reader, "product_code"),
+                    Name = SqlHelper.GetString(reader, "product_name"),
+                    OldValue = SqlHelper.GetLong(reader, "old_value"),
+                    NewValue = SqlHelper.GetLong(reader, "value"),
+                    Vendor = SqlHelper.GetString(reader, "sub_code"),
+                    DocNo = SqlHelper.GetString(reader, "journal_no")
+                },
+                SqlHelper.Param("@from", txtDateFrom.Text),
+                SqlHelper.Param("@to", txtDateTo.Text));
+
+            foreach (var r in rows)
+            {
+                dgvReport.Rows.Add(
+                    Formatting.FormatDate(r.Date),
+                    r.Code,
+                    r.Name ?? "",
+                    Formatting.FormatCurrencyShort(r.OldValue),
+                    Formatting.FormatCurrencyShort(r.NewValue),
+                    r.Vendor ?? "",
+                    r.DocNo ?? "");
+            }
+
+            lblSummary.Text = string.Format("{0} price changes", rows.Count);
         }
 
         private void Export()

@@ -113,7 +113,7 @@ namespace Kasir.Forms.Master
                     {
                         DeptCode = code,
                         Name = name,
-                        ChangedBy = _currentUserId // TODO: get from current user
+                        ChangedBy = _currentUserId
                     };
 
                     _deptRepo.Insert(dept);
@@ -143,7 +143,7 @@ namespace Kasir.Forms.Master
                     }
 
                     dept.Name = name;
-                    dept.ChangedBy = _currentUserId; // TODO: get from current user
+                    dept.ChangedBy = _currentUserId;
 
                     _deptRepo.Update(dept);
                     LoadData();
