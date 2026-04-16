@@ -4,6 +4,8 @@ using System.Drawing;
 using System.Windows.Forms;
 using Kasir.Auth;
 using Kasir.Data;
+using Kasir.Data.Repositories;
+using Kasir.Models;
 using Kasir.Sync;
 using Kasir.Utils;
 
@@ -15,6 +17,8 @@ namespace Kasir.Forms
         private readonly PermissionService _perms;
         private MenuStrip menuStrip;
         private Label lblBranding;
+        private Label _lblShiftStatus;
+        private Label _lblDailyCount;
 
         public MainMenuForm(AuthService auth)
         {
@@ -76,21 +80,113 @@ namespace Kasir.Forms
             };
             this.Controls.Add(lblBranding);
 
-            // Welcome label
-            var lblWelcome = new Label
+            // Dashboard center panel
+            var pnlDashboard = new Panel { Dock = DockStyle.Fill };
+
+            // Store branding (large, centered)
+            string storeName = ConfigurationManager.AppSettings["StoreName"] ?? "TOKO SINAR MAKMUR";
+            var lblStoreName = new Label
             {
-                Text = string.Format("Welcome, {0}\n\nUse the menu above or press F-keys:\n\n" +
-                    "F2  - Product Search\n" +
-                    "F5  - Payment\n" +
-                    "F12 - Sync\n" +
-                    "Esc - Logout",
-                    _auth.CurrentUser.DisplayName),
-                Dock = DockStyle.Fill,
+                Text = storeName,
+                Dock = DockStyle.Top,
+                Height = 80,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontSubtotalLabel
+            };
+
+            // User greeting
+            var lblGreeting = new Label
+            {
+                Text = string.Format("Selamat datang, {0}", _auth.CurrentUser.DisplayName),
+                Dock = DockStyle.Top,
+                Height = 30,
                 TextAlign = ContentAlignment.MiddleCenter,
                 ForeColor = ThemeConstants.FgDimmed,
                 Font = ThemeConstants.FontMain
             };
-            this.Controls.Add(lblWelcome);
+
+            // Status panel (shift + daily count)
+            var pnlStatus = new Panel { Dock = DockStyle.Top, Height = 50 };
+            _lblShiftStatus = new Label
+            {
+                Dock = DockStyle.Left,
+                Width = 400,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = ThemeConstants.FgWarning,
+                Font = ThemeConstants.FontMenu
+            };
+            _lblDailyCount = new Label
+            {
+                Dock = DockStyle.Right,
+                Width = 400,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = ThemeConstants.FgMuted,
+                Font = ThemeConstants.FontMenu
+            };
+            pnlStatus.Controls.AddRange(new Control[] { _lblShiftStatus, _lblDailyCount });
+
+            // Load shift and daily count
+            try
+            {
+                var conn = DbConnection.GetConnection();
+                var configRepo = new ConfigRepository(conn);
+                string registerId = configRepo.Get("register_id") ?? "01";
+                var shiftRepo = new ShiftRepository(conn);
+                Shift openShift = shiftRepo.GetOpenShift(registerId);
+                if (openShift != null)
+                {
+                    _lblShiftStatus.Text = string.Format("Shift #{0} OPEN — {1}",
+                        openShift.ShiftNumber, openShift.OpenTime);
+                    _lblShiftStatus.ForeColor = ThemeConstants.FgSuccess;
+                }
+                else
+                {
+                    _lblShiftStatus.Text = "Shift: CLOSED";
+                    _lblShiftStatus.ForeColor = ThemeConstants.FgError;
+                }
+
+                var saleRepo = new SaleRepository(conn);
+                int dailyCount = saleRepo.GetDailyCount(DateTime.Now.ToString("yyyy-MM-dd"));
+                _lblDailyCount.Text = string.Format("Transaksi hari ini: {0}", dailyCount);
+            }
+            catch
+            {
+                _lblShiftStatus.Text = "Shift: -";
+                _lblDailyCount.Text = "Transaksi: -";
+            }
+
+            // Shortcut keys panel
+            var pnlShortcuts = new Panel { Dock = DockStyle.Fill };
+            string shortcutText =
+                "\n\n" +
+                "  PINTASAN KEYBOARD\n" +
+                "  =================\n\n" +
+                "  MENU                          LAPORAN\n" +
+                "  Alt+M  Master                 Alt+L  Laporan\n" +
+                "  Alt+T  Transaksi              Alt+I  Informasi\n" +
+                "  Alt+K  Akuntansi              Alt+B  Bank\n" +
+                "  Alt+U  Utility                Alt+E  Keluar\n\n" +
+                "  FUNGSI CEPAT\n" +
+                "  ============\n" +
+                "  F12    Sinkronisasi\n" +
+                "  Esc    Logout";
+
+            var lblShortcuts = new Label
+            {
+                Text = shortcutText,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.TopCenter,
+                ForeColor = ThemeConstants.FgMuted,
+                Font = ThemeConstants.FontGrid
+            };
+            pnlShortcuts.Controls.Add(lblShortcuts);
+
+            pnlDashboard.Controls.Add(pnlShortcuts);
+            pnlDashboard.Controls.Add(pnlStatus);
+            pnlDashboard.Controls.Add(lblGreeting);
+            pnlDashboard.Controls.Add(lblStoreName);
+            this.Controls.Add(pnlDashboard);
         }
 
         private void BuildMenu()
@@ -228,10 +324,49 @@ namespace Kasir.Forms
             childForm.FormClosed += (s, ev) =>
             {
                 this.Show();
+                RefreshDashboardStatus();
                 menuStrip.Select();
                 menuStrip.Items[0].Select();
             };
             childForm.Show();
+        }
+
+        private void RefreshDashboardStatus()
+        {
+            try
+            {
+                var conn = DbConnection.GetConnection();
+                var configRepo = new ConfigRepository(conn);
+                string registerId = configRepo.Get("register_id") ?? "01";
+                var shiftRepo = new ShiftRepository(conn);
+                Shift openShift = shiftRepo.GetOpenShift(registerId);
+
+                if (_lblShiftStatus != null)
+                {
+                    if (openShift != null)
+                    {
+                        _lblShiftStatus.Text = string.Format("Shift #{0} OPEN — {1}",
+                            openShift.ShiftNumber, openShift.OpenTime);
+                        _lblShiftStatus.ForeColor = ThemeConstants.FgSuccess;
+                    }
+                    else
+                    {
+                        _lblShiftStatus.Text = "Shift: CLOSED";
+                        _lblShiftStatus.ForeColor = ThemeConstants.FgError;
+                    }
+                }
+
+                if (_lblDailyCount != null)
+                {
+                    var saleRepo = new SaleRepository(conn);
+                    int dailyCount = saleRepo.GetDailyCount(DateTime.Now.ToString("yyyy-MM-dd"));
+                    _lblDailyCount.Text = string.Format("Transaksi hari ini: {0}", dailyCount);
+                }
+            }
+            catch
+            {
+                // Non-critical — dashboard status update failure is silent
+            }
         }
 
         private void OnVendorClick(object sender, EventArgs e)
