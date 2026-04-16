@@ -108,13 +108,13 @@ namespace Kasir.Forms.POS
             dgvItems.Columns.Add("Total", "TOTAL");
             dgvItems.Columns.Add("Disc", "DISC");
 
-            dgvItems.Columns["No"].Width = 40;
-            dgvItems.Columns["Code"].Width = 150;
-            dgvItems.Columns["Name"].Width = 250;
-            dgvItems.Columns["Qty"].Width = 60;
-            dgvItems.Columns["Price"].Width = 100;
-            dgvItems.Columns["Total"].Width = 120;
-            dgvItems.Columns["Disc"].Width = 80;
+            dgvItems.Columns["No"].FillWeight = 40;
+            dgvItems.Columns["Code"].FillWeight = 150;
+            dgvItems.Columns["Name"].FillWeight = 250;
+            dgvItems.Columns["Qty"].FillWeight = 60;
+            dgvItems.Columns["Price"].FillWeight = 100;
+            dgvItems.Columns["Total"].FillWeight = 120;
+            dgvItems.Columns["Disc"].FillWeight = 80;
 
             // === 3. Barcode input panel (below grid) ===
             var pnlInput = new Panel

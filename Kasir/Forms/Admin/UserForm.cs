@@ -40,11 +40,11 @@ namespace Kasir.Forms.Admin
             dgvUsers.Columns.Add("Role", "Role");
             dgvUsers.Columns.Add("Active", "Active");
 
-            dgvUsers.Columns["Username"].Width = 150;
-            dgvUsers.Columns["DisplayName"].Width = 250;
-            dgvUsers.Columns["Alias"].Width = 60;
-            dgvUsers.Columns["Role"].Width = 120;
-            dgvUsers.Columns["Active"].Width = 60;
+            dgvUsers.Columns["Username"].FillWeight = 150;
+            dgvUsers.Columns["DisplayName"].FillWeight = 250;
+            dgvUsers.Columns["Alias"].FillWeight = 60;
+            dgvUsers.Columns["Role"].FillWeight = 120;
+            dgvUsers.Columns["Active"].FillWeight = 60;
 
             this.Controls.Add(dgvUsers);
         }

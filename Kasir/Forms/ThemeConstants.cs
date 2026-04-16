@@ -16,6 +16,7 @@ namespace Kasir.Forms
         public static readonly Color BgMenuDrop = Color.FromArgb(0, 30, 0);
         public static readonly Color BgFooter = Color.FromArgb(0, 30, 0);
         public static readonly Color BgDialog = Color.FromArgb(10, 10, 10);
+        public static readonly Color BgInputFocus = Color.FromArgb(30, 35, 30);
 
         // Foregrounds
         public static readonly Color FgPrimary = Color.FromArgb(0, 255, 0);

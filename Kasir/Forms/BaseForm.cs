@@ -180,7 +180,7 @@ namespace Kasir.Forms
         {
             txt.GotFocus += (s, e) =>
             {
-                txt.BackColor = Color.FromArgb(30, 35, 30);
+                txt.BackColor = ThemeConstants.BgInputFocus;
             };
             txt.LostFocus += (s, e) =>
             {
@@ -192,7 +192,7 @@ namespace Kasir.Forms
         {
             cbo.GotFocus += (s, e) =>
             {
-                cbo.BackColor = Color.FromArgb(30, 35, 30);
+                cbo.BackColor = ThemeConstants.BgInputFocus;
             };
             cbo.LostFocus += (s, e) =>
             {

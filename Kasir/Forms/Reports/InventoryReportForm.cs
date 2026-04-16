@@ -215,13 +215,13 @@ namespace Kasir.Forms.Reports
 
         private void GenerateStockOpname(System.Data.SQLite.SQLiteConnection conn)
         {
-            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].Width = 120;
-            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].Width = 250;
-            dgvReport.Columns.Add("QtySystem", "Stok Sistem"); dgvReport.Columns["QtySystem"].Width = 80;
-            dgvReport.Columns.Add("QtyActual", "Stok Fisik"); dgvReport.Columns["QtyActual"].Width = 80;
-            dgvReport.Columns.Add("Variance", "Selisih"); dgvReport.Columns["Variance"].Width = 80;
-            dgvReport.Columns.Add("Cost", "HPP"); dgvReport.Columns["Cost"].Width = 100;
-            dgvReport.Columns.Add("VarValue", "Nilai Selisih"); dgvReport.Columns["VarValue"].Width = 120;
+            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].FillWeight = 120;
+            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].FillWeight = 250;
+            dgvReport.Columns.Add("QtySystem", "Stok Sistem"); dgvReport.Columns["QtySystem"].FillWeight = 80;
+            dgvReport.Columns.Add("QtyActual", "Stok Fisik"); dgvReport.Columns["QtyActual"].FillWeight = 80;
+            dgvReport.Columns.Add("Variance", "Selisih"); dgvReport.Columns["Variance"].FillWeight = 80;
+            dgvReport.Columns.Add("Cost", "HPP"); dgvReport.Columns["Cost"].FillWeight = 100;
+            dgvReport.Columns.Add("VarValue", "Nilai Selisih"); dgvReport.Columns["VarValue"].FillWeight = 120;
 
             var adjRepo = new StockAdjustmentRepository(conn);
             var rows = adjRepo.GetOpnameByDateRange(txtDateFrom.Text, txtDateTo.Text);
@@ -260,13 +260,13 @@ namespace Kasir.Forms.Reports
 
         private void GeneratePriceHistory(System.Data.SQLite.SQLiteConnection conn)
         {
-            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].Width = 100;
-            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].Width = 120;
-            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].Width = 250;
-            dgvReport.Columns.Add("OldPrice", "Harga Lama"); dgvReport.Columns["OldPrice"].Width = 100;
-            dgvReport.Columns.Add("NewPrice", "Harga Baru"); dgvReport.Columns["NewPrice"].Width = 100;
-            dgvReport.Columns.Add("Vendor", "Supplier"); dgvReport.Columns["Vendor"].Width = 100;
-            dgvReport.Columns.Add("DocNo", "No. Dokumen"); dgvReport.Columns["DocNo"].Width = 140;
+            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].FillWeight = 100;
+            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].FillWeight = 120;
+            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].FillWeight = 250;
+            dgvReport.Columns.Add("OldPrice", "Harga Lama"); dgvReport.Columns["OldPrice"].FillWeight = 100;
+            dgvReport.Columns.Add("NewPrice", "Harga Baru"); dgvReport.Columns["NewPrice"].FillWeight = 100;
+            dgvReport.Columns.Add("Vendor", "Supplier"); dgvReport.Columns["Vendor"].FillWeight = 100;
+            dgvReport.Columns.Add("DocNo", "No. Dokumen"); dgvReport.Columns["DocNo"].FillWeight = 140;
 
             string sql = @"SELECT ph.doc_date, ph.product_code, COALESCE(p.name, ph.product_name) AS product_name,
                                   ph.old_value, ph.value, ph.sub_code, ph.journal_no
