@@ -36,6 +36,8 @@ namespace Kasir.Forms.POS
         private int _dailyCount;
         private Shift _currentShift;
         private System.Windows.Forms.Timer _posClock;
+        private ProductSearchPanel _searchPanel;
+        private System.Windows.Forms.Timer _highlightTimer;
 
         public SaleForm(AuthService auth)
         {
@@ -208,8 +210,18 @@ namespace Kasir.Forms.POS
             };
             _posClock.Start();
 
+            // === Search panel (inline, hidden by default) ===
+            _searchPanel = new ProductSearchPanel();
+            _searchPanel.ProductSelected += OnSearchProductSelected;
+            _searchPanel.SearchCancelled += (s2, e2) => txtBarcode.Focus();
+
+            // === Highlight timer for last-added item ===
+            _highlightTimer = new System.Windows.Forms.Timer { Interval = 500 };
+            _highlightTimer.Tick += OnHighlightTimerTick;
+
             // === Add controls (order matters for Dock: Fill must be added first) ===
             this.Controls.Add(dgvItems);
+            this.Controls.Add(_searchPanel);
             this.Controls.Add(pnlHeader);
             this.Controls.Add(pnlInput);
             this.Controls.Add(pnlTotalRow);
@@ -268,6 +280,7 @@ namespace Kasir.Forms.POS
 
             RefreshGrid();
             UpdateTotals();
+            HighlightLastRow();
             SetAction(string.Format("Added: {0} — {1}", item.ProductCode, item.ProductName));
         }
 
@@ -531,94 +544,38 @@ namespace Kasir.Forms.POS
 
         private void SearchByCode()
         {
-            string query = InputDialog.ShowSingleInput(this,
-                "Cari Kode", "Masukkan kode barang:", "");
-
-            if (string.IsNullOrEmpty(query)) return;
-
-            var results = new ProductRepository(DbConnection.GetConnection())
-                .SearchByCodePrefix(query, 20);
-
-            ShowSearchResults(results);
+            _searchPanel.ShowSearch(true);
         }
 
         private void SearchByName()
         {
-            string query = InputDialog.ShowSingleInput(this,
-                "Cari Nama", "Masukkan nama barang:", "");
-
-            if (string.IsNullOrEmpty(query)) return;
-
-            var results = new ProductRepository(DbConnection.GetConnection())
-                .SearchByName(query, 20);
-
-            ShowSearchResults(results);
+            _searchPanel.ShowSearch(false);
         }
 
-        private void ShowSearchResults(List<Product> results)
+        private void OnSearchProductSelected(object sender, Product product)
         {
-            if (results.Count == 0)
+            AddItemByCode(product.ProductCode);
+            txtBarcode.Focus();
+        }
+
+        private void HighlightLastRow()
+        {
+            if (dgvItems.Rows.Count == 0) return;
+            int lastIndex = dgvItems.Rows.Count - 1;
+            dgvItems.Rows[lastIndex].DefaultCellStyle.BackColor = ThemeConstants.BgSelection;
+            dgvItems.Rows[lastIndex].DefaultCellStyle.ForeColor = ThemeConstants.FgWhite;
+            _highlightTimer.Stop();
+            _highlightTimer.Start();
+        }
+
+        private void OnHighlightTimerTick(object sender, EventArgs e)
+        {
+            _highlightTimer.Stop();
+            // Reset all rows to default style (alternating handled by grid theme)
+            foreach (DataGridViewRow row in dgvItems.Rows)
             {
-                MessageBox.Show("Barang tidak ditemukan.", "Cari");
-                return;
-            }
-
-            if (results.Count == 1)
-            {
-                AddItemByCode(results[0].ProductCode);
-                return;
-            }
-
-            // Show selection list
-            using (var selectForm = new Form())
-            {
-                selectForm.Text = "Pilih Barang";
-                selectForm.Size = new Size(600, 400);
-                selectForm.StartPosition = FormStartPosition.CenterParent;
-                selectForm.BackColor = ThemeConstants.BgPrimary;
-
-                var listBox = new ListBox
-                {
-                    Dock = DockStyle.Fill,
-                    BackColor = ThemeConstants.BgPrimary,
-                    ForeColor = ThemeConstants.FgPrimary,
-                    Font = ThemeConstants.FontGrid
-                };
-
-                foreach (var p in results)
-                {
-                    listBox.Items.Add(string.Format("{0} | {1} | {2}",
-                        p.ProductCode, p.Name, Formatting.FormatCurrency(p.Price)));
-                }
-
-                listBox.DoubleClick += (s, e) =>
-                {
-                    if (listBox.SelectedIndex >= 0)
-                    {
-                        selectForm.Tag = results[listBox.SelectedIndex].ProductCode;
-                        selectForm.DialogResult = DialogResult.OK;
-                    }
-                };
-
-                listBox.KeyDown += (s, e) =>
-                {
-                    if (e.KeyCode == Keys.Enter && listBox.SelectedIndex >= 0)
-                    {
-                        selectForm.Tag = results[listBox.SelectedIndex].ProductCode;
-                        selectForm.DialogResult = DialogResult.OK;
-                    }
-                    else if (e.KeyCode == Keys.Escape)
-                    {
-                        selectForm.DialogResult = DialogResult.Cancel;
-                    }
-                };
-
-                selectForm.Controls.Add(listBox);
-
-                if (selectForm.ShowDialog(this) == DialogResult.OK && selectForm.Tag != null)
-                {
-                    AddItemByCode(selectForm.Tag.ToString());
-                }
+                row.DefaultCellStyle.BackColor = Color.Empty;
+                row.DefaultCellStyle.ForeColor = Color.Empty;
             }
         }
 
@@ -708,6 +665,11 @@ namespace Kasir.Forms.POS
             {
                 _posClock.Stop();
                 _posClock.Dispose();
+            }
+            if (_highlightTimer != null)
+            {
+                _highlightTimer.Stop();
+                _highlightTimer.Dispose();
             }
             base.OnFormClosed(e);
         }

@@ -165,6 +165,7 @@
     <Compile Include="Forms\Admin\BackupForm.cs" />
     <Compile Include="Forms\Master\DepartmentForm.cs" />
     <Compile Include="Forms\POS\SaleForm.cs" />
+    <Compile Include="Forms\POS\ProductSearchPanel.cs" />
     <Compile Include="Forms\POS\PaymentForm.cs" />
     <Compile Include="Forms\POS\ShiftForm.cs" />
     <Compile Include="Forms\POS\CalculatorDialog.cs" />
