@@ -48,8 +48,8 @@ namespace Kasir.Forms.Admin
                     lastUpdateCheck),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.FromArgb(0, 200, 0),
-                Font = new Font("Consolas", 14f)
+                ForeColor = ThemeConstants.FgDimmed,
+                Font = ThemeConstants.FontMain
             };
 
             panel.Controls.Add(info);

@@ -29,14 +29,14 @@ namespace Kasir.Forms.Inventory
             ApplyGridTheme(dgvOpname);
             dgvOpname.ReadOnly = false;
 
-            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "Code", HeaderText = "Kode", ReadOnly = true, Width = 140 });
-            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "Nama Barang", ReadOnly = true, Width = 250 });
-            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "System", HeaderText = "Stok Sistem", ReadOnly = true, Width = 100 });
-            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "Physical", HeaderText = "Stok Fisik", Width = 100 });
-            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "Variance", HeaderText = "Selisih", ReadOnly = true, Width = 80 });
+            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "Code", HeaderText = "Kode", ReadOnly = true, FillWeight = 140 });
+            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "Nama Barang", ReadOnly = true, FillWeight = 250 });
+            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "System", HeaderText = "Stok Sistem", ReadOnly = true, FillWeight = 100 });
+            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "Physical", HeaderText = "Stok Fisik", FillWeight = 100 });
+            dgvOpname.Columns.Add(new DataGridViewTextBoxColumn { Name = "Variance", HeaderText = "Selisih", ReadOnly = true, FillWeight = 80 });
 
-            dgvOpname.Columns["Physical"].DefaultCellStyle.BackColor = Color.FromArgb(30, 30, 0);
-            dgvOpname.Columns["Physical"].DefaultCellStyle.ForeColor = Color.Yellow;
+            dgvOpname.Columns["Physical"].DefaultCellStyle.BackColor = ThemeConstants.BgHeader;
+            dgvOpname.Columns["Physical"].DefaultCellStyle.ForeColor = ThemeConstants.FgWarning;
 
             dgvOpname.CellEndEdit += DgvOpname_CellEndEdit;
 
@@ -79,11 +79,11 @@ namespace Kasir.Forms.Inventory
 
             // Color variance
             if (variance < 0)
-                dgvOpname.Rows[e.RowIndex].Cells["Variance"].Style.ForeColor = Color.Red;
+                dgvOpname.Rows[e.RowIndex].Cells["Variance"].Style.ForeColor = ThemeConstants.FgError;
             else if (variance > 0)
-                dgvOpname.Rows[e.RowIndex].Cells["Variance"].Style.ForeColor = Color.Cyan;
+                dgvOpname.Rows[e.RowIndex].Cells["Variance"].Style.ForeColor = ThemeConstants.FgSuccess;
             else
-                dgvOpname.Rows[e.RowIndex].Cells["Variance"].Style.ForeColor = Color.Gray;
+                dgvOpname.Rows[e.RowIndex].Cells["Variance"].Style.ForeColor = ThemeConstants.FgLabel;
         }
 
         private void SaveAdjustments()

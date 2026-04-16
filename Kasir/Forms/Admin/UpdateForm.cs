@@ -39,8 +39,8 @@ namespace Kasir.Forms.Admin
                 Dock = DockStyle.Top,
                 Height = 40,
                 TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 16f, FontStyle.Bold)
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontTitle
             };
 
             lblCurrentVersion = new Label
@@ -49,8 +49,8 @@ namespace Kasir.Forms.Admin
                 Dock = DockStyle.Top,
                 Height = 30,
                 TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.FromArgb(0, 200, 0),
-                Font = new Font("Consolas", 12f)
+                ForeColor = ThemeConstants.FgDimmed,
+                Font = ThemeConstants.FontInputSmall
             };
 
             lblStatus = new Label
@@ -59,8 +59,8 @@ namespace Kasir.Forms.Admin
                 Dock = DockStyle.Top,
                 Height = 30,
                 TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.Yellow,
-                Font = new Font("Consolas", 12f)
+                ForeColor = ThemeConstants.FgWarning,
+                Font = ThemeConstants.FontInputSmall
             };
 
             txtPatchNotes = new TextBox
@@ -68,9 +68,9 @@ namespace Kasir.Forms.Admin
                 Multiline = true,
                 ReadOnly = true,
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(0, 20, 0),
-                ForeColor = Color.FromArgb(0, 200, 0),
-                Font = new Font("Consolas", 11f),
+                BackColor = ThemeConstants.BgPanel,
+                ForeColor = ThemeConstants.FgDimmed,
+                Font = ThemeConstants.FontGrid,
                 ScrollBars = ScrollBars.Vertical,
                 BorderStyle = BorderStyle.FixedSingle,
                 Visible = false
@@ -82,9 +82,9 @@ namespace Kasir.Forms.Admin
                 Dock = DockStyle.Bottom,
                 Height = 30,
                 TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(0, 40, 0),
-                Font = new Font("Consolas", 10f)
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BgHeader,
+                Font = ThemeConstants.FontSmall
             };
 
             // Hub-only: Import ZIP button
@@ -99,9 +99,9 @@ namespace Kasir.Forms.Admin
                     Dock = DockStyle.Bottom,
                     Height = 35,
                     FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.FromArgb(0, 40, 0),
-                    ForeColor = Color.White,
-                    Font = new Font("Consolas", 10f)
+                    BackColor = ThemeConstants.BgHeader,
+                    ForeColor = ThemeConstants.FgWhite,
+                    Font = ThemeConstants.FontSmall
                 };
                 btnImport.Click += OnImportZipClick;
                 panel.Controls.Add(btnImport);
@@ -140,7 +140,7 @@ namespace Kasir.Forms.Admin
         private async void CheckForUpdate()
         {
             lblStatus.Text = UpdateMessages.Checking;
-            lblStatus.ForeColor = Color.Yellow;
+            lblStatus.ForeColor = ThemeConstants.FgWarning;
             txtPatchNotes.Visible = false;
             _updateAvailable = false;
 
@@ -151,7 +151,7 @@ namespace Kasir.Forms.Admin
                 if (!string.IsNullOrEmpty(result.Error))
                 {
                     lblStatus.Text = result.Error;
-                    lblStatus.ForeColor = Color.Red;
+                    lblStatus.ForeColor = ThemeConstants.FgError;
                     return;
                 }
 
@@ -160,7 +160,7 @@ namespace Kasir.Forms.Admin
                     _updateAvailable = true;
                     _newVersion = result.NewVersion;
                     lblStatus.Text = string.Format(UpdateMessages.Available, result.NewVersion);
-                    lblStatus.ForeColor = Color.FromArgb(0, 255, 0);
+                    lblStatus.ForeColor = ThemeConstants.FgPrimary;
 
                     // Load patch notes (async to avoid UI freeze on slow UNC)
                     string notes = await Task.Run(() => _updateService.GetPatchNotes());
@@ -175,13 +175,13 @@ namespace Kasir.Forms.Admin
                 else
                 {
                     lblStatus.Text = UpdateMessages.UpToDate;
-                    lblStatus.ForeColor = Color.FromArgb(0, 200, 0);
+                    lblStatus.ForeColor = ThemeConstants.FgDimmed;
                 }
             }
             catch (Exception ex)
             {
                 lblStatus.Text = UpdateMessages.Unreachable + " (" + ex.Message + ")";
-                lblStatus.ForeColor = Color.Red;
+                lblStatus.ForeColor = ThemeConstants.FgError;
             }
         }
 
@@ -197,7 +197,7 @@ namespace Kasir.Forms.Admin
                 return;
 
             lblStatus.Text = UpdateMessages.Preparing;
-            lblStatus.ForeColor = Color.Yellow;
+            lblStatus.ForeColor = ThemeConstants.FgWarning;
             Application.DoEvents();
 
             // Prepare: copy files to staging, verify checksums
@@ -205,7 +205,7 @@ namespace Kasir.Forms.Admin
             if (!prepResult.Success)
             {
                 lblStatus.Text = prepResult.Error;
-                lblStatus.ForeColor = Color.Red;
+                lblStatus.ForeColor = ThemeConstants.FgError;
                 return;
             }
 
@@ -213,7 +213,7 @@ namespace Kasir.Forms.Admin
             if (!_updateService.WalCheckpoint())
             {
                 lblStatus.Text = UpdateMessages.WalCheckpointFailed;
-                lblStatus.ForeColor = Color.Red;
+                lblStatus.ForeColor = ThemeConstants.FgError;
                 return;
             }
 
@@ -238,18 +238,18 @@ namespace Kasir.Forms.Admin
                     try
                     {
                         lblStatus.Text = "Importing...";
-                        lblStatus.ForeColor = Color.Yellow;
+                        lblStatus.ForeColor = ThemeConstants.FgWarning;
                         Application.DoEvents();
 
                         _updateService.PublishToShare(dlg.FileName);
 
                         lblStatus.Text = UpdateMessages.ZipImported;
-                        lblStatus.ForeColor = Color.FromArgb(0, 255, 0);
+                        lblStatus.ForeColor = ThemeConstants.FgPrimary;
                     }
                     catch (Exception ex)
                     {
                         lblStatus.Text = ex.Message;
-                        lblStatus.ForeColor = Color.Red;
+                        lblStatus.ForeColor = ThemeConstants.FgError;
                     }
                 }
             }

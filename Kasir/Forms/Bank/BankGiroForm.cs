@@ -28,13 +28,13 @@ namespace Kasir.Forms.Bank
 
         private void InitializeLayout()
         {
-            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 35, BackColor = Color.FromArgb(0, 30, 0) };
-            var lblVendor = new Label { Text = "Supplier:", Location = new Point(5, 8), AutoSize = true, ForeColor = Color.Gray };
+            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 35, BackColor = ThemeConstants.BgFooter };
+            var lblVendor = new Label { Text = "Supplier:", Location = new Point(5, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtVendor = new TextBox
             {
                 Location = new Point(80, 5), Width = 200,
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
             txtVendor.KeyDown += (s, e) =>
             {
@@ -52,12 +52,12 @@ namespace Kasir.Forms.Bank
             dgvGiros.Columns.Add("Status", "Status");
             dgvGiros.Columns.Add("Remark", "Keterangan");
 
-            dgvGiros.Columns["GiroNo"].Width = 150;
-            dgvGiros.Columns["GiroDate"].Width = 120;
-            dgvGiros.Columns["DocDate"].Width = 120;
-            dgvGiros.Columns["Value"].Width = 130;
-            dgvGiros.Columns["Status"].Width = 80;
-            dgvGiros.Columns["Remark"].Width = 200;
+            dgvGiros.Columns["GiroNo"].FillWeight = 150;
+            dgvGiros.Columns["GiroDate"].FillWeight = 120;
+            dgvGiros.Columns["DocDate"].FillWeight = 120;
+            dgvGiros.Columns["Value"].FillWeight = 130;
+            dgvGiros.Columns["Status"].FillWeight = 80;
+            dgvGiros.Columns["Remark"].FillWeight = 200;
 
             this.Controls.Add(dgvGiros);
             this.Controls.Add(pnlHeader);

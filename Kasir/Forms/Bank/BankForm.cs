@@ -32,11 +32,11 @@ namespace Kasir.Forms.Bank
             dgvBanks.Columns.Add("Branch", "Cabang");
             dgvBanks.Columns.Add("Holder", "Atas Nama");
 
-            dgvBanks.Columns["Code"].Width = 100;
-            dgvBanks.Columns["Name"].Width = 200;
-            dgvBanks.Columns["AccNo"].Width = 180;
-            dgvBanks.Columns["Branch"].Width = 150;
-            dgvBanks.Columns["Holder"].Width = 180;
+            dgvBanks.Columns["Code"].FillWeight = 100;
+            dgvBanks.Columns["Name"].FillWeight = 200;
+            dgvBanks.Columns["AccNo"].FillWeight = 180;
+            dgvBanks.Columns["Branch"].FillWeight = 150;
+            dgvBanks.Columns["Holder"].FillWeight = 180;
 
             this.Controls.Add(dgvBanks);
         }

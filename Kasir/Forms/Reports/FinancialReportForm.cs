@@ -35,14 +35,14 @@ namespace Kasir.Forms.Reports
 
         private void InitializeLayout()
         {
-            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = Color.FromArgb(0, 30, 0) };
+            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = ThemeConstants.BgFooter };
 
-            var lblType = new Label { Text = "Jenis:", Location = new Point(5, 8), AutoSize = true, ForeColor = Color.Gray };
+            var lblType = new Label { Text = "Jenis:", Location = new Point(5, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             cboReportType = new ComboBox
             {
                 Location = new Point(60, 5), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 11f)
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontGrid
             };
             cboReportType.Items.AddRange(new object[]
             {
@@ -54,18 +54,18 @@ namespace Kasir.Forms.Reports
             });
             cboReportType.SelectedIndex = 0;
 
-            var lblPeriod = new Label { Text = "Periode:", Location = new Point(280, 8), AutoSize = true, ForeColor = Color.Gray };
+            var lblPeriod = new Label { Text = "Periode:", Location = new Point(280, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtPeriod = new TextBox
             {
                 Location = new Point(350, 5), Width = 80, Text = DateTime.Now.ToString("yyyyMM"),
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
 
             btnExport = new Button
             {
                 Text = "Export", Location = new Point(450, 4), Width = 80, Height = 28,
-                BackColor = Color.FromArgb(0, 60, 0), ForeColor = Color.White,
+                BackColor = ThemeConstants.BtnSecondary, ForeColor = ThemeConstants.FgWhite,
                 FlatStyle = FlatStyle.Flat
             };
             btnExport.Click += (s, e) => ExportToExcel();
@@ -75,8 +75,8 @@ namespace Kasir.Forms.Reports
             dgvReport = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };
             ApplyGridTheme(dgvReport);
 
-            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = Color.FromArgb(0, 30, 0) };
-            lblTotal = new Label { Text = "", Dock = DockStyle.Fill, ForeColor = Color.Cyan, TextAlign = ContentAlignment.MiddleLeft };
+            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = ThemeConstants.BgFooter };
+            lblTotal = new Label { Text = "", Dock = DockStyle.Fill, ForeColor = ThemeConstants.FgSuccess, TextAlign = ContentAlignment.MiddleLeft };
             pnlBottom.Controls.Add(lblTotal);
 
             this.Controls.Add(dgvReport);
@@ -123,10 +123,10 @@ namespace Kasir.Forms.Reports
             dgvReport.Columns.Add("Debit", "Debit");
             dgvReport.Columns.Add("Credit", "Kredit");
 
-            dgvReport.Columns["Code"].Width = 120;
-            dgvReport.Columns["Name"].Width = 300;
-            dgvReport.Columns["Debit"].Width = 150;
-            dgvReport.Columns["Credit"].Width = 150;
+            dgvReport.Columns["Code"].FillWeight = 120;
+            dgvReport.Columns["Name"].FillWeight = 300;
+            dgvReport.Columns["Debit"].FillWeight = 150;
+            dgvReport.Columns["Credit"].FillWeight = 150;
 
             string period = txtPeriod.Text.Trim();
             var accounts = _accountRepo.GetDetailAccounts();
@@ -162,7 +162,7 @@ namespace Kasir.Forms.Reports
             lblTotal.Text = string.Format("Total — Debit: {0}  Kredit: {1}  {2}",
                 Formatting.FormatMoney(totalDebit), Formatting.FormatMoney(totalCredit),
                 totalDebit == totalCredit ? "BALANCE" : "NOT BALANCED!");
-            lblTotal.ForeColor = totalDebit == totalCredit ? Color.FromArgb(0, 255, 0) : Color.Red;
+            lblTotal.ForeColor = totalDebit == totalCredit ? ThemeConstants.FgPrimary : ThemeConstants.FgError;
         }
 
         private void GenerateBalanceSheet()
@@ -171,9 +171,9 @@ namespace Kasir.Forms.Reports
             dgvReport.Columns.Add("Name", "Nama Perkiraan");
             dgvReport.Columns.Add("Amount", "Jumlah");
 
-            dgvReport.Columns["Code"].Width = 120;
-            dgvReport.Columns["Name"].Width = 350;
-            dgvReport.Columns["Amount"].Width = 180;
+            dgvReport.Columns["Code"].FillWeight = 120;
+            dgvReport.Columns["Name"].FillWeight = 350;
+            dgvReport.Columns["Amount"].FillWeight = 180;
 
             string period = txtPeriod.Text.Trim();
             long totalAssets = 0, totalLiabEquity = 0;
@@ -202,7 +202,7 @@ namespace Kasir.Forms.Reports
             lblTotal.Text = string.Format("Aktiva: {0}  Pasiva: {1}  {2}",
                 Formatting.FormatMoney(totalAssets), Formatting.FormatMoney(totalLiabEquity),
                 totalAssets == totalLiabEquity ? "BALANCE" : "NOT BALANCED!");
-            lblTotal.ForeColor = totalAssets == totalLiabEquity ? Color.FromArgb(0, 255, 0) : Color.Red;
+            lblTotal.ForeColor = totalAssets == totalLiabEquity ? ThemeConstants.FgPrimary : ThemeConstants.FgError;
         }
 
         private void GenerateProfitLoss()
@@ -211,9 +211,9 @@ namespace Kasir.Forms.Reports
             dgvReport.Columns.Add("Name", "Nama Perkiraan");
             dgvReport.Columns.Add("Amount", "Jumlah");
 
-            dgvReport.Columns["Code"].Width = 120;
-            dgvReport.Columns["Name"].Width = 350;
-            dgvReport.Columns["Amount"].Width = 180;
+            dgvReport.Columns["Code"].FillWeight = 120;
+            dgvReport.Columns["Name"].FillWeight = 350;
+            dgvReport.Columns["Amount"].FillWeight = 180;
 
             string period = txtPeriod.Text.Trim();
 
@@ -250,7 +250,7 @@ namespace Kasir.Forms.Reports
             dgvReport.Columns.Add("Total", "Total");
 
             foreach (DataGridViewColumn col in dgvReport.Columns)
-                col.Width = col.Name == "Name" ? 200 : 120;
+                col.FillWeight = col.Name == "Name" ? 200 : 120;
 
             string asOfDate = DateTime.Now.ToString("yyyy-MM-dd");
             var aging = _payablesService.GetAgingReport(asOfDate);
@@ -280,12 +280,12 @@ namespace Kasir.Forms.Reports
             dgvReport.Columns.Add("Debit", "Debit");
             dgvReport.Columns.Add("Credit", "Kredit");
 
-            dgvReport.Columns["Date"].Width = 100;
-            dgvReport.Columns["JournalNo"].Width = 150;
-            dgvReport.Columns["Account"].Width = 100;
-            dgvReport.Columns["Remark"].Width = 200;
-            dgvReport.Columns["Debit"].Width = 130;
-            dgvReport.Columns["Credit"].Width = 130;
+            dgvReport.Columns["Date"].FillWeight = 100;
+            dgvReport.Columns["JournalNo"].FillWeight = 150;
+            dgvReport.Columns["Account"].FillWeight = 100;
+            dgvReport.Columns["Remark"].FillWeight = 200;
+            dgvReport.Columns["Debit"].FillWeight = 130;
+            dgvReport.Columns["Credit"].FillWeight = 130;
 
             string period = txtPeriod.Text.Trim();
             var details = _glRepo.GetByPeriod(period);

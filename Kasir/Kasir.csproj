@@ -156,6 +156,7 @@
     <Compile Include="Auth\AuthService.cs" />
     <Compile Include="Auth\PermissionService.cs" />
     <Compile Include="Forms\BaseForm.cs" />
+    <Compile Include="Forms\ThemeConstants.cs" />
     <Compile Include="Forms\LoginForm.cs" />
     <Compile Include="Forms\MainMenuForm.cs" />
     <Compile Include="Forms\Shared\InputDialog.cs" />

@@ -26,15 +26,15 @@ namespace Kasir.Forms.Master
 
         private void InitializeLayout()
         {
-            var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 35, BackColor = Color.FromArgb(0, 30, 0) };
-            var lblSearch = new Label { Text = "Search:", Location = new Point(5, 8), AutoSize = true, ForeColor = Color.Gray };
+            var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 35, BackColor = ThemeConstants.BgFooter };
+            var lblSearch = new Label { Text = "Search:", Location = new Point(5, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtSearch = new TextBox
             {
                 Location = new Point(80, 5),
                 Width = 300,
-                BackColor = Color.FromArgb(20, 20, 20),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
             txtSearch.KeyDown += (s, e) =>
             {
@@ -51,11 +51,11 @@ namespace Kasir.Forms.Master
             dgvVendors.Columns.Add("City", "Kota");
             dgvVendors.Columns.Add("Phone", "Telepon");
 
-            dgvVendors.Columns["Code"].Width = 100;
-            dgvVendors.Columns["Name"].Width = 250;
-            dgvVendors.Columns["Address"].Width = 250;
-            dgvVendors.Columns["City"].Width = 120;
-            dgvVendors.Columns["Phone"].Width = 120;
+            dgvVendors.Columns["Code"].FillWeight = 100;
+            dgvVendors.Columns["Name"].FillWeight = 250;
+            dgvVendors.Columns["Address"].FillWeight = 250;
+            dgvVendors.Columns["City"].FillWeight = 120;
+            dgvVendors.Columns["Phone"].FillWeight = 120;
 
             this.Controls.Add(dgvVendors);
             this.Controls.Add(pnlSearch);

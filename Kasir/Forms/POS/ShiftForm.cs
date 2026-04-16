@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using Kasir.Data;
 using Kasir.Data.Repositories;
+using Kasir.Forms;
 using Kasir.Forms.Shared;
 using Kasir.Models;
 using Kasir.Utils;
@@ -42,14 +43,14 @@ namespace Kasir.Forms.POS
             var pnl = new Panel
             {
                 Size = new Size(500, 300),
-                BackColor = Color.FromArgb(10, 10, 10)
+                BackColor = ThemeConstants.BgDialog
             };
 
             var lblTitle = new Label
             {
                 Text = "SHIFT MANAGEMENT",
-                Font = new Font("Consolas", 18f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 255, 0),
+                Font = ThemeConstants.FontHeader,
+                ForeColor = ThemeConstants.FgPrimary,
                 Location = new Point(15, 15),
                 AutoSize = true
             };
@@ -58,16 +59,16 @@ namespace Kasir.Forms.POS
             {
                 Location = new Point(15, 60),
                 Size = new Size(470, 30),
-                Font = new Font("Consolas", 14f),
-                ForeColor = Color.Yellow
+                Font = ThemeConstants.FontMain,
+                ForeColor = ThemeConstants.FgWarning
             };
 
             lblInfo = new Label
             {
                 Location = new Point(15, 100),
                 Size = new Size(470, 120),
-                ForeColor = Color.Gray,
-                Font = new Font("Consolas", 11f)
+                ForeColor = ThemeConstants.FgLabel,
+                Font = ThemeConstants.FontGrid
             };
 
             var btnOpen = new Button
@@ -75,8 +76,8 @@ namespace Kasir.Forms.POS
                 Text = "F1 - Open Shift",
                 Location = new Point(15, 230),
                 Size = new Size(220, 40),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(0, 100, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnPrimary,
                 FlatStyle = FlatStyle.Flat
             };
             btnOpen.Click += (s, e) => OpenShift();
@@ -86,8 +87,8 @@ namespace Kasir.Forms.POS
                 Text = "F2 - Close Shift",
                 Location = new Point(250, 230),
                 Size = new Size(220, 40),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(100, 0, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnDanger,
                 FlatStyle = FlatStyle.Flat
             };
             btnClose.Click += (s, e) => CloseShift();
@@ -112,7 +113,7 @@ namespace Kasir.Forms.POS
             if (_currentShift != null)
             {
                 lblStatus.Text = string.Format("Shift {0} — OPEN", _currentShift.ShiftNumber);
-                lblStatus.ForeColor = Color.FromArgb(0, 255, 0);
+                lblStatus.ForeColor = ThemeConstants.FgPrimary;
                 lblInfo.Text = string.Format(
                     "Opened: {0}\nCashier ID: {1}\nOpening Cash: {2}",
                     _currentShift.OpenedAt,
@@ -122,7 +123,7 @@ namespace Kasir.Forms.POS
             else
             {
                 lblStatus.Text = "No shift open";
-                lblStatus.ForeColor = Color.Red;
+                lblStatus.ForeColor = ThemeConstants.FgError;
                 lblInfo.Text = "Press F1 to open a new shift.";
             }
         }

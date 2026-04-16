@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using Kasir.Forms;
 
 namespace Kasir.Forms.Shared
 {
@@ -16,9 +17,9 @@ namespace Kasir.Forms.Shared
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.StartPosition = FormStartPosition.CenterParent;
-            this.BackColor = Color.FromArgb(20, 20, 20);
-            this.ForeColor = Color.FromArgb(0, 255, 0);
-            this.Font = new Font("Consolas", 11f);
+            this.BackColor = ThemeConstants.BgInput;
+            this.ForeColor = ThemeConstants.FgPrimary;
+            this.Font = ThemeConstants.FontGrid;
 
             int fieldCount = labels.Length;
             this.Size = new Size(450, 80 + (fieldCount * 55) + 50);
@@ -33,7 +34,7 @@ namespace Kasir.Forms.Shared
                     Text = labels[i] + ":",
                     Location = new Point(15, 15 + (i * 55)),
                     AutoSize = true,
-                    ForeColor = Color.Gray
+                    ForeColor = ThemeConstants.FgLabel
                 };
                 this.Controls.Add(lbl);
 
@@ -41,9 +42,9 @@ namespace Kasir.Forms.Shared
                 {
                     Location = new Point(15, 35 + (i * 55)),
                     Width = 400,
-                    BackColor = Color.FromArgb(30, 30, 30),
-                    ForeColor = Color.FromArgb(0, 255, 0),
-                    Font = new Font("Consolas", 12f)
+                    BackColor = ThemeConstants.BgInput,
+                    ForeColor = ThemeConstants.FgPrimary,
+                    Font = ThemeConstants.FontInputSmall
                 };
 
                 if (defaults != null && i < defaults.Length && defaults[i] != null)
@@ -62,8 +63,8 @@ namespace Kasir.Forms.Shared
                 DialogResult = DialogResult.OK,
                 Location = new Point(255, btnY),
                 Size = new Size(75, 30),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(0, 80, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnPrimary,
                 FlatStyle = FlatStyle.Flat
             };
 
@@ -73,8 +74,8 @@ namespace Kasir.Forms.Shared
                 DialogResult = DialogResult.Cancel,
                 Location = new Point(340, btnY),
                 Size = new Size(75, 30),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(80, 0, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnDanger,
                 FlatStyle = FlatStyle.Flat
             };
 

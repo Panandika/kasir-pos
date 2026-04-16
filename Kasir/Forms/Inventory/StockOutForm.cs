@@ -31,18 +31,18 @@ namespace Kasir.Forms.Inventory
 
         private void InitializeLayout()
         {
-            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = Color.FromArgb(0, 20, 0) };
-            pnlHeader.Controls.Add(new Label { Text = "Jenis:", Location = new Point(10, 10), AutoSize = true, ForeColor = Color.Gray });
-            cboType = new ComboBox { Location = new Point(70, 7), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0) };
+            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = ThemeConstants.BgPanel };
+            pnlHeader.Controls.Add(new Label { Text = "Jenis:", Location = new Point(10, 10), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            cboType = new ComboBox { Location = new Point(70, 7), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary };
             cboType.Items.AddRange(new object[] { "USAGE - Pemakaian", "DAMAGE - Rusak", "LOSS - Hilang" });
             cboType.SelectedIndex = 0;
             pnlHeader.Controls.Add(cboType);
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };
             ApplyGridTheme(dgvItems);
-            dgvItems.Columns.Add("Code", "Kode"); dgvItems.Columns["Code"].Width = 140;
-            dgvItems.Columns.Add("Name", "Nama"); dgvItems.Columns["Name"].Width = 300;
-            dgvItems.Columns.Add("Qty", "Qty"); dgvItems.Columns["Qty"].Width = 80;
+            dgvItems.Columns.Add("Code", "Kode"); dgvItems.Columns["Code"].FillWeight = 140;
+            dgvItems.Columns.Add("Name", "Nama"); dgvItems.Columns["Name"].FillWeight = 300;
+            dgvItems.Columns.Add("Qty", "Qty"); dgvItems.Columns["Qty"].FillWeight = 80;
 
             this.Controls.Add(dgvItems);
             this.Controls.Add(pnlHeader);

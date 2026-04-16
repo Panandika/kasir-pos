@@ -49,15 +49,15 @@ namespace Kasir.Forms.Master
         private void InitializeLayout()
         {
             // Search bar
-            var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 35, BackColor = Color.FromArgb(0, 30, 0) };
-            var lblSearch = new Label { Text = "Search:", Location = new Point(5, 8), AutoSize = true, ForeColor = Color.Gray };
+            var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 35, BackColor = ThemeConstants.BgFooter };
+            var lblSearch = new Label { Text = "Search:", Location = new Point(5, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtSearch = new TextBox
             {
                 Location = new Point(80, 5),
                 Width = 300,
-                BackColor = Color.FromArgb(20, 20, 20),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
             txtSearch.KeyDown += (s, e) =>
             {
@@ -76,7 +76,7 @@ namespace Kasir.Forms.Master
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal,
                 SplitterDistance = 300,
-                BackColor = Color.Black
+                BackColor = ThemeConstants.BgPrimary
             };
 
             // Top: Product grid
@@ -87,11 +87,11 @@ namespace Kasir.Forms.Master
             dgvProducts.Columns.Add("Barcode", "Barcode");
             dgvProducts.Columns.Add("Price", "Harga");
             dgvProducts.Columns.Add("Status", "Status");
-            dgvProducts.Columns["Code"].Width = 120;
-            dgvProducts.Columns["Name"].Width = 300;
-            dgvProducts.Columns["Barcode"].Width = 140;
-            dgvProducts.Columns["Price"].Width = 100;
-            dgvProducts.Columns["Status"].Width = 60;
+            dgvProducts.Columns["Code"].FillWeight = 120;
+            dgvProducts.Columns["Name"].FillWeight = 300;
+            dgvProducts.Columns["Barcode"].FillWeight = 140;
+            dgvProducts.Columns["Price"].FillWeight = 100;
+            dgvProducts.Columns["Status"].FillWeight = 60;
             dgvProducts.SelectionChanged += DgvProducts_SelectionChanged;
 
             splitContainer.Panel1.Controls.Add(dgvProducts);
@@ -100,8 +100,8 @@ namespace Kasir.Forms.Master
             tabDetail = new TabControl
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(10, 10, 10),
-                Font = new Font("Consolas", 10f)
+                BackColor = ThemeConstants.BgDialog,
+                Font = ThemeConstants.FontSmall
             };
 
             tabDetail.TabPages.Add(CreateGeneralTab());
@@ -117,7 +117,7 @@ namespace Kasir.Forms.Master
 
         private TabPage CreateGeneralTab()
         {
-            var tab = new TabPage("Umum") { BackColor = Color.FromArgb(10, 10, 10) };
+            var tab = new TabPage("Umum") { BackColor = ThemeConstants.BgDialog };
             int y = 10;
 
             AddLabel(tab, "Kode Barang:", 10, y);
@@ -138,8 +138,8 @@ namespace Kasir.Forms.Master
                 Location = new Point(160, y),
                 Width = 250,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary
             };
             var depts = _deptRepo.GetAll();
             foreach (var d in depts)
@@ -154,8 +154,8 @@ namespace Kasir.Forms.Master
                 Location = new Point(160, y),
                 Width = 100,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary
             };
             cboStatus.Items.AddRange(new object[] { "A - Active", "I - Inactive" });
             tab.Controls.Add(cboStatus);
@@ -165,7 +165,7 @@ namespace Kasir.Forms.Master
 
         private TabPage CreatePricingTab()
         {
-            var tab = new TabPage("Harga") { BackColor = Color.FromArgb(10, 10, 10) };
+            var tab = new TabPage("Harga") { BackColor = ThemeConstants.BgDialog };
             int y = 10;
 
             AddLabel(tab, "Harga Jual:", 10, y);
@@ -199,8 +199,8 @@ namespace Kasir.Forms.Master
                 Location = new Point(160, y),
                 Width = 100,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary
             };
             cboOpenPrice.Items.AddRange(new object[] { "N", "Y" });
             tab.Controls.Add(cboOpenPrice);
@@ -210,7 +210,7 @@ namespace Kasir.Forms.Master
 
         private TabPage CreateOtherTab()
         {
-            var tab = new TabPage("Lain-lain") { BackColor = Color.FromArgb(10, 10, 10) };
+            var tab = new TabPage("Lain-lain") { BackColor = ThemeConstants.BgDialog };
             int y = 10;
 
             AddLabel(tab, "Disc %:", 10, y);
@@ -225,8 +225,8 @@ namespace Kasir.Forms.Master
                 Location = new Point(160, y),
                 Width = 100,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary
             };
             cboVatFlag.Items.AddRange(new object[] { "N", "Y" });
             tab.Controls.Add(cboVatFlag);
@@ -241,7 +241,7 @@ namespace Kasir.Forms.Master
                 Text = text,
                 Location = new Point(x, y + 3),
                 AutoSize = true,
-                ForeColor = Color.Gray
+                ForeColor = ThemeConstants.FgLabel
             });
         }
 
@@ -251,9 +251,9 @@ namespace Kasir.Forms.Master
             {
                 Location = new Point(x, y),
                 Width = width,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 11f)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontGrid
             };
             tab.Controls.Add(txt);
             return txt;

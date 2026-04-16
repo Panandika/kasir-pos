@@ -22,33 +22,32 @@ namespace Kasir.Forms.Reports
 
         private void InitializeLayout()
         {
-            var pnlParams = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.FromArgb(0, 30, 0) };
+            var pnlParams = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = ThemeConstants.BgFooter };
 
-            pnlParams.Controls.Add(new Label { Text = "Cari:", Location = new Point(10, 15), AutoSize = true, ForeColor = Color.Gray });
+            pnlParams.Controls.Add(new Label { Text = "Cari:", Location = new Point(10, 15), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtSearch = new TextBox
             {
                 Location = new Point(60, 12),
                 Width = 300,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 11f)
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontGrid
             };
             txtSearch.TextChanged += (s, e) => FilterGrid();
             pnlParams.Controls.Add(txtSearch);
 
-            var btnRefresh = new Button { Text = "F5", Location = new Point(380, 10), Size = new Size(50, 30), ForeColor = Color.White, BackColor = Color.FromArgb(0, 80, 0), FlatStyle = FlatStyle.Flat };
+            var btnRefresh = new Button { Text = "F5", Location = new Point(380, 10), Size = new Size(50, 30), ForeColor = ThemeConstants.FgWhite, BackColor = ThemeConstants.BtnPrimary, FlatStyle = FlatStyle.Flat };
             btnRefresh.Click += (s, e) => GenerateReport();
             pnlParams.Controls.Add(btnRefresh);
 
-            var btnExport = new Button { Text = "F7", Location = new Point(440, 10), Size = new Size(50, 30), ForeColor = Color.White, BackColor = Color.FromArgb(0, 60, 0), FlatStyle = FlatStyle.Flat };
+            var btnExport = new Button { Text = "F7", Location = new Point(440, 10), Size = new Size(50, 30), ForeColor = ThemeConstants.FgWhite, BackColor = ThemeConstants.BtnSecondary, FlatStyle = FlatStyle.Flat };
             btnExport.Click += (s, e) => Export();
             pnlParams.Controls.Add(btnExport);
 
             dgvReport = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, AllowUserToAddRows = false };
             ApplyGridTheme(dgvReport);
 
-            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = Color.FromArgb(0, 30, 0) };
-            lblSummary = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, ForeColor = Color.White, Font = new Font("Consolas", 11f), Padding = new Padding(0, 0, 20, 0) };
+            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = ThemeConstants.BgFooter };
+            lblSummary = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, ForeColor = ThemeConstants.FgWhite, Font = ThemeConstants.FontGrid, Padding = new Padding(0, 0, 20, 0) };
             pnlFooter.Controls.Add(lblSummary);
 
             this.Controls.Add(dgvReport);
@@ -61,11 +60,11 @@ namespace Kasir.Forms.Reports
             dgvReport.Columns.Clear();
             dgvReport.Rows.Clear();
 
-            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].Width = 120;
-            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].Width = 250;
-            dgvReport.Columns.Add("Address", "Alamat"); dgvReport.Columns["Address"].Width = 300;
-            dgvReport.Columns.Add("Phone", "Telepon"); dgvReport.Columns["Phone"].Width = 120;
-            dgvReport.Columns.Add("Contact", "Contact Person"); dgvReport.Columns["Contact"].Width = 150;
+            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].FillWeight = 120;
+            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].FillWeight = 250;
+            dgvReport.Columns.Add("Address", "Alamat"); dgvReport.Columns["Address"].FillWeight = 300;
+            dgvReport.Columns.Add("Phone", "Telepon"); dgvReport.Columns["Phone"].FillWeight = 120;
+            dgvReport.Columns.Add("Contact", "Contact Person"); dgvReport.Columns["Contact"].FillWeight = 150;
 
             var conn = DbConnection.GetConnection();
             var subRepo = new SubsidiaryRepository(conn);

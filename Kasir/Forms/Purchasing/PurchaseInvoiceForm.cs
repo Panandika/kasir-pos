@@ -36,34 +36,34 @@ namespace Kasir.Forms.Purchasing
 
         private void InitializeLayout()
         {
-            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.FromArgb(0, 20, 0) };
-            pnlHeader.Controls.Add(new Label { Text = "Supplier:", Location = new Point(10, 8), AutoSize = true, ForeColor = Color.Gray });
-            txtVendor = new TextBox { Location = new Point(90, 5), Width = 250, ReadOnly = true, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0), Font = new Font("Consolas", 12f) };
+            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = ThemeConstants.BgPanel };
+            pnlHeader.Controls.Add(new Label { Text = "Supplier:", Location = new Point(10, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            txtVendor = new TextBox { Location = new Point(90, 5), Width = 250, ReadOnly = true, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall };
             pnlHeader.Controls.Add(txtVendor);
 
-            pnlHeader.Controls.Add(new Label { Text = "Tgl Faktur:", Location = new Point(10, 35), AutoSize = true, ForeColor = Color.Gray });
-            txtDate = new TextBox { Location = new Point(110, 32), Width = 120, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0), Font = new Font("Consolas", 12f) };
+            pnlHeader.Controls.Add(new Label { Text = "Tgl Faktur:", Location = new Point(10, 35), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            txtDate = new TextBox { Location = new Point(110, 32), Width = 120, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall };
             pnlHeader.Controls.Add(txtDate);
 
-            pnlHeader.Controls.Add(new Label { Text = "Terms:", Location = new Point(260, 35), AutoSize = true, ForeColor = Color.Gray });
-            txtTerms = new TextBox { Location = new Point(320, 32), Width = 50, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0), Font = new Font("Consolas", 12f), Text = "30" };
+            pnlHeader.Controls.Add(new Label { Text = "Terms:", Location = new Point(260, 35), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            txtTerms = new TextBox { Location = new Point(320, 32), Width = 50, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall, Text = "30" };
             pnlHeader.Controls.Add(txtTerms);
 
-            pnlHeader.Controls.Add(new Label { Text = "Jatuh Tempo:", Location = new Point(390, 35), AutoSize = true, ForeColor = Color.Gray });
-            txtDueDate = new TextBox { Location = new Point(510, 32), Width = 120, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0), Font = new Font("Consolas", 12f) };
+            pnlHeader.Controls.Add(new Label { Text = "Jatuh Tempo:", Location = new Point(390, 35), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            txtDueDate = new TextBox { Location = new Point(510, 32), Width = 120, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall };
             pnlHeader.Controls.Add(txtDueDate);
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };
             ApplyGridTheme(dgvItems);
-            dgvItems.Columns.Add("No", "No"); dgvItems.Columns["No"].Width = 40;
-            dgvItems.Columns.Add("Code", "Kode"); dgvItems.Columns["Code"].Width = 140;
-            dgvItems.Columns.Add("Name", "Nama"); dgvItems.Columns["Name"].Width = 250;
-            dgvItems.Columns.Add("Qty", "Qty"); dgvItems.Columns["Qty"].Width = 80;
-            dgvItems.Columns.Add("Price", "Harga"); dgvItems.Columns["Price"].Width = 120;
-            dgvItems.Columns.Add("Total", "Jumlah"); dgvItems.Columns["Total"].Width = 120;
+            dgvItems.Columns.Add("No", "No"); dgvItems.Columns["No"].FillWeight = 40;
+            dgvItems.Columns.Add("Code", "Kode"); dgvItems.Columns["Code"].FillWeight = 140;
+            dgvItems.Columns.Add("Name", "Nama"); dgvItems.Columns["Name"].FillWeight = 250;
+            dgvItems.Columns.Add("Qty", "Qty"); dgvItems.Columns["Qty"].FillWeight = 80;
+            dgvItems.Columns.Add("Price", "Harga"); dgvItems.Columns["Price"].FillWeight = 120;
+            dgvItems.Columns.Add("Total", "Jumlah"); dgvItems.Columns["Total"].FillWeight = 120;
 
-            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 35, BackColor = Color.FromArgb(0, 30, 0) };
-            lblTotal = new Label { Dock = DockStyle.Right, AutoSize = true, ForeColor = Color.White, Font = new Font("Consolas", 14f, FontStyle.Bold), Text = "TOTAL: Rp 0", Padding = new Padding(0, 5, 20, 0) };
+            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 35, BackColor = ThemeConstants.BgFooter };
+            lblTotal = new Label { Dock = DockStyle.Right, AutoSize = true, ForeColor = ThemeConstants.FgWhite, Font = ThemeConstants.FontHeader, Text = "TOTAL: Rp 0", Padding = new Padding(0, 5, 20, 0) };
             pnlFooter.Controls.Add(lblTotal);
 
             this.Controls.Add(dgvItems); this.Controls.Add(pnlHeader); this.Controls.Add(pnlFooter);

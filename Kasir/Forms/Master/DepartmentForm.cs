@@ -37,9 +37,9 @@ namespace Kasir.Forms.Master
             dgvDepts.Columns.Add("Name", "Nama Dept");
             dgvDepts.Columns.Add("ChangedAt", "Diubah");
 
-            dgvDepts.Columns["DeptCode"].Width = 120;
-            dgvDepts.Columns["Name"].Width = 400;
-            dgvDepts.Columns["ChangedAt"].Width = 200;
+            dgvDepts.Columns["DeptCode"].FillWeight = 120;
+            dgvDepts.Columns["Name"].FillWeight = 400;
+            dgvDepts.Columns["ChangedAt"].FillWeight = 200;
 
             this.Controls.Add(dgvDepts);
         }

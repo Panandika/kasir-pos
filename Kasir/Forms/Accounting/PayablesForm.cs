@@ -30,13 +30,13 @@ namespace Kasir.Forms.Accounting
 
         private void InitializeLayout()
         {
-            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = Color.FromArgb(0, 30, 0) };
-            var lblVendor = new Label { Text = "Supplier:", Location = new Point(5, 8), AutoSize = true, ForeColor = Color.Gray };
+            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = ThemeConstants.BgFooter };
+            var lblVendor = new Label { Text = "Supplier:", Location = new Point(5, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtVendor = new TextBox
             {
                 Location = new Point(80, 5), Width = 300,
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
             txtVendor.KeyDown += (s, e) =>
             {
@@ -54,21 +54,21 @@ namespace Kasir.Forms.Accounting
             dgvPayables.Columns.Add("Paid", "Dibayar");
             dgvPayables.Columns.Add("Remaining", "Sisa");
 
-            dgvPayables.Columns["JournalNo"].Width = 150;
-            dgvPayables.Columns["DocDate"].Width = 120;
-            dgvPayables.Columns["DueDate"].Width = 120;
-            dgvPayables.Columns["Amount"].Width = 130;
-            dgvPayables.Columns["Paid"].Width = 130;
-            dgvPayables.Columns["Remaining"].Width = 130;
+            dgvPayables.Columns["JournalNo"].FillWeight = 150;
+            dgvPayables.Columns["DocDate"].FillWeight = 120;
+            dgvPayables.Columns["DueDate"].FillWeight = 120;
+            dgvPayables.Columns["Amount"].FillWeight = 130;
+            dgvPayables.Columns["Paid"].FillWeight = 130;
+            dgvPayables.Columns["Remaining"].FillWeight = 130;
 
-            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 45, BackColor = Color.FromArgb(0, 30, 0) };
-            lblTotal = new Label { Text = "Total Hutang: 0", Location = new Point(5, 8), Width = 300, ForeColor = Color.Cyan };
-            var lblPay = new Label { Text = "Bayar:", Location = new Point(320, 8), AutoSize = true, ForeColor = Color.Gray };
+            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 45, BackColor = ThemeConstants.BgFooter };
+            lblTotal = new Label { Text = "Total Hutang: 0", Location = new Point(5, 8), Width = 300, ForeColor = ThemeConstants.FgSuccess };
+            var lblPay = new Label { Text = "Bayar:", Location = new Point(320, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtPayment = new TextBox
             {
                 Location = new Point(380, 5), Width = 200,
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
             pnlBottom.Controls.AddRange(new Control[] { lblTotal, lblPay, txtPayment });
 

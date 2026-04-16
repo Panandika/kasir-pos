@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Kasir.Auth;
 using Kasir.Data;
+using Kasir.Forms;
 using Kasir.Data.Repositories;
 using Kasir.Forms.Shared;
 using Kasir.Hardware;
@@ -65,7 +66,7 @@ namespace Kasir.Forms.POS
             {
                 Dock = DockStyle.Top,
                 Height = 70,
-                BackColor = Color.FromArgb(0, 20, 0)
+                BackColor = ThemeConstants.BgPanel
             };
 
             lblSubtotalHeader = new Label
@@ -73,8 +74,8 @@ namespace Kasir.Forms.POS
                 Text = "SUBTOTAL",
                 Location = new Point(10, 10),
                 AutoSize = true,
-                ForeColor = Color.White,
-                Font = new Font("Consolas", 28f, FontStyle.Bold)
+                ForeColor = ThemeConstants.FgWhite,
+                Font = ThemeConstants.FontSubtotalLabel
             };
 
             lblSubtotalValue = new Label
@@ -84,8 +85,8 @@ namespace Kasir.Forms.POS
                 AutoSize = false,
                 Width = 400,
                 TextAlign = ContentAlignment.MiddleRight,
-                ForeColor = Color.White,
-                Font = new Font("Consolas", 42f, FontStyle.Bold),
+                ForeColor = ThemeConstants.FgWhite,
+                Font = ThemeConstants.FontSubtotal,
                 Padding = new Padding(0, 0, 20, 0)
             };
 
@@ -118,7 +119,7 @@ namespace Kasir.Forms.POS
             {
                 Dock = DockStyle.Bottom,
                 Height = 35,
-                BackColor = Color.Black
+                BackColor = ThemeConstants.BgPrimary
             };
 
             var lblCursor = new Label
@@ -126,17 +127,17 @@ namespace Kasir.Forms.POS
                 Text = ">",
                 Location = new Point(5, 5),
                 AutoSize = true,
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 16f)
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInput
             };
 
             txtBarcode = new TextBox
             {
                 Location = new Point(25, 3),
                 Width = 300,
-                BackColor = Color.Black,
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 16f),
+                BackColor = ThemeConstants.BgPrimary,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInput,
                 BorderStyle = BorderStyle.None
             };
             txtBarcode.KeyDown += TxtBarcode_KeyDown;
@@ -148,7 +149,7 @@ namespace Kasir.Forms.POS
             {
                 Dock = DockStyle.Bottom,
                 Height = 30,
-                BackColor = Color.FromArgb(0, 20, 0)
+                BackColor = ThemeConstants.BgPanel
             };
 
             lblTotalRow = new Label
@@ -156,16 +157,16 @@ namespace Kasir.Forms.POS
                 Text = "TOTAL\u2192  0.00",
                 Location = new Point(10, 5),
                 AutoSize = true,
-                ForeColor = Color.White,
-                Font = new Font("Consolas", 14f, FontStyle.Bold)
+                ForeColor = ThemeConstants.FgWhite,
+                Font = ThemeConstants.FontHeader
             };
 
             lblTotalCount = new Label
             {
                 Dock = DockStyle.Right,
                 AutoSize = true,
-                ForeColor = Color.White,
-                Font = new Font("Consolas", 12f),
+                ForeColor = ThemeConstants.FgWhite,
+                Font = ThemeConstants.FontMenu,
                 Text = "0",
                 Padding = new Padding(0, 5, 20, 0)
             };
@@ -177,7 +178,7 @@ namespace Kasir.Forms.POS
             {
                 Dock = DockStyle.Bottom,
                 Height = 25,
-                BackColor = Color.FromArgb(0, 30, 0)
+                BackColor = ThemeConstants.BgFooter
             };
 
             lblFooterClock = new Label
@@ -185,16 +186,16 @@ namespace Kasir.Forms.POS
                 Text = string.Format("JAM\u2192 {0}", _clock.Now.ToString("HH:mm:ss")),
                 Dock = DockStyle.Left,
                 AutoSize = true,
-                ForeColor = Color.Yellow,
-                Font = new Font("Consolas", 10f)
+                ForeColor = ThemeConstants.FgWarning,
+                Font = ThemeConstants.FontSmall
             };
 
             lblFooter = new Label
             {
                 Dock = DockStyle.Right,
                 AutoSize = true,
-                ForeColor = Color.FromArgb(0, 150, 0),
-                Font = new Font("Consolas", 10f)
+                ForeColor = ThemeConstants.FgMuted,
+                Font = ThemeConstants.FontSmall
             };
 
             pnlFooter.Controls.AddRange(new Control[] { lblFooterClock, lblFooter });
@@ -574,14 +575,14 @@ namespace Kasir.Forms.POS
                 selectForm.Text = "Pilih Barang";
                 selectForm.Size = new Size(600, 400);
                 selectForm.StartPosition = FormStartPosition.CenterParent;
-                selectForm.BackColor = Color.Black;
+                selectForm.BackColor = ThemeConstants.BgPrimary;
 
                 var listBox = new ListBox
                 {
                     Dock = DockStyle.Fill,
-                    BackColor = Color.Black,
-                    ForeColor = Color.FromArgb(0, 255, 0),
-                    Font = new Font("Consolas", 11f)
+                    BackColor = ThemeConstants.BgPrimary,
+                    ForeColor = ThemeConstants.FgPrimary,
+                    Font = ThemeConstants.FontGrid
                 };
 
                 foreach (var p in results)

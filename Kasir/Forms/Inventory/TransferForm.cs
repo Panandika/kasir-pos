@@ -31,19 +31,19 @@ namespace Kasir.Forms.Inventory
 
         private void InitializeLayout()
         {
-            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = Color.FromArgb(0, 20, 0) };
-            pnlHeader.Controls.Add(new Label { Text = "Dari:", Location = new Point(10, 10), AutoSize = true, ForeColor = Color.Gray });
-            txtFrom = new TextBox { Location = new Point(60, 7), Width = 150, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0), Font = new Font("Consolas", 12f), Text = "TOKO" };
+            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = ThemeConstants.BgPanel };
+            pnlHeader.Controls.Add(new Label { Text = "Dari:", Location = new Point(10, 10), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            txtFrom = new TextBox { Location = new Point(60, 7), Width = 150, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall, Text = "TOKO" };
             pnlHeader.Controls.Add(txtFrom);
-            pnlHeader.Controls.Add(new Label { Text = "Ke:", Location = new Point(230, 10), AutoSize = true, ForeColor = Color.Gray });
-            txtTo = new TextBox { Location = new Point(260, 7), Width = 150, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0), Font = new Font("Consolas", 12f), Text = "GUDANG" };
+            pnlHeader.Controls.Add(new Label { Text = "Ke:", Location = new Point(230, 10), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            txtTo = new TextBox { Location = new Point(260, 7), Width = 150, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall, Text = "GUDANG" };
             pnlHeader.Controls.Add(txtTo);
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };
             ApplyGridTheme(dgvItems);
-            dgvItems.Columns.Add("Code", "Kode"); dgvItems.Columns["Code"].Width = 140;
-            dgvItems.Columns.Add("Name", "Nama"); dgvItems.Columns["Name"].Width = 300;
-            dgvItems.Columns.Add("Qty", "Qty"); dgvItems.Columns["Qty"].Width = 80;
+            dgvItems.Columns.Add("Code", "Kode"); dgvItems.Columns["Code"].FillWeight = 140;
+            dgvItems.Columns.Add("Name", "Nama"); dgvItems.Columns["Name"].FillWeight = 300;
+            dgvItems.Columns.Add("Qty", "Qty"); dgvItems.Columns["Qty"].FillWeight = 80;
 
             this.Controls.Add(dgvItems);
             this.Controls.Add(pnlHeader);

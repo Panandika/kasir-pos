@@ -32,10 +32,10 @@ namespace Kasir.Forms.Master
             dgvCards.Columns.Add("Fee", "Fee %");
             dgvCards.Columns.Add("Account", "Akun");
 
-            dgvCards.Columns["Code"].Width = 100;
-            dgvCards.Columns["Name"].Width = 250;
-            dgvCards.Columns["Fee"].Width = 80;
-            dgvCards.Columns["Account"].Width = 150;
+            dgvCards.Columns["Code"].FillWeight = 100;
+            dgvCards.Columns["Name"].FillWeight = 250;
+            dgvCards.Columns["Fee"].FillWeight = 80;
+            dgvCards.Columns["Account"].FillWeight = 150;
 
             this.Controls.Add(dgvCards);
         }

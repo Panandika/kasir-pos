@@ -16,16 +16,16 @@ namespace Kasir.Forms
             // Terminal theme
             this.FormBorderStyle = FormBorderStyle.None;
             this.WindowState = FormWindowState.Maximized;
-            this.BackColor = Color.Black;
-            this.ForeColor = Color.FromArgb(0, 255, 0);
-            this.Font = new Font("Consolas", 14f);
+            this.BackColor = ThemeConstants.BgPrimary;
+            this.ForeColor = ThemeConstants.FgPrimary;
+            this.Font = ThemeConstants.FontMain;
             this.KeyPreview = true;
             this.StartPosition = FormStartPosition.CenterScreen;
 
             // Status bar
             statusStrip = new StatusStrip
             {
-                BackColor = Color.FromArgb(0, 40, 0),
+                BackColor = ThemeConstants.BgHeader,
                 SizingGrip = false
             };
 
@@ -33,13 +33,13 @@ namespace Kasir.Forms
             {
                 Spring = true,
                 TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = Color.White,
+                ForeColor = ThemeConstants.FgWhite,
                 Text = ""
             };
 
             lblClock = new ToolStripStatusLabel
             {
-                ForeColor = Color.White,
+                ForeColor = ThemeConstants.FgWhite,
                 Text = DateTime.Now.ToString("HH:mm:ss")
             };
 
@@ -86,11 +86,11 @@ namespace Kasir.Forms
         {
             return new DataGridViewCellStyle
             {
-                BackColor = Color.Black,
-                ForeColor = Color.FromArgb(0, 255, 0),
-                SelectionBackColor = Color.FromArgb(0, 80, 0),
-                SelectionForeColor = Color.White,
-                Font = new Font("Consolas", 11f)
+                BackColor = ThemeConstants.BgPrimary,
+                ForeColor = ThemeConstants.FgPrimary,
+                SelectionBackColor = ThemeConstants.BgSelection,
+                SelectionForeColor = ThemeConstants.FgWhite,
+                Font = ThemeConstants.FontGrid
             };
         }
 
@@ -98,24 +98,34 @@ namespace Kasir.Forms
         {
             return new DataGridViewCellStyle
             {
-                BackColor = Color.FromArgb(0, 40, 0),
-                ForeColor = Color.White,
-                Font = new Font("Consolas", 11f, FontStyle.Bold)
+                BackColor = ThemeConstants.BgHeader,
+                ForeColor = ThemeConstants.FgWhite,
+                Font = ThemeConstants.FontGridHeader
             };
         }
 
         protected static void ApplyGridTheme(DataGridView dgv)
         {
-            dgv.BackgroundColor = Color.Black;
-            dgv.GridColor = Color.FromArgb(0, 80, 0);
+            dgv.BackgroundColor = ThemeConstants.BgPrimary;
+            dgv.GridColor = ThemeConstants.GridLine;
             dgv.DefaultCellStyle = CreateGridStyle();
             dgv.ColumnHeadersDefaultCellStyle = CreateGridHeaderStyle();
+            dgv.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = ThemeConstants.BgGridAlt,
+                ForeColor = ThemeConstants.FgPrimary,
+                SelectionBackColor = ThemeConstants.BgSelection,
+                SelectionForeColor = ThemeConstants.FgWhite,
+                Font = ThemeConstants.FontGrid
+            };
             dgv.EnableHeadersVisualStyles = false;
             dgv.RowHeadersVisible = false;
             dgv.BorderStyle = BorderStyle.None;
             dgv.AllowUserToAddRows = false;
             dgv.AllowUserToDeleteRows = false;
             dgv.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgv.RowTemplate.Height = ThemeConstants.RowHeight;
+            dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
     }
 }

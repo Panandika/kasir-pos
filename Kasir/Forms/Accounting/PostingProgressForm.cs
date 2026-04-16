@@ -29,9 +29,9 @@ namespace Kasir.Forms.Accounting
                 Multiline = true,
                 ReadOnly = true,
                 ScrollBars = ScrollBars.Vertical,
-                BackColor = Color.Black,
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgPrimary,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
 
             this.Controls.Add(txtLog);

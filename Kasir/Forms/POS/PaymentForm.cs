@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using Kasir.Data;
 using Kasir.Data.Repositories;
+using Kasir.Forms;
 using Kasir.Models;
 using Kasir.Services;
 using Kasir.Utils;
@@ -45,37 +46,37 @@ namespace Kasir.Forms.POS
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.BackColor = Color.FromArgb(10, 10, 10);
-            this.ForeColor = Color.FromArgb(0, 255, 0);
-            this.Font = new Font("Consolas", 12f);
+            this.BackColor = ThemeConstants.BgDialog;
+            this.ForeColor = ThemeConstants.FgPrimary;
+            this.Font = ThemeConstants.FontMenu;
 
             lblTotal = new Label
             {
                 Text = string.Format("TOTAL: {0}", Formatting.FormatCurrency(_totalDue)),
-                Font = new Font("Consolas", 18f, FontStyle.Bold),
-                ForeColor = Color.White,
+                Font = ThemeConstants.FontHeader,
+                ForeColor = ThemeConstants.FgWhite,
                 Location = new Point(15, 15),
                 AutoSize = true
             };
 
-            var lblCash = new Label { Text = "Cash (Rp):", Location = new Point(15, 60), AutoSize = true, ForeColor = Color.Gray };
+            var lblCash = new Label { Text = "Cash (Rp):", Location = new Point(15, 60), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtCash = CreateInput(new Point(15, 85));
             txtCash.TextChanged += RecalculateChange;
             txtCash.Text = (_totalDue / 100).ToString();
 
-            var lblCard = new Label { Text = "Card (Rp):", Location = new Point(15, 125), AutoSize = true, ForeColor = Color.Gray };
+            var lblCard = new Label { Text = "Card (Rp):", Location = new Point(15, 125), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtCard = CreateInput(new Point(15, 150));
             txtCard.TextChanged += RecalculateChange;
             txtCard.Text = "0";
 
-            var lblCardType = new Label { Text = "Card Type:", Location = new Point(230, 125), AutoSize = true, ForeColor = Color.Gray };
+            var lblCardType = new Label { Text = "Card Type:", Location = new Point(230, 125), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             cboCardType = new ComboBox
             {
                 Location = new Point(230, 150),
                 Width = 180,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary
             };
 
             var cards = _cardRepo.GetAll();
@@ -86,7 +87,7 @@ namespace Kasir.Forms.POS
             }
             cboCardType.SelectedIndex = 0;
 
-            var lblVoucher = new Label { Text = "Voucher (Rp):", Location = new Point(15, 190), AutoSize = true, ForeColor = Color.Gray };
+            var lblVoucher = new Label { Text = "Voucher (Rp):", Location = new Point(15, 190), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtVoucher = CreateInput(new Point(15, 215));
             txtVoucher.TextChanged += RecalculateChange;
             txtVoucher.Text = "0";
@@ -94,8 +95,8 @@ namespace Kasir.Forms.POS
             lblChange = new Label
             {
                 Text = "CHANGE: Rp 0",
-                Font = new Font("Consolas", 16f, FontStyle.Bold),
-                ForeColor = Color.Yellow,
+                Font = ThemeConstants.FontHeader,
+                ForeColor = ThemeConstants.FgWarning,
                 Location = new Point(15, 260),
                 AutoSize = true
             };
@@ -105,10 +106,10 @@ namespace Kasir.Forms.POS
                 Text = "CONFIRM PAYMENT (Enter)",
                 Location = new Point(15, 310),
                 Size = new Size(400, 40),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(0, 100, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnPrimary,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Consolas", 12f, FontStyle.Bold)
+                Font = ThemeConstants.FontInputSmall
             };
             btnOk.Click += BtnOk_Click;
 
@@ -120,8 +121,8 @@ namespace Kasir.Forms.POS
                 DialogResult = DialogResult.Cancel,
                 Location = new Point(320, 15),
                 Size = new Size(100, 30),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(80, 0, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnDanger,
                 FlatStyle = FlatStyle.Flat
             };
             this.CancelButton = btnCancel;
@@ -140,9 +141,9 @@ namespace Kasir.Forms.POS
             {
                 Location = location,
                 Width = 200,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 14f),
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontMain,
                 TextAlign = HorizontalAlignment.Right
             };
         }
@@ -158,13 +159,13 @@ namespace Kasir.Forms.POS
             if (result.IsValid)
             {
                 lblChange.Text = string.Format("CHANGE: {0}", Formatting.FormatCurrency(result.Change));
-                lblChange.ForeColor = Color.Yellow;
+                lblChange.ForeColor = ThemeConstants.FgWarning;
                 btnOk.Enabled = true;
             }
             else
             {
                 lblChange.Text = string.Format("SHORT: {0}", Formatting.FormatCurrency(result.Shortfall));
-                lblChange.ForeColor = Color.Red;
+                lblChange.ForeColor = ThemeConstants.FgError;
                 btnOk.Enabled = false;
             }
         }

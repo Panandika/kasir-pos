@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Kasir.Forms;
 
 namespace Kasir.Forms.POS
 {
@@ -26,9 +27,9 @@ namespace Kasir.Forms.POS
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.BackColor = Color.Black;
-            this.ForeColor = Color.FromArgb(0, 255, 0);
-            this.Font = new Font("Consolas", 14f);
+            this.BackColor = ThemeConstants.BgPrimary;
+            this.ForeColor = ThemeConstants.FgPrimary;
+            this.Font = ThemeConstants.FontMain;
             this.KeyPreview = true;
 
             int y = 20;
@@ -42,7 +43,7 @@ namespace Kasir.Forms.POS
                 Text = "\u00D7",
                 Location = new Point(lblX + inputW + 10, y + 3),
                 AutoSize = true,
-                ForeColor = Color.White
+                ForeColor = ThemeConstants.FgWhite
             };
             txtB = CreateInput(lblX + inputW + 35, y, inputW);
             var lblEquals1 = new Label
@@ -50,15 +51,15 @@ namespace Kasir.Forms.POS
                 Text = "=",
                 Location = new Point(lblX + inputW * 2 + 45, y + 3),
                 AutoSize = true,
-                ForeColor = Color.White
+                ForeColor = ThemeConstants.FgWhite
             };
             lblMultResult = new Label
             {
                 Text = "0",
                 Location = new Point(lblX + inputW * 2 + 70, y + 3),
                 AutoSize = true,
-                ForeColor = Color.Yellow,
-                Font = new Font("Consolas", 14f, FontStyle.Bold)
+                ForeColor = ThemeConstants.FgWarning,
+                Font = ThemeConstants.FontHeader
             };
 
             y += 50;
@@ -70,7 +71,7 @@ namespace Kasir.Forms.POS
                 Text = "+",
                 Location = new Point(lblX + inputW + 10, y + 3),
                 AutoSize = true,
-                ForeColor = Color.White
+                ForeColor = ThemeConstants.FgWhite
             };
             txtD = CreateInput(lblX + inputW + 35, y, inputW);
             var lblEquals2 = new Label
@@ -78,15 +79,15 @@ namespace Kasir.Forms.POS
                 Text = "=",
                 Location = new Point(lblX + inputW * 2 + 45, y + 3),
                 AutoSize = true,
-                ForeColor = Color.White
+                ForeColor = ThemeConstants.FgWhite
             };
             lblAddResult = new Label
             {
                 Text = "0",
                 Location = new Point(lblX + inputW * 2 + 70, y + 3),
                 AutoSize = true,
-                ForeColor = Color.Yellow,
-                Font = new Font("Consolas", 14f, FontStyle.Bold)
+                ForeColor = ThemeConstants.FgWarning,
+                Font = ThemeConstants.FontHeader
             };
 
             y += 60;
@@ -97,8 +98,8 @@ namespace Kasir.Forms.POS
                 Text = "OK",
                 Location = new Point(80, y),
                 Size = new Size(100, 35),
-                BackColor = Color.FromArgb(0, 60, 0),
-                ForeColor = Color.White,
+                BackColor = ThemeConstants.BtnSecondary,
+                ForeColor = ThemeConstants.FgWhite,
                 FlatStyle = FlatStyle.Flat,
                 DialogResult = DialogResult.OK
             };
@@ -108,8 +109,8 @@ namespace Kasir.Forms.POS
                 Text = "Tutup",
                 Location = new Point(200, y),
                 Size = new Size(100, 35),
-                BackColor = Color.FromArgb(60, 0, 0),
-                ForeColor = Color.White,
+                BackColor = ThemeConstants.BtnDanger,
+                ForeColor = ThemeConstants.FgWhite,
                 FlatStyle = FlatStyle.Flat,
                 DialogResult = DialogResult.Cancel
             };
@@ -136,9 +137,9 @@ namespace Kasir.Forms.POS
             {
                 Location = new Point(x, y),
                 Width = w,
-                BackColor = Color.FromArgb(20, 20, 20),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 14f),
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontMain,
                 TextAlign = HorizontalAlignment.Right,
                 Text = "0"
             };

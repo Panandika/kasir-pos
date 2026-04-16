@@ -24,14 +24,14 @@ namespace Kasir.Forms.Admin
             var pnl = new Panel
             {
                 Size = new Size(500, 300),
-                BackColor = Color.FromArgb(10, 10, 10)
+                BackColor = ThemeConstants.BgDialog
             };
 
             var lblTitle = new Label
             {
                 Text = "Printer Configuration",
-                Font = new Font("Consolas", 16f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 255, 0),
+                Font = ThemeConstants.FontTitle,
+                ForeColor = ThemeConstants.FgPrimary,
                 Location = new Point(15, 15),
                 AutoSize = true
             };
@@ -39,7 +39,7 @@ namespace Kasir.Forms.Admin
             var lblName = new Label
             {
                 Text = "Printer Name (from Devices and Printers):",
-                ForeColor = Color.Gray,
+                ForeColor = ThemeConstants.FgLabel,
                 Location = new Point(15, 55),
                 AutoSize = true
             };
@@ -48,9 +48,9 @@ namespace Kasir.Forms.Admin
             {
                 Location = new Point(15, 80),
                 Width = 460,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 14f),
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontMain,
                 Text = _configRepo.Get("printer_name") ?? ""
             };
 
@@ -61,7 +61,7 @@ namespace Kasir.Forms.Admin
             btnTestDrawer.Click += BtnTestDrawer_Click;
 
             var btnSave = CreateActionButton("Save", new Point(345, 130));
-            btnSave.BackColor = Color.FromArgb(0, 100, 0);
+            btnSave.BackColor = ThemeConstants.BtnPrimary;
             btnSave.Click += BtnSave_Click;
 
             pnl.Controls.AddRange(new Control[] {
@@ -85,8 +85,8 @@ namespace Kasir.Forms.Admin
                 Text = text,
                 Location = location,
                 Size = new Size(150, 35),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(0, 60, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnSecondary,
                 FlatStyle = FlatStyle.Flat
             };
         }

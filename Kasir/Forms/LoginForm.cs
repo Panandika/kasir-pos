@@ -24,14 +24,14 @@ namespace Kasir.Forms
             var pnlCenter = new Panel
             {
                 Size = new Size(400, 300),
-                BackColor = Color.FromArgb(10, 10, 10)
+                BackColor = ThemeConstants.BgDialog
             };
 
             var lblTitle = new Label
             {
                 Text = "KASIR POS",
-                Font = new Font("Consolas", 24f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 255, 0),
+                Font = ThemeConstants.FontTitle,
+                ForeColor = ThemeConstants.FgPrimary,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Dock = DockStyle.Top,
                 Height = 60
@@ -40,7 +40,7 @@ namespace Kasir.Forms
             var lblUser = new Label
             {
                 Text = "Username:",
-                ForeColor = Color.Gray,
+                ForeColor = ThemeConstants.FgLabel,
                 Location = new Point(30, 80),
                 AutoSize = true
             };
@@ -49,16 +49,16 @@ namespace Kasir.Forms
             {
                 Location = new Point(30, 105),
                 Width = 340,
-                BackColor = Color.FromArgb(20, 20, 20),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 16f),
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInput,
                 CharacterCasing = CharacterCasing.Upper
             };
 
             var lblPass = new Label
             {
                 Text = "Password:",
-                ForeColor = Color.Gray,
+                ForeColor = ThemeConstants.FgLabel,
                 Location = new Point(30, 145),
                 AutoSize = true
             };
@@ -67,9 +67,9 @@ namespace Kasir.Forms
             {
                 Location = new Point(30, 170),
                 Width = 340,
-                BackColor = Color.FromArgb(20, 20, 20),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 16f),
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInput,
                 PasswordChar = '*',
                 UseSystemPasswordChar = false
             };
@@ -79,7 +79,7 @@ namespace Kasir.Forms
             {
                 Location = new Point(30, 210),
                 Size = new Size(340, 40),
-                ForeColor = Color.Red,
+                ForeColor = ThemeConstants.FgError,
                 Text = "",
                 TextAlign = ContentAlignment.MiddleCenter
             };
@@ -89,10 +89,10 @@ namespace Kasir.Forms
                 Text = "LOGIN",
                 Location = new Point(30, 255),
                 Size = new Size(340, 35),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(0, 80, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnPrimary,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Consolas", 12f, FontStyle.Bold)
+                Font = ThemeConstants.FontInputSmall
             };
             btnLogin.Click += BtnLogin_Click;
 

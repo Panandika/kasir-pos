@@ -30,15 +30,15 @@ namespace Kasir.Forms.Master
             ApplyGridTheme(dgvPrices);
             dgvPrices.ReadOnly = false;
 
-            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "Code", HeaderText = "Kode", ReadOnly = true, Width = 120 });
-            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "Nama Barang", ReadOnly = true, Width = 250 });
-            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "OldPrice", HeaderText = "Jual Lama", ReadOnly = true, Width = 100 });
-            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "NewPrice", HeaderText = "Jual Baru", Width = 100 });
-            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "BuyPrice", HeaderText = "Beli", ReadOnly = true, Width = 100 });
+            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "Code", HeaderText = "Kode", ReadOnly = true, FillWeight = 120 });
+            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "Nama Barang", ReadOnly = true, FillWeight = 250 });
+            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "OldPrice", HeaderText = "Jual Lama", ReadOnly = true, FillWeight = 100 });
+            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "NewPrice", HeaderText = "Jual Baru", FillWeight = 100 });
+            dgvPrices.Columns.Add(new DataGridViewTextBoxColumn { Name = "BuyPrice", HeaderText = "Beli", ReadOnly = true, FillWeight = 100 });
 
             // Style editable column
-            dgvPrices.Columns["NewPrice"].DefaultCellStyle.BackColor = Color.FromArgb(30, 30, 0);
-            dgvPrices.Columns["NewPrice"].DefaultCellStyle.ForeColor = Color.Yellow;
+            dgvPrices.Columns["NewPrice"].DefaultCellStyle.BackColor = ThemeConstants.BgInput;
+            dgvPrices.Columns["NewPrice"].DefaultCellStyle.ForeColor = ThemeConstants.FgWarning;
 
             this.Controls.Add(dgvPrices);
         }

@@ -29,15 +29,15 @@ namespace Kasir.Forms.Accounting
 
         private void InitializeLayout()
         {
-            var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 35, BackColor = Color.FromArgb(0, 30, 0) };
-            var lblSearch = new Label { Text = "Search:", Location = new Point(5, 8), AutoSize = true, ForeColor = Color.Gray };
+            var pnlSearch = new Panel { Dock = DockStyle.Top, Height = 35, BackColor = ThemeConstants.BgFooter };
+            var lblSearch = new Label { Text = "Search:", Location = new Point(5, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtSearch = new TextBox
             {
                 Location = new Point(80, 5),
                 Width = 300,
-                BackColor = Color.FromArgb(20, 20, 20),
-                ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput,
+                ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
             txtSearch.KeyDown += (s, e) =>
             {
@@ -54,11 +54,11 @@ namespace Kasir.Forms.Accounting
             dgvAccounts.Columns.Add("NormalBal", "D/K");
             dgvAccounts.Columns.Add("Detail", "Detail");
 
-            dgvAccounts.Columns["Code"].Width = 120;
-            dgvAccounts.Columns["Name"].Width = 300;
-            dgvAccounts.Columns["Group"].Width = 100;
-            dgvAccounts.Columns["NormalBal"].Width = 60;
-            dgvAccounts.Columns["Detail"].Width = 60;
+            dgvAccounts.Columns["Code"].FillWeight = 120;
+            dgvAccounts.Columns["Name"].FillWeight = 300;
+            dgvAccounts.Columns["Group"].FillWeight = 100;
+            dgvAccounts.Columns["NormalBal"].FillWeight = 60;
+            dgvAccounts.Columns["Detail"].FillWeight = 60;
 
             this.Controls.Add(dgvAccounts);
             this.Controls.Add(pnlSearch);

@@ -18,14 +18,14 @@ namespace Kasir.Forms.Admin
             var pnl = new Panel
             {
                 Size = new Size(500, 200),
-                BackColor = Color.FromArgb(10, 10, 10)
+                BackColor = ThemeConstants.BgDialog
             };
 
             var lblTitle = new Label
             {
                 Text = "Backup Database",
-                Font = new Font("Consolas", 16f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 255, 0),
+                Font = ThemeConstants.FontTitle,
+                ForeColor = ThemeConstants.FgPrimary,
                 Location = new Point(15, 15),
                 AutoSize = true
             };
@@ -33,7 +33,7 @@ namespace Kasir.Forms.Admin
             var lblInfo = new Label
             {
                 Text = "Copies kasir.db to selected folder with timestamp.\nRecommended: backup to USB drive daily.",
-                ForeColor = Color.Gray,
+                ForeColor = ThemeConstants.FgLabel,
                 Location = new Point(15, 55),
                 AutoSize = true
             };
@@ -43,10 +43,10 @@ namespace Kasir.Forms.Admin
                 Text = "Backup Now",
                 Location = new Point(15, 110),
                 Size = new Size(200, 40),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(0, 100, 0),
+                ForeColor = ThemeConstants.FgWhite,
+                BackColor = ThemeConstants.BtnPrimary,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Consolas", 12f, FontStyle.Bold)
+                Font = ThemeConstants.FontInputSmall
             };
             btnBackup.Click += BtnBackup_Click;
 

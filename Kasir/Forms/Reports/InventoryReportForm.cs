@@ -29,35 +29,35 @@ namespace Kasir.Forms.Reports
 
         private void InitializeLayout()
         {
-            var pnlParams = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.FromArgb(0, 30, 0) };
+            var pnlParams = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = ThemeConstants.BgFooter };
 
-            pnlParams.Controls.Add(new Label { Text = "Report:", Location = new Point(10, 15), AutoSize = true, ForeColor = Color.Gray });
-            cboReportType = new ComboBox { Location = new Point(70, 12), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0) };
+            pnlParams.Controls.Add(new Label { Text = "Report:", Location = new Point(10, 15), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            cboReportType = new ComboBox { Location = new Point(70, 12), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary };
             cboReportType.Items.AddRange(new object[] { "Stock Position", "Purchase Register", "Purchase Returns", "Transfers", "Stock Out (Usage/Damage/Loss)", "Stock Opname", "Price History" });
             cboReportType.SelectedIndex = 0;
             pnlParams.Controls.Add(cboReportType);
 
-            pnlParams.Controls.Add(new Label { Text = "From:", Location = new Point(290, 15), AutoSize = true, ForeColor = Color.Gray });
-            txtDateFrom = new TextBox { Location = new Point(340, 12), Width = 110, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0), Font = new Font("Consolas", 11f) };
+            pnlParams.Controls.Add(new Label { Text = "From:", Location = new Point(290, 15), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            txtDateFrom = new TextBox { Location = new Point(340, 12), Width = 110, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontGrid };
             pnlParams.Controls.Add(txtDateFrom);
 
-            pnlParams.Controls.Add(new Label { Text = "To:", Location = new Point(460, 15), AutoSize = true, ForeColor = Color.Gray });
-            txtDateTo = new TextBox { Location = new Point(490, 12), Width = 110, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.FromArgb(0, 255, 0), Font = new Font("Consolas", 11f) };
+            pnlParams.Controls.Add(new Label { Text = "To:", Location = new Point(460, 15), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
+            txtDateTo = new TextBox { Location = new Point(490, 12), Width = 110, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontGrid };
             pnlParams.Controls.Add(txtDateTo);
 
-            var btnGen = new Button { Text = "F5", Location = new Point(620, 10), Size = new Size(50, 30), ForeColor = Color.White, BackColor = Color.FromArgb(0, 80, 0), FlatStyle = FlatStyle.Flat };
+            var btnGen = new Button { Text = "F5", Location = new Point(620, 10), Size = new Size(50, 30), ForeColor = ThemeConstants.FgWhite, BackColor = ThemeConstants.BtnPrimary, FlatStyle = FlatStyle.Flat };
             btnGen.Click += (s, e) => GenerateReport();
             pnlParams.Controls.Add(btnGen);
 
-            var btnExport = new Button { Text = "F7", Location = new Point(680, 10), Size = new Size(50, 30), ForeColor = Color.White, BackColor = Color.FromArgb(0, 60, 0), FlatStyle = FlatStyle.Flat };
+            var btnExport = new Button { Text = "F7", Location = new Point(680, 10), Size = new Size(50, 30), ForeColor = ThemeConstants.FgWhite, BackColor = ThemeConstants.BtnSecondary, FlatStyle = FlatStyle.Flat };
             btnExport.Click += (s, e) => Export();
             pnlParams.Controls.Add(btnExport);
 
             dgvReport = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };
             ApplyGridTheme(dgvReport);
 
-            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = Color.FromArgb(0, 30, 0) };
-            lblSummary = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, ForeColor = Color.White, Font = new Font("Consolas", 11f), Padding = new Padding(0, 0, 20, 0) };
+            var pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = ThemeConstants.BgFooter };
+            lblSummary = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, ForeColor = ThemeConstants.FgWhite, Font = ThemeConstants.FontGrid, Padding = new Padding(0, 0, 20, 0) };
             pnlFooter.Controls.Add(lblSummary);
 
             this.Controls.Add(dgvReport);
@@ -102,11 +102,11 @@ namespace Kasir.Forms.Reports
 
         private void GenerateStockPosition(System.Data.SQLite.SQLiteConnection conn)
         {
-            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].Width = 140;
-            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].Width = 250;
-            dgvReport.Columns.Add("Stock", "Stok"); dgvReport.Columns["Stock"].Width = 80;
-            dgvReport.Columns.Add("AvgCost", "HPP"); dgvReport.Columns["AvgCost"].Width = 100;
-            dgvReport.Columns.Add("Value", "Nilai"); dgvReport.Columns["Value"].Width = 120;
+            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].FillWeight = 140;
+            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].FillWeight = 250;
+            dgvReport.Columns.Add("Stock", "Stok"); dgvReport.Columns["Stock"].FillWeight = 80;
+            dgvReport.Columns.Add("AvgCost", "HPP"); dgvReport.Columns["AvgCost"].FillWeight = 100;
+            dgvReport.Columns.Add("Value", "Nilai"); dgvReport.Columns["Value"].FillWeight = 120;
 
             var productRepo = new ProductRepository(conn);
             var invService = new InventoryService(conn);
@@ -128,10 +128,10 @@ namespace Kasir.Forms.Reports
 
         private void GeneratePurchaseRegister(System.Data.SQLite.SQLiteConnection conn)
         {
-            dgvReport.Columns.Add("No", "No. Faktur"); dgvReport.Columns["No"].Width = 160;
-            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].Width = 100;
-            dgvReport.Columns.Add("Vendor", "Supplier"); dgvReport.Columns["Vendor"].Width = 120;
-            dgvReport.Columns.Add("Total", "Total"); dgvReport.Columns["Total"].Width = 120;
+            dgvReport.Columns.Add("No", "No. Faktur"); dgvReport.Columns["No"].FillWeight = 160;
+            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].FillWeight = 100;
+            dgvReport.Columns.Add("Vendor", "Supplier"); dgvReport.Columns["Vendor"].FillWeight = 120;
+            dgvReport.Columns.Add("Total", "Total"); dgvReport.Columns["Total"].FillWeight = 120;
 
             var purchaseRepo = new PurchaseRepository(conn);
             var purchases = purchaseRepo.GetByDateRange(txtDateFrom.Text, txtDateTo.Text, "PURCHASE");
@@ -146,10 +146,10 @@ namespace Kasir.Forms.Reports
 
         private void GeneratePurchaseReturns(System.Data.SQLite.SQLiteConnection conn)
         {
-            dgvReport.Columns.Add("No", "No. Retur"); dgvReport.Columns["No"].Width = 160;
-            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].Width = 100;
-            dgvReport.Columns.Add("Vendor", "Supplier"); dgvReport.Columns["Vendor"].Width = 120;
-            dgvReport.Columns.Add("Total", "Total"); dgvReport.Columns["Total"].Width = 120;
+            dgvReport.Columns.Add("No", "No. Retur"); dgvReport.Columns["No"].FillWeight = 160;
+            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].FillWeight = 100;
+            dgvReport.Columns.Add("Vendor", "Supplier"); dgvReport.Columns["Vendor"].FillWeight = 120;
+            dgvReport.Columns.Add("Total", "Total"); dgvReport.Columns["Total"].FillWeight = 120;
 
             var purchaseRepo = new PurchaseRepository(conn);
             var returns = purchaseRepo.GetByDateRange(txtDateFrom.Text, txtDateTo.Text, "PURCHASE_RETURN");
@@ -164,10 +164,10 @@ namespace Kasir.Forms.Reports
 
         private void GenerateTransfers(System.Data.SQLite.SQLiteConnection conn)
         {
-            dgvReport.Columns.Add("No", "No. Transfer"); dgvReport.Columns["No"].Width = 160;
-            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].Width = 100;
-            dgvReport.Columns.Add("From", "Dari"); dgvReport.Columns["From"].Width = 100;
-            dgvReport.Columns.Add("To", "Ke"); dgvReport.Columns["To"].Width = 100;
+            dgvReport.Columns.Add("No", "No. Transfer"); dgvReport.Columns["No"].FillWeight = 160;
+            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].FillWeight = 100;
+            dgvReport.Columns.Add("From", "Dari"); dgvReport.Columns["From"].FillWeight = 100;
+            dgvReport.Columns.Add("To", "Ke"); dgvReport.Columns["To"].FillWeight = 100;
 
             var transferRepo = new StockTransferRepository(conn);
             var transfers = transferRepo.GetByDateRange(txtDateFrom.Text, txtDateTo.Text);
@@ -180,15 +180,15 @@ namespace Kasir.Forms.Reports
 
         private void GenerateStockOut(System.Data.SQLite.SQLiteConnection conn)
         {
-            dgvReport.Columns.Add("No", "No. Dokumen"); dgvReport.Columns["No"].Width = 140;
-            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].Width = 90;
-            dgvReport.Columns.Add("Type", "Jenis"); dgvReport.Columns["Type"].Width = 80;
-            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].Width = 120;
-            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].Width = 200;
-            dgvReport.Columns.Add("Qty", "Qty"); dgvReport.Columns["Qty"].Width = 60;
-            dgvReport.Columns.Add("Cost", "Harga"); dgvReport.Columns["Cost"].Width = 100;
-            dgvReport.Columns.Add("Value", "Nilai"); dgvReport.Columns["Value"].Width = 120;
-            dgvReport.Columns.Add("Remark", "Keterangan"); dgvReport.Columns["Remark"].Width = 100;
+            dgvReport.Columns.Add("No", "No. Dokumen"); dgvReport.Columns["No"].FillWeight = 140;
+            dgvReport.Columns.Add("Date", "Tanggal"); dgvReport.Columns["Date"].FillWeight = 90;
+            dgvReport.Columns.Add("Type", "Jenis"); dgvReport.Columns["Type"].FillWeight = 80;
+            dgvReport.Columns.Add("Code", "Kode"); dgvReport.Columns["Code"].FillWeight = 120;
+            dgvReport.Columns.Add("Name", "Nama"); dgvReport.Columns["Name"].FillWeight = 200;
+            dgvReport.Columns.Add("Qty", "Qty"); dgvReport.Columns["Qty"].FillWeight = 60;
+            dgvReport.Columns.Add("Cost", "Harga"); dgvReport.Columns["Cost"].FillWeight = 100;
+            dgvReport.Columns.Add("Value", "Nilai"); dgvReport.Columns["Value"].FillWeight = 120;
+            dgvReport.Columns.Add("Remark", "Keterangan"); dgvReport.Columns["Remark"].FillWeight = 100;
 
             var adjRepo = new StockAdjustmentRepository(conn);
             var items = adjRepo.GetAllItemsByDateRange(txtDateFrom.Text, txtDateTo.Text);
@@ -238,12 +238,12 @@ namespace Kasir.Forms.Reports
 
                 if (row.Variance < 0)
                 {
-                    dgvReport.Rows[idx].DefaultCellStyle.ForeColor = Color.FromArgb(255, 80, 80);
+                    dgvReport.Rows[idx].DefaultCellStyle.ForeColor = ThemeConstants.FgError;
                     totalShortage += System.Math.Abs(row.VarianceValue);
                 }
                 else if (row.Variance > 0)
                 {
-                    dgvReport.Rows[idx].DefaultCellStyle.ForeColor = Color.LimeGreen;
+                    dgvReport.Rows[idx].DefaultCellStyle.ForeColor = ThemeConstants.FgSuccess;
                     totalSurplus += row.VarianceValue;
                 }
             }

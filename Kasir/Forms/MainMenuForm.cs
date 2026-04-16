@@ -42,9 +42,9 @@ namespace Kasir.Forms
             // Menu strip
             menuStrip = new MenuStrip
             {
-                BackColor = Color.FromArgb(0, 40, 0),
-                ForeColor = Color.White,
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgHeader,
+                ForeColor = ThemeConstants.FgWhite,
+                Font = ThemeConstants.FontMenu
             };
 
             BuildMenu();
@@ -70,9 +70,9 @@ namespace Kasir.Forms
                 Dock = DockStyle.Bottom,
                 Height = 30,
                 TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.FromArgb(0, 150, 0),
-                BackColor = Color.FromArgb(0, 20, 0),
-                Font = new Font("Consolas", 10f)
+                ForeColor = ThemeConstants.FgMuted,
+                BackColor = ThemeConstants.BgPanel,
+                Font = ThemeConstants.FontSmall
             };
             this.Controls.Add(lblBranding);
 
@@ -87,8 +87,8 @@ namespace Kasir.Forms
                     _auth.CurrentUser.DisplayName),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.FromArgb(0, 180, 0),
-                Font = new Font("Consolas", 14f)
+                ForeColor = ThemeConstants.FgDimmed,
+                Font = ThemeConstants.FontMain
             };
             this.Controls.Add(lblWelcome);
         }
@@ -178,13 +178,13 @@ namespace Kasir.Forms
             // Style all items
             foreach (ToolStripMenuItem item in menuStrip.Items)
             {
-                item.ForeColor = Color.White;
+                item.ForeColor = ThemeConstants.FgWhite;
                 foreach (ToolStripItem sub in item.DropDownItems)
                 {
                     if (sub is ToolStripMenuItem menuItem)
                     {
-                        menuItem.BackColor = Color.FromArgb(0, 30, 0);
-                        menuItem.ForeColor = menuItem.Enabled ? Color.White : Color.Gray;
+                        menuItem.BackColor = ThemeConstants.BgMenuDrop;
+                        menuItem.ForeColor = menuItem.Enabled ? ThemeConstants.FgWhite : ThemeConstants.FgLabel;
                     }
                 }
             }

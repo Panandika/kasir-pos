@@ -39,27 +39,27 @@ namespace Kasir.Forms.Accounting
 
         private void InitializeLayout()
         {
-            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Color.FromArgb(0, 30, 0) };
+            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = ThemeConstants.BgFooter };
 
-            var lblDate = new Label { Text = "Tanggal:", Location = new Point(5, 8), AutoSize = true, ForeColor = Color.Gray };
+            var lblDate = new Label { Text = "Tanggal:", Location = new Point(5, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtDate = new TextBox
             {
                 Location = new Point(80, 5), Width = 120, Text = DateTime.Now.ToString("yyyy-MM-dd"),
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f), ReadOnly = _readOnly
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall, ReadOnly = _readOnly
             };
 
-            var lblRemark = new Label { Text = "Ket:", Location = new Point(220, 8), AutoSize = true, ForeColor = Color.Gray };
+            var lblRemark = new Label { Text = "Ket:", Location = new Point(220, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtRemark = new TextBox
             {
                 Location = new Point(260, 5), Width = 500,
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f), ReadOnly = _readOnly
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall, ReadOnly = _readOnly
             };
 
-            lblDebitTotal = new Label { Text = "Debit: 0", Location = new Point(5, 40), Width = 250, ForeColor = Color.Cyan };
-            lblCreditTotal = new Label { Text = "Credit: 0", Location = new Point(260, 40), Width = 250, ForeColor = Color.Cyan };
-            lblDifference = new Label { Text = "Selisih: 0", Location = new Point(520, 40), Width = 250, ForeColor = Color.Yellow };
+            lblDebitTotal = new Label { Text = "Debit: 0", Location = new Point(5, 40), Width = 250, ForeColor = ThemeConstants.FgSuccess };
+            lblCreditTotal = new Label { Text = "Credit: 0", Location = new Point(260, 40), Width = 250, ForeColor = ThemeConstants.FgSuccess };
+            lblDifference = new Label { Text = "Selisih: 0", Location = new Point(520, 40), Width = 250, ForeColor = ThemeConstants.FgWarning };
 
             pnlHeader.Controls.AddRange(new Control[] { lblDate, txtDate, lblRemark, txtRemark,
                 lblDebitTotal, lblCreditTotal, lblDifference });
@@ -73,11 +73,11 @@ namespace Kasir.Forms.Accounting
             dgvLines.Columns.Add("Debit", "Debit");
             dgvLines.Columns.Add("Credit", "Kredit");
 
-            dgvLines.Columns["AccCode"].Width = 120;
-            dgvLines.Columns["AccName"].Width = 250;
-            dgvLines.Columns["Remark"].Width = 200;
-            dgvLines.Columns["Debit"].Width = 150;
-            dgvLines.Columns["Credit"].Width = 150;
+            dgvLines.Columns["AccCode"].FillWeight = 120;
+            dgvLines.Columns["AccName"].FillWeight = 250;
+            dgvLines.Columns["Remark"].FillWeight = 200;
+            dgvLines.Columns["Debit"].FillWeight = 150;
+            dgvLines.Columns["Credit"].FillWeight = 150;
 
             if (!_readOnly)
             {
@@ -123,7 +123,7 @@ namespace Kasir.Forms.Accounting
             lblCreditTotal.Text = "Credit: " + Formatting.FormatMoney(totalCredit);
             long diff = totalDebit - totalCredit;
             lblDifference.Text = "Selisih: " + Formatting.FormatMoney(Math.Abs(diff));
-            lblDifference.ForeColor = diff == 0 ? Color.FromArgb(0, 255, 0) : Color.Red;
+            lblDifference.ForeColor = diff == 0 ? ThemeConstants.FgPrimary : ThemeConstants.FgError;
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

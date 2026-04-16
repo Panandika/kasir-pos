@@ -36,20 +36,20 @@ namespace Kasir.Forms.Accounting
 
         private void InitializeLayout()
         {
-            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = Color.FromArgb(0, 30, 0) };
-            var lblDate = new Label { Text = "Tanggal:", Location = new Point(5, 8), AutoSize = true, ForeColor = Color.Gray };
+            var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = ThemeConstants.BgFooter };
+            var lblDate = new Label { Text = "Tanggal:", Location = new Point(5, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtDate = new TextBox
             {
                 Location = new Point(80, 5), Width = 120, Text = DateTime.Now.ToString("yyyy-MM-dd"),
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
-            var lblRemark = new Label { Text = "Ket:", Location = new Point(220, 8), AutoSize = true, ForeColor = Color.Gray };
+            var lblRemark = new Label { Text = "Ket:", Location = new Point(220, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtRemark = new TextBox
             {
                 Location = new Point(260, 5), Width = 400,
-                BackColor = Color.FromArgb(20, 20, 20), ForeColor = Color.FromArgb(0, 255, 0),
-                Font = new Font("Consolas", 12f)
+                BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
+                Font = ThemeConstants.FontInputSmall
             };
             pnlHeader.Controls.AddRange(new Control[] { lblDate, txtDate, lblRemark, txtRemark });
 
@@ -62,10 +62,10 @@ namespace Kasir.Forms.Accounting
             dgvLines.Columns.Add("Amount", "Jumlah");
             dgvLines.Columns.Add("Remark", "Keterangan");
 
-            dgvLines.Columns["AccCode"].Width = 120;
-            dgvLines.Columns["AccName"].Width = 250;
-            dgvLines.Columns["Amount"].Width = 150;
-            dgvLines.Columns["Remark"].Width = 250;
+            dgvLines.Columns["AccCode"].FillWeight = 120;
+            dgvLines.Columns["AccName"].FillWeight = 250;
+            dgvLines.Columns["Amount"].FillWeight = 150;
+            dgvLines.Columns["Remark"].FillWeight = 250;
 
             dgvLines.CellEndEdit += (s, e) =>
             {
@@ -82,8 +82,8 @@ namespace Kasir.Forms.Accounting
                 UpdateTotal();
             };
 
-            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 35, BackColor = Color.FromArgb(0, 30, 0) };
-            lblTotal = new Label { Text = "Total: 0", Location = new Point(5, 8), Width = 300, ForeColor = Color.Cyan };
+            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 35, BackColor = ThemeConstants.BgFooter };
+            lblTotal = new Label { Text = "Total: 0", Location = new Point(5, 8), Width = 300, ForeColor = ThemeConstants.FgSuccess };
             pnlBottom.Controls.Add(lblTotal);
 
             this.Controls.Add(dgvLines);
