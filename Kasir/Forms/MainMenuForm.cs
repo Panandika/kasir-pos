@@ -84,7 +84,6 @@ namespace Kasir.Forms
             var pnlDashboard = new Panel { Dock = DockStyle.Fill };
 
             // Store branding (large, centered)
-            string storeName = ConfigurationManager.AppSettings["StoreName"] ?? "TOKO SINAR MAKMUR";
             var lblStoreName = new Label
             {
                 Text = storeName,
@@ -137,7 +136,7 @@ namespace Kasir.Forms
                 if (openShift != null)
                 {
                     _lblShiftStatus.Text = string.Format("Shift #{0} OPEN — {1}",
-                        openShift.ShiftNumber, openShift.OpenTime);
+                        openShift.ShiftNumber, openShift.OpenedAt);
                     _lblShiftStatus.ForeColor = ThemeConstants.FgSuccess;
                 }
                 else
@@ -346,7 +345,7 @@ namespace Kasir.Forms
                     if (openShift != null)
                     {
                         _lblShiftStatus.Text = string.Format("Shift #{0} OPEN — {1}",
-                            openShift.ShiftNumber, openShift.OpenTime);
+                            openShift.ShiftNumber, openShift.OpenedAt);
                         _lblShiftStatus.ForeColor = ThemeConstants.FgSuccess;
                     }
                     else

@@ -71,12 +71,10 @@ namespace Kasir.Forms.POS
             dgvResults.Columns.Add("Code", "KODE");
             dgvResults.Columns.Add("Name", "NAMA BARANG");
             dgvResults.Columns.Add("Price", "HARGA");
-            dgvResults.Columns.Add("Stock", "STOK");
 
             dgvResults.Columns["Code"].FillWeight = 120;
             dgvResults.Columns["Name"].FillWeight = 300;
             dgvResults.Columns["Price"].FillWeight = 120;
-            dgvResults.Columns["Stock"].FillWeight = 80;
 
             dgvResults.KeyDown += OnGridKeyDown;
             dgvResults.CellDoubleClick += OnGridDoubleClick;
@@ -142,8 +140,7 @@ namespace Kasir.Forms.POS
                 dgvResults.Rows.Add(
                     p.ProductCode,
                     p.Name,
-                    Formatting.FormatCurrencyShort(p.Price),
-                    p.Stock);
+                    Formatting.FormatCurrencyShort(p.Price));
             }
 
             if (dgvResults.Rows.Count > 0)

@@ -152,7 +152,7 @@ namespace Kasir.Forms
             };
         }
 
-        protected static void ApplyGridTheme(DataGridView dgv)
+        public static void ApplyGridTheme(DataGridView dgv)
         {
             dgv.BackgroundColor = ThemeConstants.BgPrimary;
             dgv.GridColor = ThemeConstants.GridLine;
@@ -176,7 +176,7 @@ namespace Kasir.Forms
             dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
-        protected static void ApplyFocusIndicator(TextBox txt)
+        public static void ApplyFocusIndicator(TextBox txt)
         {
             txt.GotFocus += (s, e) =>
             {
@@ -188,7 +188,7 @@ namespace Kasir.Forms
             };
         }
 
-        protected static void ApplyFocusIndicator(ComboBox cbo)
+        public static void ApplyFocusIndicator(ComboBox cbo)
         {
             cbo.GotFocus += (s, e) =>
             {
