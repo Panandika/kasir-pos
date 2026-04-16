@@ -71,6 +71,7 @@ namespace Kasir.Forms.Accounting
                 BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
                 Font = ThemeConstants.FontInputSmall
             };
+            ApplyFocusIndicator(txtPayment);
             pnlBottom.Controls.AddRange(new Control[] { lblTotal, lblPay, txtPayment });
 
             this.Controls.Add(dgvPayables);
