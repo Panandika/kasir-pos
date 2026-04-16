@@ -10,6 +10,7 @@ namespace Kasir.Forms
         protected ToolStripStatusLabel lblAction;
         protected ToolStripStatusLabel lblClock;
         private System.Windows.Forms.Timer clockTimer;
+        private System.Windows.Forms.Timer _feedbackTimer;
 
         public BaseForm()
         {
@@ -60,6 +61,48 @@ namespace Kasir.Forms
         protected void SetAction(string text)
         {
             lblAction.Text = text;
+            lblAction.ForeColor = ThemeConstants.FgWhite;
+        }
+
+        protected void ShowSuccess(string message)
+        {
+            lblAction.Text = message;
+            lblAction.ForeColor = ThemeConstants.FgSuccess;
+            StartFeedbackClear(3000);
+        }
+
+        protected void ShowError(string message)
+        {
+            lblAction.Text = message;
+            lblAction.ForeColor = ThemeConstants.FgError;
+        }
+
+        protected void ShowWarning(string message)
+        {
+            lblAction.Text = message;
+            lblAction.ForeColor = ThemeConstants.FgWarning;
+        }
+
+        protected void ShowBusy(string message)
+        {
+            lblAction.Text = message + "...";
+            lblAction.ForeColor = ThemeConstants.FgWarning;
+        }
+
+        private void StartFeedbackClear(int delayMs)
+        {
+            if (_feedbackTimer == null)
+            {
+                _feedbackTimer = new System.Windows.Forms.Timer();
+                _feedbackTimer.Tick += (s, e) =>
+                {
+                    _feedbackTimer.Stop();
+                    lblAction.ForeColor = ThemeConstants.FgWhite;
+                };
+            }
+            _feedbackTimer.Stop();
+            _feedbackTimer.Interval = delayMs;
+            _feedbackTimer.Start();
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -78,6 +121,11 @@ namespace Kasir.Forms
             {
                 clockTimer.Stop();
                 clockTimer.Dispose();
+            }
+            if (_feedbackTimer != null)
+            {
+                _feedbackTimer.Stop();
+                _feedbackTimer.Dispose();
             }
             base.OnFormClosed(e);
         }
