@@ -43,14 +43,17 @@ namespace Kasir.Forms.Purchasing
 
             pnlHeader.Controls.Add(new Label { Text = "Tgl Faktur:", Location = new Point(10, 35), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtDate = new TextBox { Location = new Point(110, 32), Width = 120, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall };
+            ApplyFocusIndicator(txtDate);
             pnlHeader.Controls.Add(txtDate);
 
             pnlHeader.Controls.Add(new Label { Text = "Terms:", Location = new Point(260, 35), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtTerms = new TextBox { Location = new Point(320, 32), Width = 50, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall, Text = "30" };
+            ApplyFocusIndicator(txtTerms);
             pnlHeader.Controls.Add(txtTerms);
 
             pnlHeader.Controls.Add(new Label { Text = "Jatuh Tempo:", Location = new Point(390, 35), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtDueDate = new TextBox { Location = new Point(510, 32), Width = 120, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall };
+            ApplyFocusIndicator(txtDueDate);
             pnlHeader.Controls.Add(txtDueDate);
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };

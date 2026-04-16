@@ -42,6 +42,7 @@ namespace Kasir.Forms.Accounting
             {
                 if (e.KeyCode == Keys.Enter) { LoadVendorPayables(); e.Handled = true; e.SuppressKeyPress = true; }
             };
+            ApplyFocusIndicator(txtVendor);
             pnlHeader.Controls.AddRange(new Control[] { lblVendor, txtVendor });
 
             dgvPayables = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };

@@ -47,10 +47,12 @@ namespace Kasir.Forms.Purchasing
 
             pnlHeader.Controls.Add(new Label { Text = "No Faktur:", Location = new Point(10, 35), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtRefInvoice = new TextBox { Location = new Point(110, 32), Width = 200, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall };
+            ApplyFocusIndicator(txtRefInvoice);
             pnlHeader.Controls.Add(txtRefInvoice);
 
             pnlHeader.Controls.Add(new Label { Text = "Tgl:", Location = new Point(330, 35), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtDate = new TextBox { Location = new Point(370, 32), Width = 120, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall };
+            ApplyFocusIndicator(txtDate);
             pnlHeader.Controls.Add(txtDate);
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };

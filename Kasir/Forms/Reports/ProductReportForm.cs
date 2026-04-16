@@ -33,6 +33,7 @@ namespace Kasir.Forms.Reports
                 Font = ThemeConstants.FontGrid
             };
             txtSearch.TextChanged += (s, e) => FilterGrid();
+            ApplyFocusIndicator(txtSearch);
             pnlParams.Controls.Add(txtSearch);
 
             var btnRefresh = new Button { Text = "F5", Location = new Point(380, 10), Size = new Size(50, 30), ForeColor = ThemeConstants.FgWhite, BackColor = ThemeConstants.BtnPrimary, FlatStyle = FlatStyle.Flat };

@@ -35,14 +35,17 @@ namespace Kasir.Forms.Reports
             cboReportType = new ComboBox { Location = new Point(70, 12), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary };
             cboReportType.Items.AddRange(new object[] { "Stock Position", "Purchase Register", "Purchase Returns", "Transfers", "Stock Out (Usage/Damage/Loss)", "Stock Opname", "Price History" });
             cboReportType.SelectedIndex = 0;
+            ApplyFocusIndicator(cboReportType);
             pnlParams.Controls.Add(cboReportType);
 
             pnlParams.Controls.Add(new Label { Text = "From:", Location = new Point(290, 15), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtDateFrom = new TextBox { Location = new Point(340, 12), Width = 110, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontGrid };
+            ApplyFocusIndicator(txtDateFrom);
             pnlParams.Controls.Add(txtDateFrom);
 
             pnlParams.Controls.Add(new Label { Text = "To:", Location = new Point(460, 15), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtDateTo = new TextBox { Location = new Point(490, 12), Width = 110, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontGrid };
+            ApplyFocusIndicator(txtDateTo);
             pnlParams.Controls.Add(txtDateTo);
 
             var btnGen = new Button { Text = "F5", Location = new Point(620, 10), Size = new Size(50, 30), ForeColor = ThemeConstants.FgWhite, BackColor = ThemeConstants.BtnPrimary, FlatStyle = FlatStyle.Flat };

@@ -43,6 +43,7 @@ namespace Kasir.Forms.Accounting
             {
                 if (e.KeyCode == Keys.Enter) { SearchAccounts(); e.Handled = true; e.SuppressKeyPress = true; }
             };
+            ApplyFocusIndicator(txtSearch);
             pnlSearch.Controls.AddRange(new Control[] { lblSearch, txtSearch });
 
             dgvAccounts = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };

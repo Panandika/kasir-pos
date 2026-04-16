@@ -175,5 +175,29 @@ namespace Kasir.Forms
             dgv.RowTemplate.Height = ThemeConstants.RowHeight;
             dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
+
+        protected static void ApplyFocusIndicator(TextBox txt)
+        {
+            txt.GotFocus += (s, e) =>
+            {
+                txt.BackColor = Color.FromArgb(30, 35, 30);
+            };
+            txt.LostFocus += (s, e) =>
+            {
+                txt.BackColor = ThemeConstants.BgInput;
+            };
+        }
+
+        protected static void ApplyFocusIndicator(ComboBox cbo)
+        {
+            cbo.GotFocus += (s, e) =>
+            {
+                cbo.BackColor = Color.FromArgb(30, 35, 30);
+            };
+            cbo.LostFocus += (s, e) =>
+            {
+                cbo.BackColor = ThemeConstants.BgInput;
+            };
+        }
     }
 }

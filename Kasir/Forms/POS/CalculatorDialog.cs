@@ -143,6 +143,7 @@ namespace Kasir.Forms.POS
                 TextAlign = HorizontalAlignment.Right,
                 Text = "0"
             };
+            BaseForm.ApplyFocusIndicator(txt);
             return txt;
         }
 

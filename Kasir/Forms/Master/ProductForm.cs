@@ -68,6 +68,7 @@ namespace Kasir.Forms.Master
                     e.SuppressKeyPress = true;
                 }
             };
+            ApplyFocusIndicator(txtSearch);
             pnlSearch.Controls.AddRange(new Control[] { lblSearch, txtSearch });
 
             // Split: top = grid, bottom = detail tabs
@@ -121,16 +122,16 @@ namespace Kasir.Forms.Master
             int y = 10;
 
             AddLabel(tab, "Kode Barang:", 10, y);
-            txtCode = AddTextBox(tab, 160, y, 200); y += 30;
+            txtCode = AddTextBox(tab, 160, y, 200); ApplyFocusIndicator(txtCode); y += 30;
 
             AddLabel(tab, "Nama:", 10, y);
-            txtName = AddTextBox(tab, 160, y, 400); y += 30;
+            txtName = AddTextBox(tab, 160, y, 400); ApplyFocusIndicator(txtName); y += 30;
 
             AddLabel(tab, "Barcode:", 10, y);
-            txtBarcode = AddTextBox(tab, 160, y, 200); y += 30;
+            txtBarcode = AddTextBox(tab, 160, y, 200); ApplyFocusIndicator(txtBarcode); y += 30;
 
             AddLabel(tab, "Satuan:", 10, y);
-            txtUnit = AddTextBox(tab, 160, y, 100); y += 30;
+            txtUnit = AddTextBox(tab, 160, y, 100); ApplyFocusIndicator(txtUnit); y += 30;
 
             AddLabel(tab, "Departemen:", 10, y);
             cboDept = new ComboBox
@@ -146,7 +147,8 @@ namespace Kasir.Forms.Master
             {
                 cboDept.Items.Add(string.Format("{0} - {1}", d.DeptCode, d.Name));
             }
-            tab.Controls.Add(cboDept); y += 30;
+            tab.Controls.Add(cboDept);
+            ApplyFocusIndicator(cboDept); y += 30;
 
             AddLabel(tab, "Status:", 10, y);
             cboStatus = new ComboBox
@@ -159,6 +161,7 @@ namespace Kasir.Forms.Master
             };
             cboStatus.Items.AddRange(new object[] { "A - Active", "I - Inactive" });
             tab.Controls.Add(cboStatus);
+            ApplyFocusIndicator(cboStatus);
 
             return tab;
         }
@@ -169,29 +172,29 @@ namespace Kasir.Forms.Master
             int y = 10;
 
             AddLabel(tab, "Harga Jual:", 10, y);
-            txtPrice = AddTextBox(tab, 160, y, 150); y += 30;
+            txtPrice = AddTextBox(tab, 160, y, 150); ApplyFocusIndicator(txtPrice); y += 30;
 
             AddLabel(tab, "Harga 1 (Grosir):", 10, y);
-            txtPrice1 = AddTextBox(tab, 160, y, 150); y += 30;
+            txtPrice1 = AddTextBox(tab, 160, y, 150); ApplyFocusIndicator(txtPrice1); y += 30;
 
             AddLabel(tab, "Harga 2:", 10, y);
-            txtPrice2 = AddTextBox(tab, 160, y, 150);
+            txtPrice2 = AddTextBox(tab, 160, y, 150); ApplyFocusIndicator(txtPrice2);
             AddLabel(tab, "Batas Qty 2:", 350, y);
-            txtQtyBreak2 = AddTextBox(tab, 460, y, 80); y += 30;
+            txtQtyBreak2 = AddTextBox(tab, 460, y, 80); ApplyFocusIndicator(txtQtyBreak2); y += 30;
 
             AddLabel(tab, "Harga 3:", 10, y);
-            txtPrice3 = AddTextBox(tab, 160, y, 150);
+            txtPrice3 = AddTextBox(tab, 160, y, 150); ApplyFocusIndicator(txtPrice3);
             AddLabel(tab, "Batas Qty 3:", 350, y);
-            txtQtyBreak3 = AddTextBox(tab, 460, y, 80); y += 30;
+            txtQtyBreak3 = AddTextBox(tab, 460, y, 80); ApplyFocusIndicator(txtQtyBreak3); y += 30;
 
             AddLabel(tab, "Harga 4:", 10, y);
-            txtPrice4 = AddTextBox(tab, 160, y, 150); y += 30;
+            txtPrice4 = AddTextBox(tab, 160, y, 150); ApplyFocusIndicator(txtPrice4); y += 30;
 
             AddLabel(tab, "Harga Beli:", 10, y);
-            txtBuyingPrice = AddTextBox(tab, 160, y, 150); y += 30;
+            txtBuyingPrice = AddTextBox(tab, 160, y, 150); ApplyFocusIndicator(txtBuyingPrice); y += 30;
 
             AddLabel(tab, "Harga Pokok:", 10, y);
-            txtCostPrice = AddTextBox(tab, 160, y, 150); y += 30;
+            txtCostPrice = AddTextBox(tab, 160, y, 150); ApplyFocusIndicator(txtCostPrice); y += 30;
 
             AddLabel(tab, "Open Price:", 10, y);
             cboOpenPrice = new ComboBox
@@ -204,6 +207,7 @@ namespace Kasir.Forms.Master
             };
             cboOpenPrice.Items.AddRange(new object[] { "N", "Y" });
             tab.Controls.Add(cboOpenPrice);
+            ApplyFocusIndicator(cboOpenPrice);
 
             return tab;
         }
@@ -214,10 +218,10 @@ namespace Kasir.Forms.Master
             int y = 10;
 
             AddLabel(tab, "Disc %:", 10, y);
-            txtDiscPct = AddTextBox(tab, 160, y, 100); y += 30;
+            txtDiscPct = AddTextBox(tab, 160, y, 100); ApplyFocusIndicator(txtDiscPct); y += 30;
 
             AddLabel(tab, "Kode Vendor:", 10, y);
-            txtVendorCode = AddTextBox(tab, 160, y, 200); y += 30;
+            txtVendorCode = AddTextBox(tab, 160, y, 200); ApplyFocusIndicator(txtVendorCode); y += 30;
 
             AddLabel(tab, "PPN:", 10, y);
             cboVatFlag = new ComboBox
@@ -230,6 +234,7 @@ namespace Kasir.Forms.Master
             };
             cboVatFlag.Items.AddRange(new object[] { "N", "Y" });
             tab.Controls.Add(cboVatFlag);
+            ApplyFocusIndicator(cboVatFlag);
 
             return tab;
         }

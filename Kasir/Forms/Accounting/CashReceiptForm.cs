@@ -44,6 +44,7 @@ namespace Kasir.Forms.Accounting
                 BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
                 Font = ThemeConstants.FontInputSmall
             };
+            ApplyFocusIndicator(txtDate);
             var lblRemark = new Label { Text = "Ket:", Location = new Point(220, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtRemark = new TextBox
             {
@@ -51,6 +52,7 @@ namespace Kasir.Forms.Accounting
                 BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
                 Font = ThemeConstants.FontInputSmall
             };
+            ApplyFocusIndicator(txtRemark);
             pnlHeader.Controls.AddRange(new Control[] { lblDate, txtDate, lblRemark, txtRemark });
 
             dgvLines = new DataGridView { Dock = DockStyle.Fill };

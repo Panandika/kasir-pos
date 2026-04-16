@@ -48,6 +48,7 @@ namespace Kasir.Forms.Accounting
                 BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
                 Font = ThemeConstants.FontInputSmall, ReadOnly = _readOnly
             };
+            if (!_readOnly) ApplyFocusIndicator(txtDate);
 
             var lblRemark = new Label { Text = "Ket:", Location = new Point(220, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtRemark = new TextBox
@@ -56,6 +57,7 @@ namespace Kasir.Forms.Accounting
                 BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
                 Font = ThemeConstants.FontInputSmall, ReadOnly = _readOnly
             };
+            if (!_readOnly) ApplyFocusIndicator(txtRemark);
 
             lblDebitTotal = new Label { Text = "Debit: 0", Location = new Point(5, 40), Width = 250, ForeColor = ThemeConstants.FgSuccess };
             lblCreditTotal = new Label { Text = "Credit: 0", Location = new Point(260, 40), Width = 250, ForeColor = ThemeConstants.FgSuccess };

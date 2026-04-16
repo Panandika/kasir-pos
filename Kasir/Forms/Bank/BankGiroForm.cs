@@ -40,6 +40,7 @@ namespace Kasir.Forms.Bank
             {
                 if (e.KeyCode == Keys.Enter) { LoadGiros(); e.Handled = true; e.SuppressKeyPress = true; }
             };
+            ApplyFocusIndicator(txtVendor);
             pnlHeader.Controls.AddRange(new Control[] { lblVendor, txtVendor });
 
             dgvGiros = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };

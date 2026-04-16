@@ -53,6 +53,7 @@ namespace Kasir.Forms.Reports
                 "Buku Besar (GL Detail)"
             });
             cboReportType.SelectedIndex = 0;
+            ApplyFocusIndicator(cboReportType);
 
             var lblPeriod = new Label { Text = "Periode:", Location = new Point(280, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtPeriod = new TextBox
@@ -61,6 +62,7 @@ namespace Kasir.Forms.Reports
                 BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary,
                 Font = ThemeConstants.FontInputSmall
             };
+            ApplyFocusIndicator(txtPeriod);
 
             btnExport = new Button
             {

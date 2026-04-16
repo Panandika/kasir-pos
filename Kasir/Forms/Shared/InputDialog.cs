@@ -52,6 +52,7 @@ namespace Kasir.Forms.Shared
                     _textBoxes[i].Text = defaults[i];
                 }
 
+                BaseForm.ApplyFocusIndicator(_textBoxes[i]);
                 this.Controls.Add(_textBoxes[i]);
             }
 

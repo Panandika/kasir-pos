@@ -34,9 +34,11 @@ namespace Kasir.Forms.Inventory
             var pnlHeader = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = ThemeConstants.BgPanel };
             pnlHeader.Controls.Add(new Label { Text = "Dari:", Location = new Point(10, 10), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtFrom = new TextBox { Location = new Point(60, 7), Width = 150, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall, Text = "TOKO" };
+            ApplyFocusIndicator(txtFrom);
             pnlHeader.Controls.Add(txtFrom);
             pnlHeader.Controls.Add(new Label { Text = "Ke:", Location = new Point(230, 10), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtTo = new TextBox { Location = new Point(260, 7), Width = 150, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall, Text = "GUDANG" };
+            ApplyFocusIndicator(txtTo);
             pnlHeader.Controls.Add(txtTo);
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };

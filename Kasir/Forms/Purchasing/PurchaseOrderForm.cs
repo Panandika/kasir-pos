@@ -45,6 +45,7 @@ namespace Kasir.Forms.Purchasing
 
             pnlHeader.Controls.Add(new Label { Text = "Tanggal:", Location = new Point(410, 8), AutoSize = true, ForeColor = ThemeConstants.FgLabel });
             txtDate = new TextBox { Location = new Point(490, 5), Width = 120, BackColor = ThemeConstants.BgInput, ForeColor = ThemeConstants.FgPrimary, Font = ThemeConstants.FontInputSmall };
+            ApplyFocusIndicator(txtDate);
             pnlHeader.Controls.Add(txtDate);
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };

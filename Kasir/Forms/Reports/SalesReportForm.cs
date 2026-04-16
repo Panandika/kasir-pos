@@ -47,6 +47,7 @@ namespace Kasir.Forms.Reports
                 Font = ThemeConstants.FontInputSmall,
                 Text = DateTime.Now.ToString("yyyy-MM-dd")
             };
+            ApplyFocusIndicator(txtDateFrom);
 
             var lblTo = new Label { Text = "To:", Location = new Point(200, 15), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtDateTo = new TextBox
@@ -58,6 +59,7 @@ namespace Kasir.Forms.Reports
                 Font = ThemeConstants.FontInputSmall,
                 Text = DateTime.Now.ToString("yyyy-MM-dd")
             };
+            ApplyFocusIndicator(txtDateTo);
 
             var btnGenerate = new Button
             {

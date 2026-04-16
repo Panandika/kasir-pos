@@ -143,6 +143,9 @@ namespace Kasir.Forms
             };
             btnLogin.Click += BtnLogin_Click;
 
+            ApplyFocusIndicator(txtUsername);
+            ApplyFocusIndicator(txtPassword);
+
             pnlCenter.Controls.AddRange(new Control[] {
                 lblStore, lblTitle, lblVersion,
                 lblUser, txtUsername, lblPass, txtPassword,

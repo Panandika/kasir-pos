@@ -40,6 +40,7 @@ namespace Kasir.Forms.Master
             {
                 if (e.KeyCode == Keys.Enter) { SearchVendors(); e.Handled = true; e.SuppressKeyPress = true; }
             };
+            ApplyFocusIndicator(txtSearch);
             pnlSearch.Controls.AddRange(new Control[] { lblSearch, txtSearch });
 
             dgvVendors = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true };

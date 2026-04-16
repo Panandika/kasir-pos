@@ -53,6 +53,7 @@ namespace Kasir.Forms.Admin
                 Font = ThemeConstants.FontMain,
                 Text = _configRepo.Get("printer_name") ?? ""
             };
+            ApplyFocusIndicator(txtPrinterName);
 
             var btnTestPrint = CreateActionButton("Test Print", new Point(15, 130));
             btnTestPrint.Click += BtnTestPrint_Click;

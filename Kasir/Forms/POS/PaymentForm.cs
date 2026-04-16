@@ -63,11 +63,13 @@ namespace Kasir.Forms.POS
             txtCash = CreateInput(new Point(15, 85));
             txtCash.TextChanged += RecalculateChange;
             txtCash.Text = (_totalDue / 100).ToString();
+            BaseForm.ApplyFocusIndicator(txtCash);
 
             var lblCard = new Label { Text = "Card (Rp):", Location = new Point(15, 125), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtCard = CreateInput(new Point(15, 150));
             txtCard.TextChanged += RecalculateChange;
             txtCard.Text = "0";
+            BaseForm.ApplyFocusIndicator(txtCard);
 
             var lblCardType = new Label { Text = "Card Type:", Location = new Point(230, 125), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             cboCardType = new ComboBox
@@ -86,11 +88,13 @@ namespace Kasir.Forms.POS
                 cboCardType.Items.Add(string.Format("{0} ({1}%)", card.Name, (card.FeePct / 100.0).ToString("F1")));
             }
             cboCardType.SelectedIndex = 0;
+            BaseForm.ApplyFocusIndicator(cboCardType);
 
             var lblVoucher = new Label { Text = "Voucher (Rp):", Location = new Point(15, 190), AutoSize = true, ForeColor = ThemeConstants.FgLabel };
             txtVoucher = CreateInput(new Point(15, 215));
             txtVoucher.TextChanged += RecalculateChange;
             txtVoucher.Text = "0";
+            BaseForm.ApplyFocusIndicator(txtVoucher);
 
             lblChange = new Label
             {

@@ -143,6 +143,7 @@ namespace Kasir.Forms.POS
                 BorderStyle = BorderStyle.None
             };
             txtBarcode.KeyDown += TxtBarcode_KeyDown;
+            ApplyFocusIndicator(txtBarcode);
 
             pnlInput.Controls.AddRange(new Control[] { lblCursor, txtBarcode });
 
