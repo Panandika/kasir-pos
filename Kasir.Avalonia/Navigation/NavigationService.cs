@@ -64,6 +64,12 @@ public static class NavigationService
     /// </summary>
     private static void FocusAfterSwap(UserControl view)
     {
+        // Avalonia UserControl.Focusable defaults to false (unlike WPF), so
+        // Focus() would silently no-op on views that don't explicitly focus a
+        // child. Force the root focusable (but invisible to Tab cycle) so
+        // OnKeyDown — including Esc — fires without requiring a click first.
+        view.Focusable = true;
+        view.IsTabStop = false;
         Dispatcher.UIThread.Post(() =>
         {
             if (!view.IsKeyboardFocusWithin) view.Focus();
