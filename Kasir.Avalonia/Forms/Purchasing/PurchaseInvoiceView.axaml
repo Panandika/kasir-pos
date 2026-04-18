@@ -1,25 +1,25 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Kasir.Avalonia.Forms.Purchasing.PurchaseInvoiceView"
-             Background="#000000">
+             Background="{DynamicResource Bg0Brush}">
   <DockPanel>
     <!-- Status bar -->
-    <Border DockPanel.Dock="Bottom" Background="#002800" Height="28">
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
       <TextBlock x:Name="StatusLabel"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
                  Margin="8,0" />
     </Border>
 
     <!-- Footer total -->
-    <Border DockPanel.Dock="Bottom" Background="#001400" Height="38"
-            BorderBrush="#00a000" BorderThickness="0,1,0,0">
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg1Brush}" Height="38"
+            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0">
       <TextBlock x:Name="LblTotal"
                  Text="TOTAL: Rp 0"
-                 Foreground="#00ff00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="14"
                  FontWeight="Bold"
                  HorizontalAlignment="Right"
@@ -28,45 +28,45 @@
     </Border>
 
     <!-- Header: two rows -->
-    <Border DockPanel.Dock="Top" Background="#001400" Height="60"
-            BorderBrush="#00a000" BorderThickness="0,0,0,1">
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="60"
+            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,250,Auto,120,Auto,50,Auto,140" RowDefinitions="Auto,Auto" Margin="10,4">
         <!-- Row 0: Supplier -->
         <TextBlock Grid.Row="0" Grid.Column="0" Text="Supplier:"
-                   Foreground="#006400" VerticalAlignment="Center" Margin="0,0,8,0"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="13" />
         <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="7" x:Name="TxtVendor"
                  IsReadOnly="True"
-                 Background="#001400" Foreground="#00dc00" CaretBrush="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" CaretBrush="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" Height="26" Margin="0,2,0,2" />
 
         <!-- Row 1: Tgl Faktur + Terms + Jatuh Tempo -->
         <TextBlock Grid.Row="1" Grid.Column="0" Text="Tgl Faktur:"
-                   Foreground="#006400" VerticalAlignment="Center" Margin="0,0,8,0"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="13" />
         <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtDate"
-                 Background="#001400" Foreground="#00dc00" CaretBrush="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" CaretBrush="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" Height="26" Margin="0,2,16,2" />
         <TextBlock Grid.Row="1" Grid.Column="2" Text="Terms:"
-                   Foreground="#006400" VerticalAlignment="Center" Margin="0,0,8,0"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="13" />
         <TextBox Grid.Row="1" Grid.Column="3" x:Name="TxtTerms"
                  Text="30"
-                 Background="#001400" Foreground="#00dc00" CaretBrush="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" CaretBrush="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" Height="26" Margin="0,2,16,2" />
         <TextBlock Grid.Row="1" Grid.Column="4" Text="Jatuh Tempo:"
-                   Foreground="#006400" VerticalAlignment="Center" Margin="0,0,8,0"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="13" />
         <TextBox Grid.Row="1" Grid.Column="5" Grid.ColumnSpan="3" x:Name="TxtDueDate"
-                 Background="#001400" Foreground="#00dc00" CaretBrush="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" CaretBrush="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" Height="26" Margin="0,2,0,2" />
       </Grid>
     </Border>
@@ -75,11 +75,11 @@
     <DataGrid x:Name="DgvItems"
               AutoGenerateColumns="False"
               SelectionMode="Single"
-              Foreground="#00dc00"
-              Background="#001400"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              Background="{DynamicResource Bg1Brush}"
               GridLinesVisibility="Horizontal"
               HeadersVisibility="Column"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
               FontSize="13"
               CanUserReorderColumns="False"
               CanUserResizeColumns="True"
