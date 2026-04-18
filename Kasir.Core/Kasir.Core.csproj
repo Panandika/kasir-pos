@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <NoWarn>$(NoWarn);NU1510;NU1902</NoWarn>
+    <LangVersion>12</LangVersion>
+    <AssemblyName>Kasir.Core</AssemblyName>
+    <RootNamespace>Kasir</RootNamespace>
+    <Version>2026.04.1</Version>
+    <AssemblyVersion>2026.4.1.0</AssemblyVersion>
+    <FileVersion>2026.4.1.0</FileVersion>
+    <InformationalVersion>2026.04.1</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.4" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.10" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
+    <PackageReference Include="ESCPOS_NET" Version="2.0.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Data\Schema.sql" />
+  </ItemGroup>
+</Project>

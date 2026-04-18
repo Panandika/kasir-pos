@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Reports.SalesReportView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="LblSummary"
+                 Foreground="{DynamicResource FgNumericBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 HorizontalAlignment="Right"
+                 Margin="0,0,12,0" />
+    </Panel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="44" Padding="8,6">
+      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <TextBlock Text="From:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center" />
+        <TextBox x:Name="TxtDateFrom"
+                 Width="120"
+                 Height="28"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+        <TextBlock Text="To:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center" />
+        <TextBox x:Name="TxtDateTo"
+                 Width="120"
+                 Height="28"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+        <Button x:Name="BtnGenerate"
+                Content="F5"
+                Width="50"
+                Height="28"
+                Background="{DynamicResource AccentBgBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource PlexSansFont}"
+                FontSize="13" />
+        <Button x:Name="BtnExport"
+                Content="F7"
+                Width="50"
+                Height="28"
+                Background="{DynamicResource AccentBgBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource PlexSansFont}"
+                FontSize="13" />
+      </StackPanel>
+    </Border>
+    <DataGrid x:Name="DgvReport"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              x:CompileBindings="False"
+              Background="{DynamicResource Bg1Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              GridLinesVisibility="Horizontal"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="No"       Binding="{Binding No}"        Width="0.4*" />
+        <DataGridTextColumn Header="No.Nota"  Binding="{Binding JournalNo}" Width="2*"   />
+        <DataGridTextColumn Header="Tanggal"  Binding="{Binding Date}"      Width="1.5*" />
+        <DataGridTextColumn Header="Kasir"    Binding="{Binding Cashier}"   Width="1*"   />
+        <DataGridTextColumn Header="Items"    Binding="{Binding Items}"     Width="0.6*" />
+        <DataGridTextColumn Header="Bruto"    Binding="{Binding Gross}"     Width="1.2*" />
+        <DataGridTextColumn Header="Diskon"   Binding="{Binding Disc}"      Width="1*"   />
+        <DataGridTextColumn Header="Total"    Binding="{Binding Total}"     Width="1.2*" />
+        <DataGridTextColumn Header="Tunai"    Binding="{Binding Cash}"      Width="1.2*" />
+        <DataGridTextColumn Header="Kartu"    Binding="{Binding Card}"      Width="1*"   />
+        <DataGridTextColumn Header="Status"   Binding="{Binding Status}"    Width="0.8*" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

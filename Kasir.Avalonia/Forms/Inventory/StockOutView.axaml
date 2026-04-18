@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Inventory.StockOutView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource Bg2Brush}"
+            Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Border>
+    <Border DockPanel.Dock="Top"
+            Background="{DynamicResource Bg2Brush}"
+            Height="40">
+      <StackPanel Orientation="Horizontal"
+                  VerticalAlignment="Center"
+                  Margin="8,0">
+        <TextBlock Text="Jenis:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="0,0,6,0" />
+        <ComboBox x:Name="CboType"
+                  Width="220"
+                  Background="{DynamicResource Bg1Brush}"
+                  Foreground="{DynamicResource FgPrimaryBrush}"
+                  FontFamily="{DynamicResource PlexSansFont}"
+                  FontSize="13"
+                  Height="28"
+                  VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+    <DataGrid x:Name="DgvItems"
+              AutoGenerateColumns="False"
+              Background="{DynamicResource Bg1Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              IsReadOnly="True"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              HorizontalAlignment="Stretch"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode"
+                            Binding="{Binding Code}"
+                            Width="1.4*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Nama Barang"
+                            Binding="{Binding Name}"
+                            Width="3*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Qty"
+                            Binding="{Binding Qty}"
+                            Width="0.8*"
+                            CanUserSort="False" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

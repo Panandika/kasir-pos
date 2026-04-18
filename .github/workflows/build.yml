@@ -2,12 +2,48 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/avalonia-migration ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  build:
+  build-avalonia:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.x'
+
+    - name: Build Kasir.Avalonia solution
+      run: dotnet build Kasir.Avalonia.slnx -c Release
+
+    - name: Run grep assertions
+      run: bash ci/grep-assertions.sh
+      shell: bash
+
+    - name: Run tests
+      run: dotnet test Kasir.Core.Tests/Kasir.Core.Tests.csproj -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+    - name: Publish win-x64 self-contained
+      if: matrix.os == 'windows-latest'
+      run: dotnet publish Kasir.Avalonia/Kasir.Avalonia.csproj -c Release -r win-x64 --self-contained -o publish/win-x64
+
+    - name: Upload win-x64 artifact
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: kasir-avalonia-win-x64
+        path: publish/win-x64/
+        retention-days: 14
+
+  build-winforms-legacy:
     runs-on: windows-latest
 
     steps:
@@ -19,18 +55,18 @@ jobs:
     - name: Restore packages
       run: msbuild Kasir.sln /t:Restore /p:Configuration=Release /p:Platform=x86
 
-    - name: Build solution
+    - name: Build legacy WinForms solution
       run: msbuild Kasir.sln /p:Configuration=Release /p:Platform=x86 /p:TreatWarningsAsErrors=true
 
     - name: Setup VSTest
       uses: darenm/Setup-VSTest@v1.3
 
-    - name: Run tests
+    - name: Run legacy tests
       run: vstest.console.exe Kasir.Tests\bin\Release\Kasir.Tests.dll
 
-    - name: Upload build artifacts
+    - name: Upload legacy artifact
       uses: actions/upload-artifact@v4
       with:
-        name: kasir-build
+        name: kasir-winforms-legacy
         path: Kasir/bin/Release/
         retention-days: 5

@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.Master.CreditCardView"
+        x:DataType="x:Object"
+        Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="38" Padding="8,4">
+      <TextBox x:Name="TxtSearch"
+               PlaceholderText="Cari..."
+               FontFamily="{DynamicResource JetBrainsMonoFont}"
+               FontSize="{DynamicResource FontSizeBody}"
+               Margin="8"
+               Background="{DynamicResource Bg1Brush}"
+               Foreground="{DynamicResource FgPrimaryBrush}" />
+    </Border>
+    <DataGrid x:Name="DgvCards"
+              AutoGenerateColumns="False"
+              SelectionMode="Single"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              x:CompileBindings="False"
+              Background="{DynamicResource Bg1Brush}"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              HorizontalAlignment="Stretch"
+              CanUserReorderColumns="False"
+              CanUserResizeColumns="True"
+              IsReadOnly="True">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode" Binding="{Binding Code}"
+                            Width="*" CanUserSort="False" />
+        <DataGridTextColumn Header="Nama" Binding="{Binding Name}"
+                            Width="2.5*" CanUserSort="False" />
+        <DataGridTextColumn Header="Fee %" Binding="{Binding Fee}"
+                            Width="0.8*" CanUserSort="False" />
+        <DataGridTextColumn Header="Akun" Binding="{Binding Account}"
+                            Width="1.5*" CanUserSort="False" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

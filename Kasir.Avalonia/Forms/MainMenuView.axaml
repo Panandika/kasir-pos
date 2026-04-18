@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.MainMenuView"
+             Background="{DynamicResource Bg0Brush}">
+  <!-- Outer shell: 3 rows (headers / content / status bar). Grid instead of DockPanel
+       so the content row clips and the status bar always renders on top and is never
+       overflown by the bento tiles. -->
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
+
+    <!-- Row 0: store header -->
+    <Panel Grid.Row="0" Height="44" Margin="0,8,0,0">
+      <TextBlock x:Name="LblStoreName"
+                 FontSize="18"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontWeight="Bold" />
+    </Panel>
+
+    <!-- Row 1: greeting -->
+    <Panel Grid.Row="1" Height="22">
+      <TextBlock x:Name="LblGreeting"
+                 Foreground="{DynamicResource FgSecondaryBrush}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12" />
+    </Panel>
+
+    <!-- Row 2: shift status + daily count -->
+    <Grid Grid.Row="2" Height="26" ColumnDefinitions="*,*">
+      <TextBlock x:Name="LblShiftStatus"
+                 Grid.Column="0"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Foreground="{DynamicResource WarningBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12" />
+      <TextBlock x:Name="LblDailyCount"
+                 Grid.Column="1"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Foreground="{DynamicResource FgSecondaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12" />
+    </Grid>
+
+    <!-- Row 3: hint bar (also hosts breadcrumb inline when drilled in) -->
+    <TextBlock x:Name="HintBar"
+               Grid.Row="3"
+               HorizontalAlignment="Center"
+               TextWrapping="Wrap"
+               Foreground="{DynamicResource FgDimBrush}"
+               FontFamily="{DynamicResource JetBrainsMonoFont}"
+               FontSize="11"
+               Margin="12,2,12,4"
+               Text="F12=Sync  Esc=Kembali  Arrow keys navigate tiles  Enter activates" />
+
+    <!-- Row 4: breadcrumb (inline replaces hint-bar text when drilled in) -->
+    <TextBlock x:Name="BreadcrumbLabel"
+               Grid.Row="4"
+               HorizontalAlignment="Center"
+               IsVisible="False"
+               Foreground="{DynamicResource AccentBrush}"
+               FontFamily="{DynamicResource JetBrainsMonoFont}"
+               FontSize="12"
+               Margin="12,0,12,4" />
+
+    <!-- Row 5: bento content area (fills remaining; ClipToBounds prevents overflow) -->
+    <Grid Grid.Row="5" ClipToBounds="True">
+      <Grid x:Name="BentoGrid"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Margin="16,8,16,16"
+            RowSpacing="4"
+            ColumnSpacing="4">
+        <!-- Rows and columns + tile Buttons are built in code-behind (RebuildTiles). -->
+      </Grid>
+    </Grid>
+
+    <!-- Row 6: status bar — always pinned at bottom, always on top (no overflow can reach here). -->
+    <Panel Grid.Row="6" Background="{DynamicResource Bg2Brush}" Height="32">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="12,4,12,4" />
+    </Panel>
+  </Grid>
+</UserControl>

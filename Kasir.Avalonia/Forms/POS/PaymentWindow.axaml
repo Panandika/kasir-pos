@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.POS.PaymentWindow"
+        x:DataType="x:Object"
+        Width="480" Height="380"
+        WindowStartupLocation="CenterOwner" CanResize="False"
+        WindowDecorations="None" Background="{DynamicResource Bg0Brush}">
+  <DockPanel Margin="16">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                HorizontalAlignment="Right" Spacing="10" Margin="0,12,0,0">
+      <Button x:Name="BtnOk" Content="Konfirmasi (Enter)"
+              Width="160" Height="34"
+              Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"/>
+      <Button x:Name="BtnCancel" Content="Batal (Esc)"
+              Width="100" Height="34"
+              Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"/>
+    </StackPanel>
+    <StackPanel Spacing="8">
+      <TextBlock x:Name="LblTotal" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"/>
+      <Grid ColumnDefinitions="140,*">
+        <TextBlock Grid.Column="0" Text="Tunai (Rp):" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+        <TextBox Grid.Column="1" x:Name="TxtCash" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" Height="30"/>
+      </Grid>
+      <Grid ColumnDefinitions="140,*,110,*">
+        <TextBlock Grid.Column="0" Text="Kartu (Rp):" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+        <TextBox Grid.Column="1" x:Name="TxtCard" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" Height="30"/>
+        <TextBlock Grid.Column="2" Text="Jenis Kartu:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" Margin="6,0,4,0"/>
+        <ComboBox Grid.Column="3" x:Name="CboCardType" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" Height="30"/>
+      </Grid>
+      <Grid ColumnDefinitions="140,*">
+        <TextBlock Grid.Column="0" Text="Voucher (Rp):" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+        <TextBox Grid.Column="1" x:Name="TxtVoucher" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" Height="30"/>
+      </Grid>
+      <TextBlock x:Name="LblChange" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource WarningBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"/>
+    </StackPanel>
+  </DockPanel>
+</Window>
