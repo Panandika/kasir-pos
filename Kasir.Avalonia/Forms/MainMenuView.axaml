@@ -61,19 +61,28 @@
     <!-- Content area: fills remaining space. Bento grid + hidden sub-menus stack here. -->
     <Grid>
       <!-- Bento tile grid — 3 columns × 2 rows (6 top-level categories) -->
-      <UniformGrid x:Name="BentoGrid"
-                   Columns="3"
-                   Rows="2"
-                   HorizontalAlignment="Stretch"
-                   VerticalAlignment="Stretch"
-                   MaxWidth="1400"
-                   Margin="48,16,48,32">
+      <Grid x:Name="BentoGrid"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Margin="16,8,16,16"
+            RowSpacing="4"
+            ColumnSpacing="4">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
         <!-- Tile 1: Master (M) -->
         <Button x:Name="BtnMaster"
+                Grid.Row="0" Grid.Column="0"
                 TabIndex="0"
-                MinHeight="120"
-                Margin="6"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
                 Padding="12"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
@@ -99,9 +108,10 @@
 
         <!-- Tile 2: Transaksi (T) -->
         <Button x:Name="BtnTransaksi"
+                Grid.Row="0" Grid.Column="1"
                 TabIndex="1"
-                MinHeight="120"
-                Margin="6"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
                 Padding="12"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
@@ -127,9 +137,10 @@
 
         <!-- Tile 3: Akuntansi (K) -->
         <Button x:Name="BtnAkuntansi"
+                Grid.Row="0" Grid.Column="2"
                 TabIndex="2"
-                MinHeight="120"
-                Margin="6"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
                 Padding="12"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
@@ -155,9 +166,10 @@
 
         <!-- Tile 4: Laporan (L) -->
         <Button x:Name="BtnLaporan"
+                Grid.Row="1" Grid.Column="0"
                 TabIndex="3"
-                MinHeight="120"
-                Margin="6"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
                 Padding="12"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
@@ -183,9 +195,10 @@
 
         <!-- Tile 5: Utility (U) -->
         <Button x:Name="BtnUtility"
+                Grid.Row="1" Grid.Column="1"
                 TabIndex="4"
-                MinHeight="120"
-                Margin="6"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
                 Padding="12"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
@@ -211,9 +224,10 @@
 
         <!-- Tile 6: Keluar (E) -->
         <Button x:Name="BtnKeluar"
+                Grid.Row="1" Grid.Column="2"
                 TabIndex="5"
-                MinHeight="120"
-                Margin="6"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
                 Padding="12"
                 Background="{DynamicResource AccentBgBrush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
@@ -237,7 +251,7 @@
           </StackPanel>
         </Button>
 
-      </UniformGrid>
+      </Grid>
 
       <!-- Hidden sub-menu panels — opened by tile clicks via code-behind. Stacked over bento, toggled by IsVisible. -->
       <Panel x:Name="SubMenuMaster" IsVisible="False" Background="{DynamicResource Bg1Brush}">
