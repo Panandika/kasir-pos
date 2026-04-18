@@ -11,13 +11,12 @@ namespace Kasir.Avalonia.Forms;
 
 public partial class LoginWindow : Window
 {
-    private AuthService _auth;
+    private AuthService? _auth;
     private bool _capsLock = false;
 
     public LoginWindow()
     {
         InitializeComponent();
-        _auth = new AuthService(DbConnection.GetConnection());
         LblVersion.Text = "v" + AppVersion.Current;
         BtnLogin.Click += (_, _) => AttemptLogin();
         TxtPassword.KeyDown += (_, e) =>
@@ -25,7 +24,18 @@ public partial class LoginWindow : Window
             if (e.Key == Key.Return)
                 AttemptLogin();
         };
+        SetStatus("Memuat database...");
+    }
+
+    protected override async void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        if (!OperatingSystem.IsWindows())
+            WindowState = WindowState.Maximized;
+        await System.Threading.Tasks.Task.Run(() => DbConnection.InitializeDatabase());
+        _auth = new AuthService(DbConnection.GetConnection());
         SetStatus("Login — masukkan username dan password");
+        TxtUsername.Focus();
     }
 
     protected override async void OnKeyDown(KeyEventArgs e)

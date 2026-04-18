@@ -125,8 +125,8 @@ public partial class ReturnWindow : Window
         var ret = new Purchase
         {
             SubCode = _vendorCode,
-            DocDate = TxtDate.Text.Trim(),
-            RefNo = TxtRefInvoice.Text.Trim()
+            DocDate = TxtDate.Text?.Trim() ?? "",
+            RefNo = TxtRefInvoice.Text?.Trim() ?? ""
         };
         string jnl = _service.CreatePurchaseReturn(ret, _items, withInvoice, 1);
 

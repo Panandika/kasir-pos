@@ -120,7 +120,7 @@ public partial class PurchaseOrderWindow : Window
         if (string.IsNullOrEmpty(_vendorCode)) { await MsgBox.Show(this, "Pilih supplier dulu."); return; }
         if (_items.Count == 0) { await MsgBox.Show(this, "Tambah item dulu."); return; }
 
-        var order = new Order { SubCode = _vendorCode, DocDate = TxtDate.Text.Trim() };
+        var order = new Order { SubCode = _vendorCode, DocDate = TxtDate.Text?.Trim() ?? "" };
         string jnl = _service.CreatePurchaseOrder(order, _items, 1);
         await MsgBox.Show(this, $"PO disimpan: {jnl}");
         _items.Clear();

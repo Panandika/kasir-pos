@@ -91,7 +91,7 @@ public partial class FinancialReportWindow : Window
         SetColumns(
             new[] { "Kode", "Nama", "Debit", "Kredit" },
             new[] { 1.2, 3.0, 1.5, 1.5 });
-        string period = TxtPeriod.Text.Trim();
+        string period = TxtPeriod.Text?.Trim() ?? "";
         var accounts = _accountRepo.GetDetailAccounts();
         long totalDebit = 0;
         long totalCredit = 0;
@@ -123,7 +123,7 @@ public partial class FinancialReportWindow : Window
         SetColumns(
             new[] { "Kode", "Nama", "Jumlah" },
             new[] { 1.2, 3.5, 1.5 });
-        string period = TxtPeriod.Text.Trim();
+        string period = TxtPeriod.Text?.Trim() ?? "";
         long totalAssets = 0;
         long totalLiabEquity = 0;
 
@@ -163,7 +163,7 @@ public partial class FinancialReportWindow : Window
         SetColumns(
             new[] { "Kode", "Nama", "Jumlah" },
             new[] { 1.2, 3.5, 1.5 });
-        string period = TxtPeriod.Text.Trim();
+        string period = TxtPeriod.Text?.Trim() ?? "";
 
         _rows.Add(new FinRow("", "=== PENDAPATAN ===", "", "", "", ""));
         long revenue = AddGroupRows(4, period);
@@ -204,7 +204,7 @@ public partial class FinancialReportWindow : Window
         SetColumns(
             new[] { "Tanggal", "Jurnal No", "Akun", "Keterangan", "Debit", "Kredit" },
             new[] { 1.2, 1.5, 1.2, 3.0, 1.5, 1.5 });
-        string period = TxtPeriod.Text.Trim();
+        string period = TxtPeriod.Text?.Trim() ?? "";
         var details = _glRepo.GetByPeriod(period);
         long totalDebit = 0;
         long totalCredit = 0;

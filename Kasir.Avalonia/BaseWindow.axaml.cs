@@ -35,6 +35,13 @@ public partial class BaseWindow : Window
             ClockLabel.Text = DateTime.Now.ToString("HH:mm:ss");
     }
 
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        if (!OperatingSystem.IsWindows())
+            WindowState = WindowState.Maximized;
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);

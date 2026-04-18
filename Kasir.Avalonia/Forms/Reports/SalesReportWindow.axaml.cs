@@ -44,7 +44,7 @@ public partial class SalesReportWindow : Window
     private void GenerateReport()
     {
         _rows.Clear();
-        var sales = _saleRepo.GetByDateRange(TxtDateFrom.Text.Trim(), TxtDateTo.Text.Trim());
+        var sales = _saleRepo.GetByDateRange(TxtDateFrom.Text?.Trim() ?? "", TxtDateTo.Text?.Trim() ?? "");
         long total = 0;
         int no = 1;
         foreach (var sale in sales)

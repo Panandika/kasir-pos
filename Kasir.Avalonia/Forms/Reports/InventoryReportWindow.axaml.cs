@@ -112,7 +112,7 @@ public partial class InventoryReportWindow : Window
             new[] { "C1", "C2", "C3", "C4" },
             new[] { 2.0, 1.5, 3.0, 1.5 });
         var purchases = new PurchaseRepository(DbConnection.GetConnection())
-            .GetByDateRange(TxtDateFrom.Text.Trim(), TxtDateTo.Text.Trim(), "PURCHASE");
+            .GetByDateRange(TxtDateFrom.Text?.Trim() ?? "", TxtDateTo.Text?.Trim() ?? "", "PURCHASE");
         long total = 0;
         foreach (var p in purchases)
         {
@@ -131,7 +131,7 @@ public partial class InventoryReportWindow : Window
             new[] { "C1", "C2", "C3", "C4" },
             new[] { 2.0, 1.5, 3.0, 1.5 });
         var purchases = new PurchaseRepository(DbConnection.GetConnection())
-            .GetByDateRange(TxtDateFrom.Text.Trim(), TxtDateTo.Text.Trim(), "PURCHASE_RETURN");
+            .GetByDateRange(TxtDateFrom.Text?.Trim() ?? "", TxtDateTo.Text?.Trim() ?? "", "PURCHASE_RETURN");
         long total = 0;
         foreach (var p in purchases)
         {
@@ -150,7 +150,7 @@ public partial class InventoryReportWindow : Window
             new[] { "C1", "C2", "C3", "C4" },
             new[] { 2.0, 1.5, 2.0, 2.0 });
         var transfers = new StockTransferRepository(DbConnection.GetConnection())
-            .GetByDateRange(TxtDateFrom.Text.Trim(), TxtDateTo.Text.Trim());
+            .GetByDateRange(TxtDateFrom.Text?.Trim() ?? "", TxtDateTo.Text?.Trim() ?? "");
         foreach (var t in transfers)
         {
             _rows.Add(new InvRow(t.JournalNo, Formatting.FormatDate(t.DocDate),
@@ -167,7 +167,7 @@ public partial class InventoryReportWindow : Window
             new[] { "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9" },
             new[] { 1.5, 1.2, 1.0, 1.2, 2.5, 0.7, 1.2, 1.2, 1.5 });
         var items = new StockAdjustmentRepository(DbConnection.GetConnection())
-            .GetAllItemsByDateRange(TxtDateFrom.Text.Trim(), TxtDateTo.Text.Trim());
+            .GetAllItemsByDateRange(TxtDateFrom.Text?.Trim() ?? "", TxtDateTo.Text?.Trim() ?? "");
         foreach (var item in items)
         {
             _rows.Add(new InvRow(
@@ -191,7 +191,7 @@ public partial class InventoryReportWindow : Window
             new[] { "C1", "C2", "C3", "C4", "C5", "C6", "C7" },
             new[] { 1.5, 3.0, 1.2, 1.2, 1.0, 1.2, 1.5 });
         var opname = new StockAdjustmentRepository(DbConnection.GetConnection())
-            .GetOpnameByDateRange(TxtDateFrom.Text.Trim(), TxtDateTo.Text.Trim());
+            .GetOpnameByDateRange(TxtDateFrom.Text?.Trim() ?? "", TxtDateTo.Text?.Trim() ?? "");
         long totalVariance = 0;
         foreach (var o in opname)
         {
@@ -231,8 +231,8 @@ public partial class InventoryReportWindow : Window
                 SqlHelper.GetString(r, "journal_no"),
                 "",
                 ""),
-            SqlHelper.Param("@from", TxtDateFrom.Text.Trim()),
-            SqlHelper.Param("@to", TxtDateTo.Text.Trim()));
+            SqlHelper.Param("@from", TxtDateFrom.Text?.Trim() ?? ""),
+            SqlHelper.Param("@to", TxtDateTo.Text?.Trim() ?? ""));
         foreach (var r in rows) _rows.Add(r);
         LblSummary.Text = $"{rows.Count} perubahan harga";
     }

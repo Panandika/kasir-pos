@@ -139,8 +139,8 @@ public partial class PurchaseInvoiceWindow : Window
         var invoice = new Purchase
         {
             SubCode = _vendorCode,
-            DocDate = TxtDate.Text.Trim(),
-            DueDate = TxtDueDate.Text.Trim(),
+            DocDate = TxtDate.Text?.Trim() ?? "",
+            DueDate = TxtDueDate.Text?.Trim() ?? "",
             Terms = terms
         };
         string jnl = _service.CreatePurchaseInvoice(invoice, _items, 1);

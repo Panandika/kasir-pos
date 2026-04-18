@@ -123,8 +123,8 @@ public partial class GoodsReceiptWindow : Window
         var receipt = new Purchase
         {
             SubCode = _vendorCode,
-            DocDate = TxtDate.Text.Trim(),
-            RefNo = TxtInvoiceNo.Text.Trim()
+            DocDate = TxtDate.Text?.Trim() ?? "",
+            RefNo = TxtInvoiceNo.Text?.Trim() ?? ""
         };
         string jnl = _service.CreateGoodsReceipt(receipt, _items, 1);
         await MsgBox.Show(this, $"Goods Receipt disimpan: {jnl}\nStok diperbarui.");
