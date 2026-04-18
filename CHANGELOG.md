@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.2](https://github.com/Panandika/kasir-pos/compare/v2.2.1...v2.2.2) (2026-04-18)
+
+
+### Bug Fixes
+
+* **release:** add workflow_dispatch for manual triggering ([5fe511d](https://github.com/Panandika/kasir-pos/commit/5fe511dab75935b157228df6c3c3ed895c00efb4))
+* **release:** pass tag_name explicitly so workflow_dispatch can upload assets ([818ba0d](https://github.com/Panandika/kasir-pos/commit/818ba0dd9db3de635032f8f49460fe2fd21c4b40))
+
 ## [2.2.1](https://github.com/Panandika/kasir-pos/compare/v2.2.0...v2.2.1) (2026-04-18)
 
 
