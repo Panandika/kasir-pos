@@ -23,6 +23,10 @@ public partial class ShellWindow : Window
     {
         base.OnOpened(e);
 
+        // Force fullscreen on all platforms. The XAML WindowState="FullScreen"
+        // is sometimes ignored on macOS until re-applied after the window is shown.
+        WindowState = WindowState.FullScreen;
+
         // AppStartup: measure from process start to main window shown.
         Program.StartupWatch.Stop();
         PerfMetrics.Record(PerfMetrics.AppStartup, Program.StartupWatch.ElapsedMilliseconds);
