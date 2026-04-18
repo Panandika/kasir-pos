@@ -106,7 +106,7 @@ namespace Kasir.Data.Repositories
                 QtyOut = SqlHelper.GetInt(reader, "qty_out"),
                 ValIn = SqlHelper.GetLong(reader, "val_in"),
                 ValOut = SqlHelper.GetLong(reader, "val_out"),
-                CostPrice = SqlHelper.GetInt(reader, "cost_price"),
+                CostPrice = SqlHelper.GetLong(reader, "cost_price"),
                 IsPosted = SqlHelper.GetInt(reader, "is_posted"),
                 ChangedBy = SqlHelper.GetInt(reader, "changed_by"),
                 ChangedAt = SqlHelper.GetString(reader, "changed_at")

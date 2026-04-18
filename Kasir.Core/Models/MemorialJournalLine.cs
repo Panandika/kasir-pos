@@ -11,7 +11,7 @@ namespace Kasir.Models
         public string Remark { get; set; }
         public string Name { get; set; }
         public int Quantity { get; set; }
-        public int UnitPrice { get; set; }
+        public long UnitPrice { get; set; }
         public string Direction { get; set; }
         public long Value { get; set; }
         public string GroupCode { get; set; }

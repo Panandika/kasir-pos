@@ -10,7 +10,7 @@ namespace Kasir.Models
         public long Value { get; set; }
         public long Cogs { get; set; }
         public int DiscPct { get; set; }
-        public int UnitPrice { get; set; }
+        public long UnitPrice { get; set; }
         public int PointValue { get; set; }
         public long DiscValue { get; set; }
 

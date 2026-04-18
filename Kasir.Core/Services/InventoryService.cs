@@ -81,7 +81,7 @@ namespace Kasir.Services
             return totalCost;
         }
 
-        public int CalculateAverageCost(string productCode)
+        public long CalculateAverageCost(string productCode)
         {
             // Weighted average: total purchase value / total purchase qty
             long totalVal = SqlHelper.ExecuteScalar<long>(_db,
@@ -94,11 +94,11 @@ namespace Kasir.Services
                   WHERE product_code = @code AND movement_type = 'PURCHASE'",
                 SqlHelper.Param("@code", productCode));
 
-            if (totalQty <= 0) return 0;
-            return (int)(totalVal / totalQty);
+            if (totalQty <= 0) return 0L;
+            return totalVal / totalQty;
         }
 
-        public void RecordStockIn(string productCode, int qty, int unitCost,
+        public void RecordStockIn(string productCode, int qty, long unitCost,
             string movementType, string journalNo, string docDate, int changedBy)
         {
             var movement = new StockMovement
@@ -110,7 +110,7 @@ namespace Kasir.Services
                 PeriodCode = docDate.Length >= 7 ? docDate.Substring(0, 4) + docDate.Substring(5, 2) : "",
                 QtyIn = qty,
                 QtyOut = 0,
-                ValIn = (long)unitCost * qty,
+                ValIn = unitCost * qty,
                 ValOut = 0,
                 CostPrice = unitCost,
                 ChangedBy = changedBy
@@ -119,7 +119,7 @@ namespace Kasir.Services
             _movementRepo.Insert(movement);
         }
 
-        public void RecordStockOut(string productCode, int qty, int costPrice,
+        public void RecordStockOut(string productCode, int qty, long costPrice,
             string movementType, string journalNo, string docDate, int changedBy)
         {
             var movement = new StockMovement
@@ -132,7 +132,7 @@ namespace Kasir.Services
                 QtyIn = 0,
                 QtyOut = qty,
                 ValIn = 0,
-                ValOut = (long)costPrice * qty,
+                ValOut = costPrice * qty,
                 CostPrice = costPrice,
                 ChangedBy = changedBy
             };
@@ -143,7 +143,7 @@ namespace Kasir.Services
         public StockVariance CalculateVariance(string productCode, int physicalQty)
         {
             int systemQty = GetStockOnHand(productCode);
-            int avgCost = CalculateAverageCost(productCode);
+            long avgCost = CalculateAverageCost(productCode);
             int variance = physicalQty - systemQty;
 
             return new StockVariance
@@ -152,7 +152,7 @@ namespace Kasir.Services
                 SystemQty = systemQty,
                 PhysicalQty = physicalQty,
                 Variance = variance,
-                VarianceCost = (long)avgCost * Math.Abs(variance)
+                VarianceCost = avgCost * Math.Abs(variance)
             };
         }
     }

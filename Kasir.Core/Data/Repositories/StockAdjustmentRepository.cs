@@ -71,8 +71,8 @@ namespace Kasir.Data.Repositories
                     JournalNo = SqlHelper.GetString(r, "journal_no"),
                     ProductCode = SqlHelper.GetString(r, "product_code"),
                     Quantity = SqlHelper.GetInt(r, "quantity"),
-                    CostPrice = SqlHelper.GetInt(r, "unit_price"),
-                    Value = SqlHelper.GetInt(r, "value"),
+                    CostPrice = SqlHelper.GetLong(r, "unit_price"),
+                    Value = SqlHelper.GetLong(r, "value"),
                     Reason = SqlHelper.GetString(r, "remark"),
                     DocDate = SqlHelper.GetString(r, "doc_date"),
                     DocType = SqlHelper.GetString(r, "doc_type"),
@@ -94,7 +94,7 @@ namespace Kasir.Data.Repositories
                     ProductName = SqlHelper.GetString(r, "product_name"),
                     QtySystem = SqlHelper.GetInt(r, "qty_system"),
                     QtyActual = SqlHelper.GetInt(r, "qty_actual"),
-                    CostPrice = SqlHelper.GetInt(r, "cost_price"),
+                    CostPrice = SqlHelper.GetLong(r, "cost_price"),
                     DocDate = SqlHelper.GetString(r, "doc_date")
                 },
                 SqlHelper.Param("@from", from), SqlHelper.Param("@to", to));

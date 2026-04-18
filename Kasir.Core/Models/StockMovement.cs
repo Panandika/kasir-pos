@@ -17,7 +17,7 @@ namespace Kasir.Models
         public int QtyOut { get; set; }
         public long ValIn { get; set; }
         public long ValOut { get; set; }
-        public int CostPrice { get; set; }
+        public long CostPrice { get; set; }
         public int IsPosted { get; set; }
         public int ChangedBy { get; set; }
         public string ChangedAt { get; set; }

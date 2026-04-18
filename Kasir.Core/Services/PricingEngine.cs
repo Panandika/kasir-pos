@@ -9,12 +9,12 @@ namespace Kasir.Services
         /// Priority: promo > barcode override > open price override > qty break tiers > customer tier > base price.
         /// All prices are INTEGER × 100 (Rupiah cents).
         /// </summary>
-        public int GetUnitPrice(
+        public long GetUnitPrice(
             Product product,
             int qty,
-            int overridePrice = 0,
-            int barcodeOverride = 0,
-            int promoPrice = 0,
+            long overridePrice = 0,
+            long barcodeOverride = 0,
+            long promoPrice = 0,
             int customerTier = 0)
         {
             // 1. Promotional price (highest priority)
@@ -49,7 +49,7 @@ namespace Kasir.Services
             // 5. Customer tier pricing
             if (customerTier > 0)
             {
-                int tierPrice = GetCustomerTierPrice(product, customerTier);
+                long tierPrice = GetCustomerTierPrice(product, customerTier);
                 if (tierPrice > 0)
                 {
                     return tierPrice;
@@ -60,7 +60,7 @@ namespace Kasir.Services
             return product.Price;
         }
 
-        private static int GetCustomerTierPrice(Product product, int tier)
+        private static long GetCustomerTierPrice(Product product, int tier)
         {
             switch (tier)
             {

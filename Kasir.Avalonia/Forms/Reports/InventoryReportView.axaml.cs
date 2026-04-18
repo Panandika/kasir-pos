@@ -95,8 +95,8 @@ public partial class InventoryReportView : UserControl
         foreach (var p in products)
         {
             int stock = invSvc.GetStockOnHand(p.ProductCode);
-            int cost = invSvc.CalculateAverageCost(p.ProductCode);
-            long value = (long)stock * cost;
+            long cost = invSvc.CalculateAverageCost(p.ProductCode);
+            long value = stock * cost;
             _rows.Add(new InvRow(p.ProductCode, p.Name,
                 stock.ToString(),
                 Formatting.FormatCurrencyShort(cost),

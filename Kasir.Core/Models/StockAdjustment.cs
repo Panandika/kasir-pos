@@ -21,7 +21,7 @@ namespace Kasir.Models
         public string JournalNo { get; set; }
         public string ProductCode { get; set; }
         public int Quantity { get; set; }
-        public int CostPrice { get; set; }
+        public long CostPrice { get; set; }
         public long Value { get; set; }
         public string Reason { get; set; }
 
@@ -37,9 +37,9 @@ namespace Kasir.Models
         public string ProductName { get; set; }
         public int QtySystem { get; set; }
         public int QtyActual { get; set; }
-        public int CostPrice { get; set; }
+        public long CostPrice { get; set; }
         public string DocDate { get; set; }
         public int Variance { get { return QtyActual - QtySystem; } }
-        public long VarianceValue { get { return (long)Variance * CostPrice; } }
+        public long VarianceValue { get { return Variance * CostPrice; } }
     }
 }

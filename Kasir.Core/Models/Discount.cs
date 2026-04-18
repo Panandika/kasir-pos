@@ -12,7 +12,7 @@ namespace Kasir.Models
         public string DateEnd { get; set; }
         public int MinQty { get; set; }
         public int MaxQty { get; set; }
-        public int PriceOverride { get; set; }
+        public long PriceOverride { get; set; }
         public string Description { get; set; }
         public int Priority { get; set; }
         public int IsActive { get; set; }

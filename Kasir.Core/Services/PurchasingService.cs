@@ -49,7 +49,7 @@ namespace Kasir.Services
             long total = 0;
             foreach (var item in items)
             {
-                item.Value = (long)item.UnitPrice * item.Quantity;
+                item.Value = item.UnitPrice * item.Quantity;
                 total += item.Value;
             }
             order.TotalValue = total;
@@ -77,7 +77,7 @@ namespace Kasir.Services
             long gross = 0;
             foreach (var item in items)
             {
-                item.Value = (long)item.UnitPrice * item.Quantity;
+                item.Value = item.UnitPrice * item.Quantity;
                 gross += item.Value;
             }
             receipt.GrossAmount = gross;
@@ -120,7 +120,7 @@ namespace Kasir.Services
             long gross = 0;
             foreach (var item in items)
             {
-                item.Value = (long)item.UnitPrice * item.Quantity;
+                item.Value = item.UnitPrice * item.Quantity;
                 gross += item.Value;
             }
             invoice.GrossAmount = gross;
@@ -165,7 +165,7 @@ namespace Kasir.Services
             long gross = 0;
             foreach (var item in items)
             {
-                item.Value = (long)item.UnitPrice * item.Quantity;
+                item.Value = item.UnitPrice * item.Quantity;
                 gross += item.Value;
             }
             ret.GrossAmount = gross;

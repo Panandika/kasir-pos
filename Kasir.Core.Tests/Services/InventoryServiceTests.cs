@@ -81,7 +81,7 @@ namespace Kasir.Tests.Services
             _service.RecordStockIn("P001", 10, 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
             _service.RecordStockIn("P001", 5, 120000, "PURCHASE", "BPB-01-2604-0002", "2026-04-05", 1);
 
-            int avg = _service.CalculateAverageCost("P001");
+            long avg = _service.CalculateAverageCost("P001");
             // (10*100000 + 5*120000) / 15 = 1600000 / 15 = 106666
             avg.Should().Be(106666);
         }

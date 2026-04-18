@@ -50,9 +50,9 @@ namespace Kasir.Services
             // Set cost price for each item
             foreach (var item in items)
             {
-                int avgCost = _inventoryService.CalculateAverageCost(item.ProductCode);
+                long avgCost = _inventoryService.CalculateAverageCost(item.ProductCode);
                 item.CostPrice = avgCost;
-                item.Value = (long)avgCost * item.Quantity;
+                item.Value = avgCost * item.Quantity;
             }
 
             _transferRepo.Insert(header, items);

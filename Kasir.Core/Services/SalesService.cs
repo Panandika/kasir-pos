@@ -100,7 +100,7 @@ namespace Kasir.Services
             int effectiveQty = barcodeQty > 0 ? barcodeQty : qty;
 
             // Resolve price
-            int unitPrice = _pricingEngine.GetUnitPrice(
+            long unitPrice = _pricingEngine.GetUnitPrice(
                 product,
                 effectiveQty,
                 overridePrice: overridePrice,
@@ -124,7 +124,7 @@ namespace Kasir.Services
                 qty: effectiveQty);
 
             // Calculate line total
-            long lineGross = (long)unitPrice * effectiveQty;
+            long lineGross = unitPrice * effectiveQty;
             long lineDiscount = discountResult.CalculateDiscount(lineGross);
             long lineNet = lineGross - lineDiscount;
 
@@ -137,7 +137,7 @@ namespace Kasir.Services
                 DiscPct = discountResult.DiscPct,
                 DiscValue = lineDiscount,
                 Value = lineNet,
-                Cogs = (long)product.CostPrice * effectiveQty,
+                Cogs = product.CostPrice * effectiveQty,
                 IsPriceOverridden = overridePrice > 0 || barcodeOverridePrice > 0
             };
 
@@ -183,17 +183,17 @@ namespace Kasir.Services
                     saleTimeHms: timeHms,
                     qty: newQty);
 
-                long lineGross = (long)item.UnitPrice * newQty;
+                long lineGross = item.UnitPrice * newQty;
                 long lineDiscount = discResult.CalculateDiscount(lineGross);
                 item.DiscPct = discResult.DiscPct;
                 item.DiscValue = lineDiscount;
                 item.Value = lineGross - lineDiscount;
-                item.Cogs = (long)product.CostPrice * newQty;
+                item.Cogs = product.CostPrice * newQty;
             }
             else
             {
                 // Fallback: recalc with existing discount
-                long lineGross = (long)item.UnitPrice * newQty;
+                long lineGross = item.UnitPrice * newQty;
                 var discResult = new DiscountResult { DiscPct = item.DiscPct };
                 item.DiscValue = discResult.CalculateDiscount(lineGross);
                 item.Value = lineGross - item.DiscValue;
@@ -208,7 +208,7 @@ namespace Kasir.Services
 
             foreach (var item in _currentItems)
             {
-                gross += (long)item.UnitPrice * item.Quantity;
+                gross += item.UnitPrice * item.Quantity;
                 discount += item.DiscValue;
                 itemCount += item.Quantity;
             }
@@ -287,7 +287,7 @@ namespace Kasir.Services
                     // Create stock movements for each sold item
                     foreach (var item in _currentItems)
                     {
-                        int costPrice = _inventoryService.CalculateAverageCost(item.ProductCode);
+                        long costPrice = _inventoryService.CalculateAverageCost(item.ProductCode);
                         _inventoryService.RecordStockOut(
                             item.ProductCode,
                             item.Quantity,

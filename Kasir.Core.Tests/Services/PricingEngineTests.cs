@@ -131,7 +131,7 @@ namespace Kasir.Tests.Services
         public void GetUnitPrice_AllOverridesPresent_PromoWins()
         {
             _product.OpenPrice = "Y";
-            int result = _engine.GetUnitPrice(_product, 24,
+            long result = _engine.GetUnitPrice(_product, 24,
                 overridePrice: 100000,
                 barcodeOverride: 200000,
                 promoPrice: 150000);

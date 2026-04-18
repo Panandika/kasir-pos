@@ -36,8 +36,8 @@ namespace Kasir.Services
                         var product = _productRepo.GetByCode(change.ProductCode);
                         if (product == null) continue;
 
-                        int oldPrice = product.Price;
-                        int newPrice = change.NewPrice;
+                        long oldPrice = product.Price;
+                        long newPrice = change.NewPrice;
 
                         if (oldPrice == newPrice) continue;
 
@@ -79,7 +79,7 @@ namespace Kasir.Services
     public class PriceChangeEntry
     {
         public string ProductCode { get; set; }
-        public int NewPrice { get; set; }
-        public int NewBuyingPrice { get; set; }
+        public long NewPrice { get; set; }
+        public long NewBuyingPrice { get; set; }
     }
 }

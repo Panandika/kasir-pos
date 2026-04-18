@@ -113,7 +113,7 @@ namespace Kasir.Data.Repositories
                 Remark = SqlHelper.GetString(r, "remark"),
                 Quantity = SqlHelper.GetInt(r, "quantity"),
                 Value = SqlHelper.GetLong(r, "value"),
-                UnitPrice = SqlHelper.GetInt(r, "unit_price"),
+                UnitPrice = SqlHelper.GetLong(r, "unit_price"),
                 Unit = SqlHelper.GetString(r, "unit")
             };
         }

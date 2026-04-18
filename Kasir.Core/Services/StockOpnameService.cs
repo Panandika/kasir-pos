@@ -69,9 +69,9 @@ namespace Kasir.Services
 
             foreach (var item in items)
             {
-                int avgCost = _inventoryService.CalculateAverageCost(item.ProductCode);
+                long avgCost = _inventoryService.CalculateAverageCost(item.ProductCode);
                 item.CostPrice = avgCost;
-                item.Value = (long)avgCost * item.Quantity;
+                item.Value = avgCost * item.Quantity;
             }
 
             _adjRepo.Insert(header, items);
@@ -101,14 +101,14 @@ namespace Kasir.Services
                 int variance = line.PhysicalQty - line.SystemQty;
                 if (variance == 0) continue;
 
-                int avgCost = _inventoryService.CalculateAverageCost(line.ProductCode);
+                long avgCost = _inventoryService.CalculateAverageCost(line.ProductCode);
 
                 adjustItems.Add(new StockAdjustmentItem
                 {
                     ProductCode = line.ProductCode,
                     Quantity = Math.Abs(variance),
                     CostPrice = avgCost,
-                    Value = (long)avgCost * Math.Abs(variance),
+                    Value = avgCost * Math.Abs(variance),
                     Reason = variance > 0 ? "SURPLUS" : "SHORTAGE"
                 });
 

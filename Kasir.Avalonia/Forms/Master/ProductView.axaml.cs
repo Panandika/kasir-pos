@@ -135,9 +135,9 @@ public partial class ProductView : UserControl
         return p;
     }
 
-    private static int ParseMoney(string? text)
+    private static long ParseMoney(string? text)
     {
-        return decimal.TryParse(text, out decimal v) ? (int)(v * 100m) : 0;
+        return decimal.TryParse(text, out decimal v) ? (long)(v * 100m) : 0L;
     }
 
     private void SetDetailEnabled(bool enabled)

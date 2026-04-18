@@ -120,7 +120,7 @@ public partial class PriceChangeView : UserControl
         foreach (var row in _allRows)
         {
             if (!decimal.TryParse(row.NewPrice, out decimal newVal)) continue;
-            int newPrice = (int)(newVal * 100m);
+            long newPrice = (long)(newVal * 100m);
             if (newPrice == row.Tag.Price) continue;
             changes.Add(new PriceChangeEntry { ProductCode = row.Tag.ProductCode, NewPrice = newPrice });
         }

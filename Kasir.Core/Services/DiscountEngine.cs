@@ -88,7 +88,7 @@ namespace Kasir.Services
                 {
                     if (product.Price > disc.PriceOverride)
                     {
-                        long discAmount = ((long)product.Price - disc.PriceOverride) * qty;
+                        long discAmount = (product.Price - disc.PriceOverride) * qty;
                         return new DiscountResult
                         {
                             DiscPct = 0,

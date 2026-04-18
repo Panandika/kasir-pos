@@ -200,7 +200,7 @@ namespace Kasir.Data.Repositories
                 Value = SqlHelper.GetLong(reader, "value"),
                 Cogs = SqlHelper.GetLong(reader, "cogs"),
                 DiscPct = SqlHelper.GetInt(reader, "disc_pct"),
-                UnitPrice = SqlHelper.GetInt(reader, "unit_price"),
+                UnitPrice = SqlHelper.GetLong(reader, "unit_price"),
                 PointValue = SqlHelper.GetInt(reader, "point_value"),
                 DiscValue = SqlHelper.GetLong(reader, "disc_value")
             };

@@ -70,7 +70,7 @@ namespace Kasir.Data.Repositories
                 Remark = SqlHelper.GetString(r, "remark"),
                 Name = SqlHelper.GetString(r, "name"),
                 Quantity = SqlHelper.GetInt(r, "quantity"),
-                UnitPrice = SqlHelper.GetInt(r, "unit_price"),
+                UnitPrice = SqlHelper.GetLong(r, "unit_price"),
                 Direction = SqlHelper.GetString(r, "direction"),
                 Value = SqlHelper.GetLong(r, "value"),
                 GroupCode = SqlHelper.GetString(r, "group_code"),

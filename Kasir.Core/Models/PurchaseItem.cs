@@ -8,7 +8,7 @@ namespace Kasir.Models
         public string Remark { get; set; }
         public int Quantity { get; set; }
         public long Value { get; set; }
-        public int UnitPrice { get; set; }
+        public long UnitPrice { get; set; }
         public int DiscPct { get; set; }
         public long DiscValue { get; set; }
         public string Unit { get; set; }

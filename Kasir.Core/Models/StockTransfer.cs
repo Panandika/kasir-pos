@@ -22,7 +22,7 @@ namespace Kasir.Models
         public string JournalNo { get; set; }
         public string ProductCode { get; set; }
         public int Quantity { get; set; }
-        public int CostPrice { get; set; }
+        public long CostPrice { get; set; }
         public long Value { get; set; }
 
         // Transient
