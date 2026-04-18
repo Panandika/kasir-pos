@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Kasir.Avalonia.Forms.Bank.BankGiroView"
-             x:DataType="x:Object"
              Background="{DynamicResource Bg0Brush}">
   <DockPanel>
     <Border DockPanel.Dock="Bottom"

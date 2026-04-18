@@ -1,78 +1,78 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Kasir.Avalonia.Forms.Reports.SalesReportView"
-             Background="#000000">
+             Background="{DynamicResource Bg0Brush}">
   <DockPanel>
-    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
       <TextBlock x:Name="StatusLabel"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
                  Margin="8,0" />
     </Panel>
-    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
       <TextBlock x:Name="LblSummary"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgNumericBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
                  HorizontalAlignment="Right"
                  Margin="0,0,12,0" />
     </Panel>
-    <Border DockPanel.Dock="Top" Background="#002800" Height="44" Padding="8,6">
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="44" Padding="8,6">
       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
         <TextBlock Text="From:"
-                   Foreground="#00dc00"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
                    FontSize="13"
                    VerticalAlignment="Center" />
         <TextBox x:Name="TxtDateFrom"
                  Width="120"
                  Height="28"
-                 Background="#001400"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" />
         <TextBlock Text="To:"
-                   Foreground="#00dc00"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
                    FontSize="13"
                    VerticalAlignment="Center" />
         <TextBox x:Name="TxtDateTo"
                  Width="120"
                  Height="28"
-                 Background="#001400"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" />
         <Button x:Name="BtnGenerate"
                 Content="F5"
                 Width="50"
                 Height="28"
-                Background="#004400"
-                Foreground="#00dc00"
-                FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                Background="{DynamicResource AccentBgBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource PlexSansFont}"
                 FontSize="13" />
         <Button x:Name="BtnExport"
                 Content="F7"
                 Width="50"
                 Height="28"
-                Background="#004400"
-                Foreground="#00dc00"
-                FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                Background="{DynamicResource AccentBgBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource PlexSansFont}"
                 FontSize="13" />
       </StackPanel>
     </Border>
     <DataGrid x:Name="DgvReport"
               AutoGenerateColumns="False"
               IsReadOnly="True"
-              Background="#001400"
-              Foreground="#00dc00"
+              x:CompileBindings="False"
+              Background="{DynamicResource Bg1Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
               GridLinesVisibility="Horizontal"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
-              FontSize="13"
-              x:CompileBindings="False">
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13">
       <DataGrid.Columns>
         <DataGridTextColumn Header="No"       Binding="{Binding No}"        Width="0.4*" />
         <DataGridTextColumn Header="No.Nota"  Binding="{Binding JournalNo}" Width="2*"   />
