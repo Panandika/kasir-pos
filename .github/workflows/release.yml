@@ -19,9 +19,14 @@ jobs:
         $ver = $tag -replace '^v', ''
         echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
         $parts = $ver -split '\.'
-        # Strip non-numeric suffix from each part (e.g. "0-avalonia" -> "0")
         $numericParts = $parts | ForEach-Object { $_ -replace '[^0-9].*', '' }
-        $asmVer = "$($numericParts[0]).$($numericParts[1]).$($numericParts[2]).0"
+        # CalVer has year >= 2000 in first segment; fall back to today's date for semver tags
+        if ([int]$numericParts[0] -ge 2000) {
+            $asmVer = "$($numericParts[0]).$($numericParts[1]).$($numericParts[2]).0"
+        } else {
+            $today = Get-Date
+            $asmVer = "$($today.Year).$($today.ToString('MM')).$($today.Day).0"
+        }
         echo "ASM_VERSION=$asmVer" >> $env:GITHUB_OUTPUT
 
     - name: Patch AssemblyInfo with tag version
