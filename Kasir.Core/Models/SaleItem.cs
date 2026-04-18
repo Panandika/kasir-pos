@@ -11,7 +11,7 @@ namespace Kasir.Models
         public long Cogs { get; set; }
         public int DiscPct { get; set; }
         public long UnitPrice { get; set; }
-        public int PointValue { get; set; }
+        public long PointValue { get; set; }
         public long DiscValue { get; set; }
 
         // Transient (not persisted, used during sale entry)

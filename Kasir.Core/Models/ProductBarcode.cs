@@ -7,7 +7,7 @@ namespace Kasir.Models
         public string Barcode { get; set; }
         public string ProductName { get; set; }
         public int QtyPerScan { get; set; }
-        public int PriceOverride { get; set; }
+        public long PriceOverride { get; set; }
         public string CustomerCode { get; set; }
     }
 }

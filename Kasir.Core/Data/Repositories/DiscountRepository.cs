@@ -52,7 +52,7 @@ namespace Kasir.Data.Repositories
                 DateEnd = SqlHelper.GetString(reader, "date_end"),
                 MinQty = SqlHelper.GetInt(reader, "min_qty"),
                 MaxQty = SqlHelper.GetInt(reader, "max_qty"),
-                PriceOverride = SqlHelper.GetInt(reader, "price_override"),
+                PriceOverride = SqlHelper.GetLong(reader, "price_override"),
                 Description = SqlHelper.GetString(reader, "description"),
                 Priority = SqlHelper.GetInt(reader, "priority"),
                 IsActive = SqlHelper.GetInt(reader, "is_active"),

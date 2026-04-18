@@ -9,7 +9,7 @@ namespace Kasir.Models
         public string AccountCode { get; set; }
         public string SubCode { get; set; }
         public string MemberCode { get; set; }
-        public int PointValue { get; set; }
+        public long PointValue { get; set; }
         public string CardCode { get; set; }
         public string Cashier { get; set; }
         public int DiscPct { get; set; }

@@ -163,7 +163,7 @@ namespace Kasir.Data.Repositories
                 AccountCode = SqlHelper.GetString(reader, "account_code"),
                 SubCode = SqlHelper.GetString(reader, "sub_code"),
                 MemberCode = SqlHelper.GetString(reader, "member_code"),
-                PointValue = SqlHelper.GetInt(reader, "point_value"),
+                PointValue = SqlHelper.GetLong(reader, "point_value"),
                 CardCode = SqlHelper.GetString(reader, "card_code"),
                 Cashier = SqlHelper.GetString(reader, "cashier"),
                 DiscPct = SqlHelper.GetInt(reader, "disc_pct"),
@@ -201,7 +201,7 @@ namespace Kasir.Data.Repositories
                 Cogs = SqlHelper.GetLong(reader, "cogs"),
                 DiscPct = SqlHelper.GetInt(reader, "disc_pct"),
                 UnitPrice = SqlHelper.GetLong(reader, "unit_price"),
-                PointValue = SqlHelper.GetInt(reader, "point_value"),
+                PointValue = SqlHelper.GetLong(reader, "point_value"),
                 DiscValue = SqlHelper.GetLong(reader, "disc_value")
             };
         }

@@ -60,7 +60,7 @@ namespace Kasir.Data.Repositories
                 Barcode = SqlHelper.GetString(reader, "barcode"),
                 ProductName = SqlHelper.GetString(reader, "product_name"),
                 QtyPerScan = SqlHelper.GetInt(reader, "qty_per_scan"),
-                PriceOverride = SqlHelper.GetInt(reader, "price_override"),
+                PriceOverride = SqlHelper.GetLong(reader, "price_override"),
                 CustomerCode = SqlHelper.GetString(reader, "customer_code")
             };
         }
