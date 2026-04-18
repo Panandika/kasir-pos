@@ -2,11 +2,13 @@ using System;
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Data;
 using Kasir.Services;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Accounting;
 
@@ -31,8 +33,15 @@ public partial class PayablesView : UserControl
         {
             if (KeyboardRouter.IsEnter(e)) LoadVendorPayables();
         };
+        TxtVendor.TextChanged += (_, _) => LoadVendorPayables();
 
         SetStatus("Pembayaran Hutang — F2: Cari Supplier, F5: Bayar, Esc: Keluar");
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ViewShortcuts.AutoFocus(TxtVendor);
     }
 
     private void LoadVendorPayables()

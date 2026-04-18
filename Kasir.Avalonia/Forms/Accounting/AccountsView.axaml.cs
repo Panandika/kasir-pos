@@ -1,11 +1,13 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Accounting;
 
@@ -31,6 +33,7 @@ public partial class AccountsView : UserControl
         {
             if (KeyboardRouter.IsEnter(e)) SearchAccounts();
         };
+        TxtSearch.TextChanged += (_, _) => SearchAccounts();
 
         BtnSearch.Click += (_, _) =>
         {
@@ -38,8 +41,20 @@ public partial class AccountsView : UserControl
             SearchAccounts();
         };
 
+        ViewShortcuts.WireGridEnter(DgvAccounts, () =>
+        {
+            if (!_readOnly && DgvAccounts.SelectedItem is AccRow row)
+                ShowEditDialog(row.Tag);
+        });
+
         SetStatus(_readOnly ? "Daftar Akun — Esc: Keluar" : "Daftar Akun — Ins: Tambah, Enter: Edit, Esc: Keluar");
         LoadData();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ViewShortcuts.AutoFocus(TxtSearch);
     }
 
     private void LoadData()
