@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 using Kasir.Data;
 using Kasir.Services;
 using Kasir.Utils;
@@ -25,6 +27,7 @@ public partial class OpnameView : UserControl
         _service = new StockOpnameService(db, new ClockImpl());
 
         DgvOpname.ItemsSource = _rows;
+        ViewShortcuts.WireGridEnter(DgvOpname, EditPhysical);
         SetStatus("Stock Opname — F3: Load Sheet, Enter: Edit Fisik, F10: Save, Esc: Close");
     }
 
