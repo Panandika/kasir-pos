@@ -34,14 +34,12 @@ jobs:
       shell: pwsh
       run: |
         $asmVer = "${{ steps.version.outputs.ASM_VERSION }}"
-        $calVer = "${{ steps.version.outputs.CALVER }}"
         $file = "Kasir/Properties/AssemblyInfo.cs"
         $content = Get-Content $file -Raw
         $content = $content -replace 'AssemblyVersion\(".*?"\)', "AssemblyVersion(`"$asmVer`")"
         $content = $content -replace 'AssemblyFileVersion\(".*?"\)', "AssemblyFileVersion(`"$asmVer`")"
-        $content = $content -replace 'AssemblyInformationalVersion\(".*?"\)', "AssemblyInformationalVersion(`"$calVer`")"
         Set-Content $file $content -NoNewline
-        Write-Host "Patched AssemblyInfo to version $ver ($asmVer)"
+        Write-Host "Patched AssemblyInfo AssemblyVersion/FileVersion to $asmVer"
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
