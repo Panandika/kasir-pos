@@ -2,12 +2,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Services;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Master;
 
@@ -32,7 +34,14 @@ public partial class PriceChangeView : UserControl
         _priceService = new PriceChangeService(conn);
         DgvPrices.ItemsSource = _rows;
         TxtSearch.TextChanged += (_, _) => ApplyFilter();
+        ViewShortcuts.WireGridEnter(DgvPrices, EditSelectedPrice);
         SetStatus("Ganti Harga Jual — F5: Muat Produk, Enter: Edit Harga, F10: Simpan, Esc: Keluar");
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ViewShortcuts.AutoFocus(TxtSearch);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

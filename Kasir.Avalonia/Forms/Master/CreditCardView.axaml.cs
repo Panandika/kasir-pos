@@ -1,11 +1,14 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Master;
 
@@ -14,6 +17,7 @@ public partial class CreditCardView : UserControl
     private record CreditCardRow(string Code, string Name, string Fee, string Account, CreditCard Tag);
 
     private readonly ObservableCollection<CreditCardRow> _rows = new();
+    private readonly List<CreditCardRow> _allRows = new();
     private CreditCardRepository _cardRepo;
     private int _currentUserId;
 
@@ -23,21 +27,45 @@ public partial class CreditCardView : UserControl
         _currentUserId = currentUserId;
         _cardRepo = new CreditCardRepository(DbConnection.GetConnection());
         DgvCards.ItemsSource = _rows;
+        TxtSearch.TextChanged += (_, _) => FilterGrid(TxtSearch.Text ?? "");
+        ViewShortcuts.WireGridEnter(DgvCards, EditCard);
         SetStatus("Ins=Tambah  Enter=Edit  Del=Hapus  Esc=Keluar");
         LoadData();
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ViewShortcuts.AutoFocus(TxtSearch);
+    }
+
     private void LoadData()
     {
-        _rows.Clear();
+        _allRows.Clear();
         foreach (var card in _cardRepo.GetAll())
         {
-            _rows.Add(new CreditCardRow(
+            _allRows.Add(new CreditCardRow(
                 card.CardCode,
                 card.Name,
                 card.FeePct.ToString() + "%",
                 card.AccountCode,
                 card));
+        }
+        FilterGrid(TxtSearch.Text ?? "");
+    }
+
+    private void FilterGrid(string query)
+    {
+        string q = query.Trim().ToLower();
+        _rows.Clear();
+        foreach (var row in _allRows)
+        {
+            if (string.IsNullOrEmpty(q) ||
+                row.Code.ToLower().Contains(q) ||
+                row.Name.ToLower().Contains(q))
+            {
+                _rows.Add(row);
+            }
         }
     }
 

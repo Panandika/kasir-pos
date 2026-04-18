@@ -12,6 +12,15 @@
                  VerticalAlignment="Center"
                  Margin="8,0" />
     </Panel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="38" Padding="8,4">
+      <TextBox x:Name="TxtSearch"
+               PlaceholderText="Cari..."
+               FontFamily="{DynamicResource JetBrainsMonoFont}"
+               FontSize="{DynamicResource FontSizeBody}"
+               Margin="8"
+               Background="{DynamicResource Bg1Brush}"
+               Foreground="{DynamicResource FgPrimaryBrush}" />
+    </Border>
     <DataGrid x:Name="DgvDepts"
               x:CompileBindings="False"
               AutoGenerateColumns="False"

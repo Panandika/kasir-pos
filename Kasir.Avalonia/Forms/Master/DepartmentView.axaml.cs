@@ -1,12 +1,15 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Master;
 
@@ -15,6 +18,7 @@ public partial class DepartmentView : UserControl
     private record DeptRow(string DeptCode, string Name, string ChangedAt, Department Tag);
 
     private readonly ObservableCollection<DeptRow> _rows = new();
+    private readonly List<DeptRow> _allRows = new();
     private DepartmentRepository _deptRepo;
     private int _currentUserId;
 
@@ -24,20 +28,44 @@ public partial class DepartmentView : UserControl
         _currentUserId = currentUserId;
         _deptRepo = new DepartmentRepository(DbConnection.GetConnection());
         DgvDepts.ItemsSource = _rows;
+        TxtSearch.TextChanged += (_, _) => FilterGrid(TxtSearch.Text ?? "");
+        ViewShortcuts.WireGridEnter(DgvDepts, EditDept);
         SetStatus("Ins=Tambah  Enter=Edit  Del=Hapus  Esc=Keluar");
         LoadData();
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ViewShortcuts.AutoFocus(TxtSearch);
+    }
+
     private void LoadData()
     {
-        _rows.Clear();
+        _allRows.Clear();
         foreach (var dept in _deptRepo.GetAll())
         {
-            _rows.Add(new DeptRow(
+            _allRows.Add(new DeptRow(
                 dept.DeptCode,
                 dept.Name,
                 Formatting.FormatDate(dept.ChangedAt),
                 dept));
+        }
+        FilterGrid(TxtSearch.Text ?? "");
+    }
+
+    private void FilterGrid(string query)
+    {
+        string q = query.Trim().ToLower();
+        _rows.Clear();
+        foreach (var row in _allRows)
+        {
+            if (string.IsNullOrEmpty(q) ||
+                row.DeptCode.ToLower().Contains(q) ||
+                row.Name.ToLower().Contains(q))
+            {
+                _rows.Add(row);
+            }
         }
     }
 

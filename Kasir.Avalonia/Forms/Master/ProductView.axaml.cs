@@ -4,12 +4,14 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Master;
 
@@ -36,8 +38,24 @@ public partial class ProductView : UserControl
         SetDetailEnabled(false);
         DgvProducts.SelectionChanged += OnSelectionChanged;
         TxtSearch.KeyDown += OnSearchKeyDown;
+        TxtSearch.TextChanged += (_, _) => SearchProducts();
         BtnSearch.Click += (_, _) => SearchProducts();
+        ViewShortcuts.WireGridEnter(DgvProducts, () =>
+        {
+            if (!_isEditing && _currentProduct != null)
+            {
+                SetDetailEnabled(true);
+                TxtName.Focus();
+                SetStatus("Edit: " + _currentProduct.ProductCode);
+            }
+        });
         SetStatus("F2=Cari  Ins=Tambah  Enter=Edit  F9=Simpan  Del=Nonaktifkan  Esc=Keluar");
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ViewShortcuts.AutoFocus(TxtSearch);
     }
 
     private void LoadDepts()

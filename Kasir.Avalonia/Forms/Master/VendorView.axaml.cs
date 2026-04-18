@@ -1,12 +1,14 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Master;
 
@@ -26,8 +28,16 @@ public partial class VendorView : UserControl
         DgvVendors.ItemsSource = _rows;
         BtnSearch.Click += (_, _) => SearchVendors();
         TxtSearch.KeyDown += OnSearchKeyDown;
+        TxtSearch.TextChanged += (_, _) => SearchVendors();
+        ViewShortcuts.WireGridEnter(DgvVendors, EditVendor);
         SetStatus("F2=Cari  Ins=Tambah  Enter=Ubah  Esc=Keluar");
         LoadData();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ViewShortcuts.AutoFocus(TxtSearch);
     }
 
     private void LoadData()
