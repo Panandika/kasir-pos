@@ -63,13 +63,13 @@
       <!-- Bento tile grid — 3 columns × 2 rows (6 top-level categories) -->
       <Grid x:Name="BentoGrid"
             HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
+            VerticalAlignment="Top"
             Margin="16,8,16,16"
             RowSpacing="4"
             ColumnSpacing="4">
         <Grid.RowDefinitions>
-          <RowDefinition Height="*"/>
-          <RowDefinition Height="*"/>
+          <RowDefinition Height="180"/>
+          <RowDefinition Height="180"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/>
@@ -83,7 +83,7 @@
                 TabIndex="0"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Padding="12"
+                Padding="16,20,16,20"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 BorderBrush="{DynamicResource BorderStrongBrush}"
@@ -112,7 +112,7 @@
                 TabIndex="1"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Padding="12"
+                Padding="16,20,16,20"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 BorderBrush="{DynamicResource BorderStrongBrush}"
@@ -141,7 +141,7 @@
                 TabIndex="2"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Padding="12"
+                Padding="16,20,16,20"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 BorderBrush="{DynamicResource BorderStrongBrush}"
@@ -170,7 +170,7 @@
                 TabIndex="3"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Padding="12"
+                Padding="16,20,16,20"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 BorderBrush="{DynamicResource BorderStrongBrush}"
@@ -199,7 +199,7 @@
                 TabIndex="4"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Padding="12"
+                Padding="16,20,16,20"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 BorderBrush="{DynamicResource BorderStrongBrush}"
@@ -228,7 +228,7 @@
                 TabIndex="5"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Padding="12"
+                Padding="16,20,16,20"
                 Background="{DynamicResource AccentBgBrush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 BorderBrush="{DynamicResource BorderStrongBrush}"
