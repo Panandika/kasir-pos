@@ -1,20 +1,21 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Kasir.Avalonia.Forms.Accounting.PostingProgressView"
-             Background="#000000">
+             x:DataType="x:Object"
+             Background="{DynamicResource Bg0Brush}">
   <DockPanel>
-    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
       <TextBlock x:Name="StatusLabel"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
                  Margin="8,0" />
     </Panel>
     <TextBox x:Name="TxtLog"
-             Background="#001400"
-             Foreground="#00dc00"
-             FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+             Background="{DynamicResource Bg1Brush}"
+             Foreground="{DynamicResource FgPrimaryBrush}"
+             FontFamily="{DynamicResource JetBrainsMonoFont}"
              FontSize="13"
              IsReadOnly="True"
              AcceptsReturn="True"

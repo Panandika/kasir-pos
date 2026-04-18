@@ -1,22 +1,23 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Kasir.Avalonia.Forms.Accounting.JournalView"
-             Background="#000000">
+             x:DataType="x:Object"
+             Background="{DynamicResource Bg0Brush}">
   <DockPanel>
-    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
       <TextBlock x:Name="StatusLabel"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
                  Margin="8,0" />
     </Panel>
-    <Border DockPanel.Dock="Top" Background="#002800" Height="48" Padding="8,4">
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="48" Padding="8,4">
       <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
         <TextBlock Grid.Column="0"
                    Text="Tanggal:"
-                   Foreground="#00dc00"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
                    FontSize="13"
                    VerticalAlignment="Center"
                    Margin="0,0,6,0" />
@@ -24,15 +25,15 @@
                  x:Name="TxtDate"
                  Width="120"
                  Height="32"
-                 Background="#001400"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13"
                  Margin="0,0,16,0" />
         <TextBlock Grid.Column="2"
                    Text="Keterangan:"
-                   Foreground="#00dc00"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
                    FontSize="13"
                    VerticalAlignment="Center"
                    Margin="0,0,6,0" />
@@ -40,32 +41,32 @@
                  x:Name="TxtRemark"
                  Width="400"
                  Height="32"
-                 Background="#001400"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13"
                  Margin="0,0,16,0" />
         <TextBlock Grid.Column="4"
                    x:Name="LblDebit"
                    Text="Debit: 0"
-                   Foreground="#00dc00"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="13"
                    VerticalAlignment="Center"
                    Margin="0,0,16,0" />
         <TextBlock Grid.Column="5"
                    x:Name="LblCredit"
                    Text="Kredit: 0"
-                   Foreground="#00dc00"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="13"
                    VerticalAlignment="Center"
                    Margin="0,0,16,0" />
         <TextBlock Grid.Column="6"
                    x:Name="LblDiff"
                    Text="Selisih: 0"
-                   Foreground="#ff9900"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   Foreground="{DynamicResource WarningBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="13"
                    VerticalAlignment="Center" />
       </Grid>
@@ -73,11 +74,11 @@
     <DataGrid x:Name="DgvLines"
               AutoGenerateColumns="False"
               SelectionMode="Single"
-              Foreground="#00dc00"
-              Background="#001400"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              Background="{DynamicResource Bg1Brush}"
               GridLinesVisibility="Horizontal"
               HeadersVisibility="Column"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
               FontSize="13"
               CanUserReorderColumns="False"
               CanUserResizeColumns="True"
