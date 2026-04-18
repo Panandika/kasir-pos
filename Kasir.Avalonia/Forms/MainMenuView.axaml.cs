@@ -153,6 +153,21 @@ public partial class MainMenuView : UserControl, INavigationAware
             return;
         }
 
+        // Direct single-letter shortcuts when bento is visible and no modifier is held.
+        // Alt is intentionally excluded — shortcuts are bare letters now.
+        if (_openSubMenu == null && BentoGrid.IsVisible && e.KeyModifiers == KeyModifiers.None)
+        {
+            switch (e.Key)
+            {
+                case Key.M: e.Handled = true; OpenSubMenu(SubMenuMaster);    return;
+                case Key.T: e.Handled = true; OpenSubMenu(SubMenuTransaksi); return;
+                case Key.K: e.Handled = true; OpenSubMenu(SubMenuAkuntansi); return;
+                case Key.L: e.Handled = true; OpenSubMenu(SubMenuLaporan);   return;
+                case Key.U: e.Handled = true; OpenSubMenu(SubMenuUtility);   return;
+                case Key.E: e.Handled = true; NavigationService.ReplaceRoot(new LoginView()); return;
+            }
+        }
+
         // Arrow-key navigation between tiles when bento grid is visible
         if (_openSubMenu == null && BentoGrid.IsVisible)
         {

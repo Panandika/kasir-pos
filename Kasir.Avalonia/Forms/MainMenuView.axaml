@@ -2,18 +2,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Kasir.Avalonia.Forms.MainMenuView"
              Background="{DynamicResource Bg0Brush}">
-  <DockPanel>
-    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+  <DockPanel LastChildFill="True">
+    <!-- Status bar (bottom) -->
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="32">
       <TextBlock x:Name="StatusLabel"
                  Foreground="{DynamicResource FgPrimaryBrush}"
                  FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
-                 Margin="8,0" />
+                 Margin="12,4,12,4" />
     </Panel>
 
-    <!-- Store header (unchanged) -->
-    <Panel DockPanel.Dock="Top" Height="80">
+    <!-- Store header -->
+    <Panel DockPanel.Dock="Top" Height="80" Margin="0,24,0,0">
       <TextBlock x:Name="LblStoreName"
                  FontSize="22"
                  Foreground="{DynamicResource FgPrimaryBrush}"
@@ -47,271 +48,278 @@
                  FontSize="13" />
     </Grid>
 
-    <!-- Bento tile grid — 3 columns × 2 rows (6 top-level menu categories) -->
-    <UniformGrid x:Name="BentoGrid"
-                 Columns="3"
-                 Rows="2"
-                 Margin="24,16,24,16">
-
-      <!-- Tile 1: Master (Alt+M) -->
-      <Button x:Name="BtnMaster"
-              TabIndex="0"
-              MinHeight="120"
-              Margin="6"
-              Padding="12"
-              Background="{DynamicResource Bg1Brush}"
-              Foreground="{DynamicResource FgPrimaryBrush}"
-              BorderBrush="{DynamicResource BorderStrongBrush}"
-              BorderThickness="1"
-              FontFamily="{DynamicResource PlexSansFont}"
-              HorizontalContentAlignment="Center"
-              VerticalContentAlignment="Center">
-        <StackPanel Spacing="6" HorizontalAlignment="Center">
-          <AccessText Text="_Master"
-                      FontSize="24"
-                      FontFamily="{DynamicResource PlexSansFont}"
-                      Foreground="{DynamicResource FgPrimaryBrush}"
-                      HorizontalAlignment="Center" />
-          <TextBlock Text="[Alt+M]"
-                     FontSize="{DynamicResource FontSizeLabel}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     Foreground="{DynamicResource FgSecondaryBrush}"
-                     HorizontalAlignment="Center" />
-        </StackPanel>
-      </Button>
-
-      <!-- Tile 2: Transaksi (Alt+T) -->
-      <Button x:Name="BtnTransaksi"
-              TabIndex="1"
-              MinHeight="120"
-              Margin="6"
-              Padding="12"
-              Background="{DynamicResource Bg1Brush}"
-              Foreground="{DynamicResource FgPrimaryBrush}"
-              BorderBrush="{DynamicResource BorderStrongBrush}"
-              BorderThickness="1"
-              FontFamily="{DynamicResource PlexSansFont}"
-              HorizontalContentAlignment="Center"
-              VerticalContentAlignment="Center">
-        <StackPanel Spacing="6" HorizontalAlignment="Center">
-          <AccessText Text="_Transaksi"
-                      FontSize="24"
-                      FontFamily="{DynamicResource PlexSansFont}"
-                      Foreground="{DynamicResource FgPrimaryBrush}"
-                      HorizontalAlignment="Center" />
-          <TextBlock Text="[Alt+T]"
-                     FontSize="{DynamicResource FontSizeLabel}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     Foreground="{DynamicResource FgSecondaryBrush}"
-                     HorizontalAlignment="Center" />
-        </StackPanel>
-      </Button>
-
-      <!-- Tile 3: Akuntansi (Alt+K) -->
-      <Button x:Name="BtnAkuntansi"
-              TabIndex="2"
-              MinHeight="120"
-              Margin="6"
-              Padding="12"
-              Background="{DynamicResource Bg1Brush}"
-              Foreground="{DynamicResource FgPrimaryBrush}"
-              BorderBrush="{DynamicResource BorderStrongBrush}"
-              BorderThickness="1"
-              FontFamily="{DynamicResource PlexSansFont}"
-              HorizontalContentAlignment="Center"
-              VerticalContentAlignment="Center">
-        <StackPanel Spacing="6" HorizontalAlignment="Center">
-          <AccessText Text="A_kuntansi"
-                      FontSize="24"
-                      FontFamily="{DynamicResource PlexSansFont}"
-                      Foreground="{DynamicResource FgPrimaryBrush}"
-                      HorizontalAlignment="Center" />
-          <TextBlock Text="[Alt+K]"
-                     FontSize="{DynamicResource FontSizeLabel}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     Foreground="{DynamicResource FgSecondaryBrush}"
-                     HorizontalAlignment="Center" />
-        </StackPanel>
-      </Button>
-
-      <!-- Tile 4: Laporan (Alt+L) -->
-      <Button x:Name="BtnLaporan"
-              TabIndex="3"
-              MinHeight="120"
-              Margin="6"
-              Padding="12"
-              Background="{DynamicResource Bg1Brush}"
-              Foreground="{DynamicResource FgPrimaryBrush}"
-              BorderBrush="{DynamicResource BorderStrongBrush}"
-              BorderThickness="1"
-              FontFamily="{DynamicResource PlexSansFont}"
-              HorizontalContentAlignment="Center"
-              VerticalContentAlignment="Center">
-        <StackPanel Spacing="6" HorizontalAlignment="Center">
-          <AccessText Text="_Laporan"
-                      FontSize="24"
-                      FontFamily="{DynamicResource PlexSansFont}"
-                      Foreground="{DynamicResource FgPrimaryBrush}"
-                      HorizontalAlignment="Center" />
-          <TextBlock Text="[Alt+L]"
-                     FontSize="{DynamicResource FontSizeLabel}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     Foreground="{DynamicResource FgSecondaryBrush}"
-                     HorizontalAlignment="Center" />
-        </StackPanel>
-      </Button>
-
-      <!-- Tile 5: Utility (Alt+U) -->
-      <Button x:Name="BtnUtility"
-              TabIndex="4"
-              MinHeight="120"
-              Margin="6"
-              Padding="12"
-              Background="{DynamicResource Bg1Brush}"
-              Foreground="{DynamicResource FgPrimaryBrush}"
-              BorderBrush="{DynamicResource BorderStrongBrush}"
-              BorderThickness="1"
-              FontFamily="{DynamicResource PlexSansFont}"
-              HorizontalContentAlignment="Center"
-              VerticalContentAlignment="Center">
-        <StackPanel Spacing="6" HorizontalAlignment="Center">
-          <AccessText Text="_Utility"
-                      FontSize="24"
-                      FontFamily="{DynamicResource PlexSansFont}"
-                      Foreground="{DynamicResource FgPrimaryBrush}"
-                      HorizontalAlignment="Center" />
-          <TextBlock Text="[Alt+U]"
-                     FontSize="{DynamicResource FontSizeLabel}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     Foreground="{DynamicResource FgSecondaryBrush}"
-                     HorizontalAlignment="Center" />
-        </StackPanel>
-      </Button>
-
-      <!-- Tile 6: Keluar (Alt+E) -->
-      <Button x:Name="BtnKeluar"
-              TabIndex="5"
-              MinHeight="120"
-              Margin="6"
-              Padding="12"
-              Background="{DynamicResource AccentBgBrush}"
-              Foreground="{DynamicResource FgPrimaryBrush}"
-              BorderBrush="{DynamicResource BorderStrongBrush}"
-              BorderThickness="1"
-              FontFamily="{DynamicResource PlexSansFont}"
-              HorizontalContentAlignment="Center"
-              VerticalContentAlignment="Center">
-        <StackPanel Spacing="6" HorizontalAlignment="Center">
-          <AccessText Text="K_eluar"
-                      FontSize="24"
-                      FontFamily="{DynamicResource PlexSansFont}"
-                      Foreground="{DynamicResource FgPrimaryBrush}"
-                      HorizontalAlignment="Center" />
-          <TextBlock Text="[Alt+E]"
-                     FontSize="{DynamicResource FontSizeLabel}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     Foreground="{DynamicResource FgSecondaryBrush}"
-                     HorizontalAlignment="Center" />
-        </StackPanel>
-      </Button>
-
-    </UniformGrid>
-
-    <!-- Hidden sub-menu panels — opened by tile clicks via code-behind -->
-    <!-- Master sub-menu -->
-    <Panel x:Name="SubMenuMaster" IsVisible="False" DockPanel.Dock="Top"
-           Background="{DynamicResource Bg1Brush}">
-      <Menu Background="{DynamicResource Bg1Brush}"
-            FontFamily="{DynamicResource JetBrainsMonoFont}"
-            FontSize="13">
-        <MenuItem Header="_Master" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
-          <MenuItem x:Name="MniDepartment"  Header="_Departemen"          Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniVendor"      Header="_Supplier"            Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniProduct"     Header="_Barang"              Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniCreditCard"  Header="_Credit Card"         Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniPriceChange" Header="_Ganti Harga Jual"    Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniOpname"      Header="Stok _Opname"         Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-        </MenuItem>
-      </Menu>
-    </Panel>
-
-    <!-- Transaksi sub-menu -->
-    <Panel x:Name="SubMenuTransaksi" IsVisible="False" DockPanel.Dock="Top"
-           Background="{DynamicResource Bg1Brush}">
-      <Menu Background="{DynamicResource Bg1Brush}"
-            FontFamily="{DynamicResource JetBrainsMonoFont}"
-            FontSize="13">
-        <MenuItem Header="_Transaksi" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
-          <MenuItem x:Name="MniPurchaseOrder"   Header="Pemesanan/_Order"          Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniGoodsReceipt"    Header="P_enerimaan Barang"        Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniPurchaseInvoice" Header="_Nota Pembelian"           Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniPayables"        Header="_Hutang"                   Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniReturn"          Header="_Retur Pembelian"          Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniStockOut"        Header="Pema_kaian/Rusak/Hilang"   Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniSale"            Header="_Penjualan"                Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniTransfer"        Header="_Transfer"                 Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-        </MenuItem>
-      </Menu>
-    </Panel>
-
-    <!-- Akuntansi sub-menu -->
-    <Panel x:Name="SubMenuAkuntansi" IsVisible="False" DockPanel.Dock="Top"
-           Background="{DynamicResource Bg1Brush}">
-      <Menu Background="{DynamicResource Bg1Brush}"
-            FontFamily="{DynamicResource JetBrainsMonoFont}"
-            FontSize="13">
-        <MenuItem Header="A_kuntansi" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
-          <MenuItem x:Name="MniAccounts"     Header="_Daftar Perkiraan"    Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniJournal"      Header="_Jurnal Memorial"     Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniCashReceipt"  Header="Penerimaan _Kas"      Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniCashDisburse" Header="_Pengeluaran Kas"     Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniPosting"      Header="Pr_oses Posting"      Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-        </MenuItem>
-      </Menu>
-    </Panel>
-
-    <!-- Laporan sub-menu -->
-    <Panel x:Name="SubMenuLaporan" IsVisible="False" DockPanel.Dock="Top"
-           Background="{DynamicResource Bg1Brush}">
-      <Menu Background="{DynamicResource Bg1Brush}"
-            FontFamily="{DynamicResource JetBrainsMonoFont}"
-            FontSize="13">
-        <MenuItem Header="_Laporan" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
-          <MenuItem x:Name="MniRptProduct"   Header="Cetak Master _Barang"   Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniRptSupplier"  Header="Cetak Master _Supplier" Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniRptSales"     Header="Pen_jualan"             Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniRptInventory" Header="St_ok Barang"           Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniRptFinancial" Header="_Laporan Keuangan"      Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-        </MenuItem>
-      </Menu>
-    </Panel>
-
-    <!-- Utility sub-menu -->
-    <Panel x:Name="SubMenuUtility" IsVisible="False" DockPanel.Dock="Top"
-           Background="{DynamicResource Bg1Brush}">
-      <Menu Background="{DynamicResource Bg1Brush}"
-            FontFamily="{DynamicResource JetBrainsMonoFont}"
-            FontSize="13">
-        <MenuItem Header="_Utility" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
-          <MenuItem x:Name="MniUsers"         Header="_User Management"    Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniPrinterConfig" Header="_Printer Config"     Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniBackup"        Header="_Backup"             Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniShift"         Header="_Shift Management"   Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniUpdate"        Header="Periksa _Update"     Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-          <MenuItem x:Name="MniAbout"         Header="_Tentang"            Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
-        </MenuItem>
-      </Menu>
-    </Panel>
-
-    <!-- Hint bar -->
+    <!-- Hint bar (above content area) -->
     <TextBlock DockPanel.Dock="Top"
                HorizontalAlignment="Center"
                TextWrapping="Wrap"
                Foreground="{DynamicResource FgDimBrush}"
                FontFamily="{DynamicResource JetBrainsMonoFont}"
                FontSize="12"
-               Margin="20,4,20,0"
+               Margin="20,4,20,12"
                Text="F12=Sync  Esc=Keluar  Arrow keys navigate tiles  Enter activates" />
+
+    <!-- Content area: fills remaining space. Bento grid + hidden sub-menus stack here. -->
+    <Grid>
+      <!-- Bento tile grid — 3 columns × 2 rows (6 top-level categories) -->
+      <UniformGrid x:Name="BentoGrid"
+                   Columns="3"
+                   Rows="2"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   MaxWidth="1400"
+                   Margin="48,16,48,32">
+
+        <!-- Tile 1: Master (M) -->
+        <Button x:Name="BtnMaster"
+                TabIndex="0"
+                MinHeight="120"
+                Margin="6"
+                Padding="12"
+                Background="{DynamicResource Bg1Brush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                FontFamily="{DynamicResource PlexSansFont}"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center">
+          <StackPanel Spacing="6" HorizontalAlignment="Center">
+            <TextBlock FontSize="24"
+                       FontFamily="{DynamicResource PlexSansFont}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       HorizontalAlignment="Center">
+              <Run Text="M" TextDecorations="Underline" /><Run Text="aster" />
+            </TextBlock>
+            <TextBlock Text="[M]"
+                       FontSize="{DynamicResource FontSizeLabel}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <!-- Tile 2: Transaksi (T) -->
+        <Button x:Name="BtnTransaksi"
+                TabIndex="1"
+                MinHeight="120"
+                Margin="6"
+                Padding="12"
+                Background="{DynamicResource Bg1Brush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                FontFamily="{DynamicResource PlexSansFont}"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center">
+          <StackPanel Spacing="6" HorizontalAlignment="Center">
+            <TextBlock FontSize="24"
+                       FontFamily="{DynamicResource PlexSansFont}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       HorizontalAlignment="Center">
+              <Run Text="T" TextDecorations="Underline" /><Run Text="ransaksi" />
+            </TextBlock>
+            <TextBlock Text="[T]"
+                       FontSize="{DynamicResource FontSizeLabel}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <!-- Tile 3: Akuntansi (K) -->
+        <Button x:Name="BtnAkuntansi"
+                TabIndex="2"
+                MinHeight="120"
+                Margin="6"
+                Padding="12"
+                Background="{DynamicResource Bg1Brush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                FontFamily="{DynamicResource PlexSansFont}"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center">
+          <StackPanel Spacing="6" HorizontalAlignment="Center">
+            <TextBlock FontSize="24"
+                       FontFamily="{DynamicResource PlexSansFont}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       HorizontalAlignment="Center">
+              <Run Text="A" /><Run Text="k" TextDecorations="Underline" /><Run Text="untansi" />
+            </TextBlock>
+            <TextBlock Text="[K]"
+                       FontSize="{DynamicResource FontSizeLabel}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <!-- Tile 4: Laporan (L) -->
+        <Button x:Name="BtnLaporan"
+                TabIndex="3"
+                MinHeight="120"
+                Margin="6"
+                Padding="12"
+                Background="{DynamicResource Bg1Brush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                FontFamily="{DynamicResource PlexSansFont}"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center">
+          <StackPanel Spacing="6" HorizontalAlignment="Center">
+            <TextBlock FontSize="24"
+                       FontFamily="{DynamicResource PlexSansFont}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       HorizontalAlignment="Center">
+              <Run Text="L" TextDecorations="Underline" /><Run Text="aporan" />
+            </TextBlock>
+            <TextBlock Text="[L]"
+                       FontSize="{DynamicResource FontSizeLabel}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <!-- Tile 5: Utility (U) -->
+        <Button x:Name="BtnUtility"
+                TabIndex="4"
+                MinHeight="120"
+                Margin="6"
+                Padding="12"
+                Background="{DynamicResource Bg1Brush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                FontFamily="{DynamicResource PlexSansFont}"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center">
+          <StackPanel Spacing="6" HorizontalAlignment="Center">
+            <TextBlock FontSize="24"
+                       FontFamily="{DynamicResource PlexSansFont}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       HorizontalAlignment="Center">
+              <Run Text="U" TextDecorations="Underline" /><Run Text="tility" />
+            </TextBlock>
+            <TextBlock Text="[U]"
+                       FontSize="{DynamicResource FontSizeLabel}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <!-- Tile 6: Keluar (E) -->
+        <Button x:Name="BtnKeluar"
+                TabIndex="5"
+                MinHeight="120"
+                Margin="6"
+                Padding="12"
+                Background="{DynamicResource AccentBgBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                FontFamily="{DynamicResource PlexSansFont}"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center">
+          <StackPanel Spacing="6" HorizontalAlignment="Center">
+            <TextBlock FontSize="24"
+                       FontFamily="{DynamicResource PlexSansFont}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       HorizontalAlignment="Center">
+              <Run Text="K" /><Run Text="e" TextDecorations="Underline" /><Run Text="luar" />
+            </TextBlock>
+            <TextBlock Text="[E]"
+                       FontSize="{DynamicResource FontSizeLabel}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+      </UniformGrid>
+
+      <!-- Hidden sub-menu panels — opened by tile clicks via code-behind. Stacked over bento, toggled by IsVisible. -->
+      <Panel x:Name="SubMenuMaster" IsVisible="False" Background="{DynamicResource Bg1Brush}">
+        <Menu Background="{DynamicResource Bg1Brush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              VerticalAlignment="Top">
+          <MenuItem Header="_Master" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
+            <MenuItem x:Name="MniDepartment"  Header="_Departemen"          Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniVendor"      Header="_Supplier"            Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniProduct"     Header="_Barang"              Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniCreditCard"  Header="_Credit Card"         Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniPriceChange" Header="_Ganti Harga Jual"    Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniOpname"      Header="Stok _Opname"         Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+          </MenuItem>
+        </Menu>
+      </Panel>
+
+      <Panel x:Name="SubMenuTransaksi" IsVisible="False" Background="{DynamicResource Bg1Brush}">
+        <Menu Background="{DynamicResource Bg1Brush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              VerticalAlignment="Top">
+          <MenuItem Header="_Transaksi" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
+            <MenuItem x:Name="MniPurchaseOrder"   Header="Pemesanan/_Order"          Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniGoodsReceipt"    Header="P_enerimaan Barang"        Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniPurchaseInvoice" Header="_Nota Pembelian"           Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniPayables"        Header="_Hutang"                   Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniReturn"          Header="_Retur Pembelian"          Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniStockOut"        Header="Pema_kaian/Rusak/Hilang"   Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniSale"            Header="_Penjualan"                Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniTransfer"        Header="_Transfer"                 Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+          </MenuItem>
+        </Menu>
+      </Panel>
+
+      <Panel x:Name="SubMenuAkuntansi" IsVisible="False" Background="{DynamicResource Bg1Brush}">
+        <Menu Background="{DynamicResource Bg1Brush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              VerticalAlignment="Top">
+          <MenuItem Header="A_kuntansi" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
+            <MenuItem x:Name="MniAccounts"     Header="_Daftar Perkiraan"    Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniJournal"      Header="_Jurnal Memorial"     Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniCashReceipt"  Header="Penerimaan _Kas"      Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniCashDisburse" Header="_Pengeluaran Kas"     Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniPosting"      Header="Pr_oses Posting"      Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+          </MenuItem>
+        </Menu>
+      </Panel>
+
+      <Panel x:Name="SubMenuLaporan" IsVisible="False" Background="{DynamicResource Bg1Brush}">
+        <Menu Background="{DynamicResource Bg1Brush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              VerticalAlignment="Top">
+          <MenuItem Header="_Laporan" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
+            <MenuItem x:Name="MniRptProduct"   Header="Cetak Master _Barang"   Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniRptSupplier"  Header="Cetak Master _Supplier" Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniRptSales"     Header="Pen_jualan"             Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniRptInventory" Header="St_ok Barang"           Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniRptFinancial" Header="_Laporan Keuangan"      Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+          </MenuItem>
+        </Menu>
+      </Panel>
+
+      <Panel x:Name="SubMenuUtility" IsVisible="False" Background="{DynamicResource Bg1Brush}">
+        <Menu Background="{DynamicResource Bg1Brush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              VerticalAlignment="Top">
+          <MenuItem Header="_Utility" IsSubMenuOpen="True" Foreground="{DynamicResource FgPrimaryBrush}">
+            <MenuItem x:Name="MniUsers"         Header="_User Management"    Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniPrinterConfig" Header="_Printer Config"     Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniBackup"        Header="_Backup"             Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniShift"         Header="_Shift Management"   Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniUpdate"        Header="Periksa _Update"     Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+            <MenuItem x:Name="MniAbout"         Header="_Tentang"            Foreground="{DynamicResource FgPrimaryBrush}" Background="{DynamicResource Bg1Brush}" />
+          </MenuItem>
+        </Menu>
+      </Panel>
+    </Grid>
 
   </DockPanel>
 </UserControl>

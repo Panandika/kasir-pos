@@ -37,9 +37,6 @@ public partial class ShellWindow : Window
         {
             PerfMetrics.Record(PerfMetrics.FormOpenWarm, Program.StartupWatch.ElapsedMilliseconds);
         }
-        if (!OperatingSystem.IsWindows())
-            WindowState = WindowState.Maximized;
-
         if (DbConnection.IsFreshInstall())
         {
             var firstRunView = new FirstRunView();
