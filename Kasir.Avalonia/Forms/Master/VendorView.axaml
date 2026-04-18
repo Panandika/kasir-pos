@@ -1,51 +1,55 @@
 <UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Kasir.Avalonia.Forms.Master.VendorView"
-        Background="#000000">
+        x:DataType="x:Object"
+        Background="{DynamicResource Bg0Brush}">
   <DockPanel>
-    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
       <TextBlock x:Name="StatusLabel"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
                  Margin="8,0" />
     </Panel>
-    <Border DockPanel.Dock="Top" Background="#002800" Height="38" Padding="8,4">
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="38" Padding="8,4">
       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
         <TextBox x:Name="TxtSearch"
                  Width="320" Height="28"
-                 Background="#001400" Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13"
                  PlaceholderText="Cari nama vendor..." />
         <Button x:Name="BtnSearch"
                 Content="F2"
                 Width="48" Height="28"
-                Background="#004400" Foreground="#00dc00"
-                FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                Background="{DynamicResource BgSelectedBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource JetBrainsMonoFont}"
                 FontSize="13" />
       </StackPanel>
     </Border>
     <DataGrid x:Name="DgvVendors"
               AutoGenerateColumns="False"
               SelectionMode="Single"
-              Foreground="#00dc00"
-              Background="#001400"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              Background="{DynamicResource Bg1Brush}"
               GridLinesVisibility="Horizontal"
               HeadersVisibility="Column"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
               FontSize="13"
+              HorizontalAlignment="Stretch"
               CanUserReorderColumns="False"
               CanUserResizeColumns="True"
               IsReadOnly="True"
               x:CompileBindings="False">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Kode" Binding="{Binding Code}" Width="1.2*" CanUserSort="False" />
-        <DataGridTextColumn Header="Nama" Binding="{Binding Name}" Width="4*" CanUserSort="False" />
-        <DataGridTextColumn Header="Alamat" Binding="{Binding Address}" Width="3*" CanUserSort="False" />
-        <DataGridTextColumn Header="Kota" Binding="{Binding City}" Width="1.5*" CanUserSort="False" />
-        <DataGridTextColumn Header="Telepon" Binding="{Binding Phone}" Width="1.5*" CanUserSort="False" />
+        <DataGridTextColumn Header="Kode"    Binding="{Binding Code}"    Width="1.2*" CanUserSort="False" />
+        <DataGridTextColumn Header="Nama"    Binding="{Binding Name}"    Width="4*"   CanUserSort="False" />
+        <DataGridTextColumn Header="Alamat"  Binding="{Binding Address}" Width="3*"   CanUserSort="False" />
+        <DataGridTextColumn Header="Kota"    Binding="{Binding City}"    Width="1.5*" CanUserSort="False" />
+        <DataGridTextColumn Header="Telepon" Binding="{Binding Phone}"   Width="1.5*" CanUserSort="False" />
       </DataGrid.Columns>
     </DataGrid>
   </DockPanel>
