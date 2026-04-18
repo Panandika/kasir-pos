@@ -77,6 +77,12 @@ namespace Kasir.Data
             return conn;
         }
 
+        public static bool IsFreshInstall()
+        {
+            if (!Directory.Exists(DbDirectory)) return true;
+            return !File.Exists(DbPath) || new FileInfo(DbPath).Length == 0;
+        }
+
         public static void InitializeDatabase()
         {
             if (!Directory.Exists(DbDirectory))

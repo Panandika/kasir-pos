@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Threading;
 using Kasir.Data;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Forms;
@@ -23,23 +22,14 @@ public partial class ShellWindow : Window
         if (!OperatingSystem.IsWindows())
             WindowState = WindowState.Maximized;
 
-        DbConnection.FirstRunHandler = () =>
+        if (DbConnection.IsFreshInstall())
         {
-            FirstRunResult? result = null;
-            Dispatcher.UIThread.InvokeAsync(async () =>
-            {
-                var dlg = new FirstRunWindow();
-                await dlg.ShowDialog(this);
-                result = new FirstRunResult
-                {
-                    Choice = dlg.Choice == FirstRunChoice.Seed ? "seed"
-                           : dlg.Choice == FirstRunChoice.Import ? "import"
-                           : null,
-                    ImportPath = dlg.ImportPath
-                };
-            }).GetAwaiter().GetResult();
-            return result!;
-        };
+            var firstRunView = new FirstRunView();
+            NavigationService.Navigate(firstRunView);
+            var result = await firstRunView.WaitForChoice();
+            if (result == null) { Close(); return; }
+            DbConnection.FirstRunHandler = () => result;
+        }
 
         await Task.Run(() => DbConnection.InitializeDatabase());
         NavigationService.Navigate(new LoginView());

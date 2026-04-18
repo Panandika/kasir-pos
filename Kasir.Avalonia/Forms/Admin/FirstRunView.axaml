@@ -1,12 +1,7 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Kasir.Avalonia.Forms.Admin.FirstRunWindow"
-        Width="560"
-        Height="380"
-        WindowStartupLocation="CenterOwner"
-        CanResize="False"
-        WindowDecorations="None"
-        Background="#000000">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Admin.FirstRunView"
+             Background="#000000">
   <DockPanel>
     <Panel DockPanel.Dock="Bottom" Height="50" Background="#001400">
       <TextBlock x:Name="LblStatus"
@@ -16,7 +11,10 @@
                  TextWrapping="Wrap"
                  Margin="16,4" />
     </Panel>
-    <StackPanel Margin="24,20" Spacing="16">
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Width="500"
+                Spacing="16">
       <TextBlock Text="Database belum ditemukan."
                  FontSize="16"
                  Foreground="#00dc00"
@@ -51,4 +49,4 @@
               FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
     </StackPanel>
   </DockPanel>
-</Window>
+</UserControl>
