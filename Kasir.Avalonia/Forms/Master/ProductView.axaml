@@ -1,0 +1,136 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.Master.ProductView"
+        Background="#000000">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+      <TextBlock x:Name="StatusLabel" Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12" VerticalAlignment="Center" Margin="8,0"/>
+    </Panel>
+    <Border DockPanel.Dock="Top" Background="#002800" Height="38" Padding="8,4">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <TextBlock Grid.Column="0" Text="Search:" Foreground="#00dc00"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <TextBox Grid.Column="1" x:Name="TxtSearch" Height="28" Margin="0,0,8,0"
+                 Background="#001400" Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13"/>
+        <Button Grid.Column="2" x:Name="BtnSearch" Content="F2" Width="50" Height="28"
+                Background="#004400" Foreground="#00dc00"
+                FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13"/>
+      </Grid>
+    </Border>
+    <Grid RowDefinitions="3*,2*">
+      <DataGrid Grid.Row="0" x:Name="DgvProducts" AutoGenerateColumns="False" IsReadOnly="True"
+                Background="#001400" Foreground="#00dc00" GridLinesVisibility="Horizontal"
+                FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                FontSize="13" x:CompileBindings="False">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Kode" Binding="{Binding Code}" Width="1.5*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Nama Barang" Binding="{Binding Name}" Width="4*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Barcode" Binding="{Binding Barcode}" Width="2*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Harga" Binding="{Binding Price}" Width="1.5*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="0.8*" CanUserSort="False"/>
+        </DataGrid.Columns>
+      </DataGrid>
+      <TabControl Grid.Row="1" x:Name="TabDetail" Background="#0a0a0a"
+                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="12">
+        <TabItem Header="Umum" Foreground="#00dc00">
+          <ScrollViewer>
+            <StackPanel Margin="12,8" Spacing="6">
+              <Grid ColumnDefinitions="160,*">
+                <TextBlock Grid.Column="0" Text="Kode Barang:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtCode" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,*">
+                <TextBlock Grid.Column="0" Text="Nama:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtName" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,*">
+                <TextBlock Grid.Column="0" Text="Barcode:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtBarcode" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,*">
+                <TextBlock Grid.Column="0" Text="Satuan:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtUnit" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,*">
+                <TextBlock Grid.Column="0" Text="Departemen:" Foreground="#008800" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CboDept" Background="#001400" Foreground="#00dc00" FontSize="13" HorizontalAlignment="Stretch"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,*">
+                <TextBlock Grid.Column="0" Text="Status:" Foreground="#008800" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CboStatus" Background="#001400" Foreground="#00dc00" FontSize="13" Width="150">
+                  <ComboBoxItem Content="A - Active"/>
+                  <ComboBoxItem Content="I - Inactive"/>
+                </ComboBox>
+              </Grid>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="Harga" Foreground="#00dc00">
+          <ScrollViewer>
+            <StackPanel Margin="12,8" Spacing="6">
+              <Grid ColumnDefinitions="160,200,120,80">
+                <TextBlock Grid.Column="0" Text="Harga Jual:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtPrice" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,200,120,80">
+                <TextBlock Grid.Column="0" Text="Harga 1 (Grosir):" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtPrice1" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,200,120,80">
+                <TextBlock Grid.Column="0" Text="Harga 2:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtPrice2" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+                <TextBlock Grid.Column="2" Text="Batas Qty 2:" Foreground="#008800" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <TextBox Grid.Column="3" x:Name="TxtQtyBreak2" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,200,120,80">
+                <TextBlock Grid.Column="0" Text="Harga 3:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtPrice3" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+                <TextBlock Grid.Column="2" Text="Batas Qty 3:" Foreground="#008800" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <TextBox Grid.Column="3" x:Name="TxtQtyBreak3" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,200">
+                <TextBlock Grid.Column="0" Text="Harga 4:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtPrice4" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,200">
+                <TextBlock Grid.Column="0" Text="Harga Beli:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtBuyingPrice" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,200">
+                <TextBlock Grid.Column="0" Text="Harga Pokok:" Foreground="#008800" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="TxtCostPrice" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+              </Grid>
+              <Grid ColumnDefinitions="160,150">
+                <TextBlock Grid.Column="0" Text="Open Price:" Foreground="#008800" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CboOpenPrice" Background="#001400" Foreground="#00dc00" FontSize="13">
+                  <ComboBoxItem Content="N"/><ComboBoxItem Content="Y"/>
+                </ComboBox>
+              </Grid>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="Lain-lain" Foreground="#00dc00">
+          <StackPanel Margin="12,8" Spacing="6">
+            <Grid ColumnDefinitions="160,200">
+              <TextBlock Grid.Column="0" Text="Disc %:" Foreground="#008800" VerticalAlignment="Center"/>
+              <TextBox Grid.Column="1" x:Name="TxtDiscPct" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+            </Grid>
+            <Grid ColumnDefinitions="160,200">
+              <TextBlock Grid.Column="0" Text="Kode Vendor:" Foreground="#008800" VerticalAlignment="Center"/>
+              <TextBox Grid.Column="1" x:Name="TxtVendorCode" Background="#001400" Foreground="#00dc00" FontSize="13" Height="28"/>
+            </Grid>
+            <Grid ColumnDefinitions="160,150">
+              <TextBlock Grid.Column="0" Text="PPN:" Foreground="#008800" VerticalAlignment="Center"/>
+              <ComboBox x:Name="CboVatFlag" Background="#001400" Foreground="#00dc00" FontSize="13">
+                <ComboBoxItem Content="N"/><ComboBoxItem Content="Y"/>
+              </ComboBox>
+            </Grid>
+          </StackPanel>
+        </TabItem>
+      </TabControl>
+    </Grid>
+  </DockPanel>
+</UserControl>

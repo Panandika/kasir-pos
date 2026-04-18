@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -65,10 +66,11 @@ public partial class InputDialogWindow : Window
     }
 
     public static async Task<(bool ok, string[] values)> Show(
-        Window owner, string title, string[] labels, string[] defaults)
+        Visual? owner, string title, string[] labels, string[] defaults)
     {
         var dlg = new InputDialogWindow(title, labels, defaults);
-        await dlg.ShowDialog(owner);
+        var w = owner is Window win ? win : TopLevel.GetTopLevel(owner) as Window;
+        await dlg.ShowDialog(w!);
         return (dlg.Accepted, dlg.Values);
     }
 }

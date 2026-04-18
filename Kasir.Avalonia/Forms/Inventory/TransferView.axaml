@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Inventory.TransferView"
+             Background="#000000">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom"
+            Background="#002800"
+            Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Border>
+    <Border DockPanel.Dock="Top"
+            Background="#002800"
+            Height="40">
+      <StackPanel Orientation="Horizontal"
+                  VerticalAlignment="Center"
+                  Margin="8,0">
+        <TextBlock Text="Dari:"
+                   Foreground="#00dc00"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="0,0,6,0" />
+        <TextBox x:Name="TxtFrom"
+                 Width="150"
+                 Background="#001400"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="13"
+                 Height="28"
+                 VerticalAlignment="Center"
+                 Margin="0,0,12,0" />
+        <TextBlock Text="Ke:"
+                   Foreground="#00dc00"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="0,0,6,0" />
+        <TextBox x:Name="TxtTo"
+                 Width="150"
+                 Background="#001400"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="13"
+                 Height="28"
+                 VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+    <DataGrid x:Name="DgvItems"
+              AutoGenerateColumns="False"
+              Background="#001400"
+              Foreground="#00dc00"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              IsReadOnly="True"
+              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontSize="13"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode"
+                            Binding="{Binding Code}"
+                            Width="1.4*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Nama Barang"
+                            Binding="{Binding Name}"
+                            Width="3*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Qty"
+                            Binding="{Binding Qty}"
+                            Width="0.8*"
+                            CanUserSort="False" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

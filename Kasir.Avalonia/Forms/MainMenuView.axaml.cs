@@ -5,6 +5,7 @@ using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
+using Kasir.Auth;
 using Kasir.Avalonia.Forms.Master;
 using Kasir.Avalonia.Forms.Admin;
 using Kasir.Avalonia.Forms.POS;
@@ -43,38 +44,36 @@ public partial class MainMenuView : UserControl, INavigationAware
 
     private void WireMenuItems()
     {
-        var owner = NavigationService.Owner;
-
-        MniDepartment.Click   += (_, _) => new DepartmentWindow(_userId).ShowDialog(owner);
-        MniVendor.Click       += (_, _) => new VendorWindow(_userId).ShowDialog(owner);
-        MniProduct.Click      += (_, _) => new ProductWindow(_userId).ShowDialog(owner);
-        MniCreditCard.Click   += (_, _) => new CreditCardWindow(_userId).ShowDialog(owner);
-        MniPriceChange.Click  += (_, _) => new PriceChangeWindow().ShowDialog(owner);
-        MniOpname.Click       += (_, _) => new OpnameWindow().ShowDialog(owner);
-        MniPurchaseOrder.Click   += (_, _) => new PurchaseOrderWindow().ShowDialog(owner);
-        MniGoodsReceipt.Click    += (_, _) => new GoodsReceiptWindow().ShowDialog(owner);
-        MniPurchaseInvoice.Click += (_, _) => new PurchaseInvoiceWindow().ShowDialog(owner);
-        MniPayables.Click        += (_, _) => new PayablesWindow().ShowDialog(owner);
-        MniReturn.Click          += (_, _) => new ReturnWindow().ShowDialog(owner);
-        MniStockOut.Click        += (_, _) => new StockOutWindow().ShowDialog(owner);
-        MniSale.Click            += (_, _) => new SaleWindow(new Kasir.Auth.AuthService(DbConnection.GetConnection())).ShowDialog(owner);
-        MniTransfer.Click        += (_, _) => new TransferWindow().ShowDialog(owner);
-        MniAccounts.Click    += (_, _) => new AccountsWindow().ShowDialog(owner);
-        MniJournal.Click     += (_, _) => new JournalWindow(userId: _userId).ShowDialog(owner);
-        MniCashReceipt.Click += (_, _) => new CashReceiptWindow(userId: _userId).ShowDialog(owner);
-        MniCashDisburse.Click += (_, _) => new CashDisbursementWindow(userId: _userId).ShowDialog(owner);
-        MniPosting.Click     += (_, _) => new PostingProgressWindow().ShowDialog(owner);
-        MniRptProduct.Click  += (_, _) => new ProductReportWindow().ShowDialog(owner);
-        MniRptSupplier.Click += (_, _) => new SupplierReportWindow().ShowDialog(owner);
-        MniRptSales.Click    += (_, _) => new SalesReportWindow().ShowDialog(owner);
-        MniRptInventory.Click += (_, _) => new InventoryReportWindow().ShowDialog(owner);
-        MniRptFinancial.Click += (_, _) => new FinancialReportWindow().ShowDialog(owner);
-        MniUsers.Click        += (_, _) => new UserWindow().ShowDialog(owner);
-        MniPrinterConfig.Click += (_, _) => new PrinterConfigWindow().ShowDialog(owner);
-        MniBackup.Click       += (_, _) => new BackupWindow().ShowDialog(owner);
-        MniShift.Click        += (_, _) => new ShiftWindow(_userId).ShowDialog(owner);
-        MniUpdate.Click       += (_, _) => new UpdateWindow().ShowDialog(owner);
-        MniAbout.Click        += (_, _) => new AboutWindow().ShowDialog(owner);
+        MniDepartment.Click   += (_, _) => NavigationService.Navigate(new DepartmentView(_userId));
+        MniVendor.Click       += (_, _) => NavigationService.Navigate(new VendorView(_userId));
+        MniProduct.Click      += (_, _) => NavigationService.Navigate(new ProductView(_userId));
+        MniCreditCard.Click   += (_, _) => NavigationService.Navigate(new CreditCardView(_userId));
+        MniPriceChange.Click  += (_, _) => NavigationService.Navigate(new PriceChangeView());
+        MniOpname.Click       += (_, _) => NavigationService.Navigate(new OpnameView());
+        MniPurchaseOrder.Click   += (_, _) => NavigationService.Navigate(new PurchaseOrderView());
+        MniGoodsReceipt.Click    += (_, _) => NavigationService.Navigate(new GoodsReceiptView());
+        MniPurchaseInvoice.Click += (_, _) => NavigationService.Navigate(new PurchaseInvoiceView());
+        MniPayables.Click        += (_, _) => NavigationService.Navigate(new PayablesView());
+        MniReturn.Click          += (_, _) => NavigationService.Navigate(new ReturnView());
+        MniStockOut.Click        += (_, _) => NavigationService.Navigate(new StockOutView());
+        MniSale.Click            += (_, _) => NavigationService.Navigate(new SaleView(new AuthService(DbConnection.GetConnection())));
+        MniTransfer.Click        += (_, _) => NavigationService.Navigate(new TransferView());
+        MniAccounts.Click    += (_, _) => NavigationService.Navigate(new AccountsView());
+        MniJournal.Click     += (_, _) => NavigationService.Navigate(new JournalView(userId: _userId));
+        MniCashReceipt.Click += (_, _) => NavigationService.Navigate(new CashReceiptView(userId: _userId));
+        MniCashDisburse.Click += (_, _) => NavigationService.Navigate(new CashDisbursementView(userId: _userId));
+        MniPosting.Click     += (_, _) => NavigationService.Navigate(new PostingProgressView());
+        MniRptProduct.Click  += (_, _) => NavigationService.Navigate(new ProductReportView());
+        MniRptSupplier.Click += (_, _) => NavigationService.Navigate(new SupplierReportView());
+        MniRptSales.Click    += (_, _) => NavigationService.Navigate(new SalesReportView());
+        MniRptInventory.Click += (_, _) => NavigationService.Navigate(new InventoryReportView());
+        MniRptFinancial.Click += (_, _) => NavigationService.Navigate(new FinancialReportView());
+        MniUsers.Click        += (_, _) => NavigationService.Navigate(new UserView());
+        MniPrinterConfig.Click += (_, _) => NavigationService.Navigate(new PrinterConfigView());
+        MniBackup.Click       += (_, _) => NavigationService.Navigate(new BackupView());
+        MniShift.Click        += (_, _) => NavigationService.Navigate(new ShiftView(_userId));
+        MniUpdate.Click       += (_, _) => NavigationService.Navigate(new UpdateView());
+        MniAbout.Click        += (_, _) => NavigationService.Navigate(new AboutView());
         MniExit.Click         += (_, _) => NavigationService.ReplaceRoot(new LoginView());
     }
 

@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Admin.UpdateView"
+             Background="#000000">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="12"
+                Width="560">
+      <TextBlock Text="PERIKSA UPDATE"
+                 FontSize="18"
+                 HorizontalAlignment="Center"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontWeight="Bold" />
+      <TextBlock x:Name="LblCurrentVersion"
+                 Foreground="#008800"
+                 HorizontalAlignment="Center"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="13" />
+      <TextBlock x:Name="LblStatus"
+                 Foreground="#ff9900"
+                 HorizontalAlignment="Center"
+                 TextWrapping="Wrap"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="13" />
+      <TextBox x:Name="TxtPatchNotes"
+               IsReadOnly="True"
+               IsVisible="False"
+               Background="#001400"
+               Foreground="#008800"
+               AcceptsReturn="True"
+               Height="200"
+               TextWrapping="Wrap"
+               FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+               FontSize="13" />
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  Spacing="10">
+        <Button x:Name="BtnCheck"
+                Content="F5 - Periksa Update"
+                Width="200"
+                Height="36"
+                Background="#004400"
+                Foreground="#00dc00"
+                FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                FontSize="13" />
+        <Button x:Name="BtnApply"
+                Content="F8 - Update Sekarang"
+                Width="200"
+                Height="36"
+                Background="#004400"
+                Foreground="#00dc00"
+                FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                FontSize="13"
+                IsVisible="False" />
+        <Button x:Name="BtnImportZip"
+                Content="Import ZIP (Hub)"
+                Width="180"
+                Height="36"
+                Background="#002800"
+                Foreground="#00dc00"
+                FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                FontSize="13" />
+      </StackPanel>
+    </StackPanel>
+  </DockPanel>
+</UserControl>
