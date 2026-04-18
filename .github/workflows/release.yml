@@ -19,7 +19,9 @@ jobs:
         $ver = $tag -replace '^v', ''
         echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
         $parts = $ver -split '\.'
-        $asmVer = "$($parts[0]).$($parts[1]).$($parts[2]).0"
+        # Strip non-numeric suffix from each part (e.g. "0-avalonia" -> "0")
+        $numericParts = $parts | ForEach-Object { $_ -replace '[^0-9].*', '' }
+        $asmVer = "$($numericParts[0]).$($numericParts[1]).$($numericParts[2]).0"
         echo "ASM_VERSION=$asmVer" >> $env:GITHUB_OUTPUT
 
     - name: Patch AssemblyInfo with tag version
