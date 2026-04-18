@@ -24,6 +24,9 @@ public partial class MainMenuView : UserControl, INavigationAware
     private readonly SaleRepository _saleRepo;
     private readonly ShiftRepository _shiftRepo;
 
+    // Track which sub-menu panel is currently open (null = bento grid visible)
+    private Panel? _openSubMenu;
+
     public MainMenuView(int userId = 1)
     {
         InitializeComponent();
@@ -36,11 +39,53 @@ public partial class MainMenuView : UserControl, INavigationAware
         LblStoreName.Text = _configRepo.Get("store_name") ?? "KASIR POS";
         LblGreeting.Text = $"Selamat datang — {DateTime.Now:dddd, dd MMMM yyyy}";
 
+        WireTileButtons();
         WireMenuItems();
         RefreshStatus();
     }
 
     public void OnNavigatedTo() => RefreshStatus();
+
+    // ── Tile button wiring ────────────────────────────────────────────────
+
+    private void WireTileButtons()
+    {
+        BtnMaster.Click    += (_, _) => OpenSubMenu(SubMenuMaster);
+        BtnTransaksi.Click += (_, _) => OpenSubMenu(SubMenuTransaksi);
+        BtnAkuntansi.Click += (_, _) => OpenSubMenu(SubMenuAkuntansi);
+        BtnLaporan.Click   += (_, _) => OpenSubMenu(SubMenuLaporan);
+        BtnUtility.Click   += (_, _) => OpenSubMenu(SubMenuUtility);
+        BtnKeluar.Click    += (_, _) => NavigationService.ReplaceRoot(new LoginView());
+    }
+
+    private void OpenSubMenu(Panel subMenu)
+    {
+        // Hide bento grid, show the requested sub-menu panel
+        BentoGrid.IsVisible = false;
+        if (_openSubMenu != null)
+            _openSubMenu.IsVisible = false;
+
+        _openSubMenu = subMenu;
+        subMenu.IsVisible = true;
+
+        // Focus the first menu item in the sub-menu so keyboard nav works immediately
+        var menu = subMenu.Children.Count > 0 ? subMenu.Children[0] as Menu : null;
+        menu?.Focus();
+    }
+
+    private void CloseSubMenu()
+    {
+        if (_openSubMenu != null)
+        {
+            _openSubMenu.IsVisible = false;
+            _openSubMenu = null!;
+        }
+        BentoGrid.IsVisible = true;
+        // Return focus to first tile
+        BtnMaster.Focus();
+    }
+
+    // ── Sub-menu item wiring (unchanged handlers) ─────────────────────────
 
     private void WireMenuItems()
     {
@@ -74,8 +119,72 @@ public partial class MainMenuView : UserControl, INavigationAware
         MniShift.Click        += (_, _) => NavigationService.Navigate(new ShiftView(_userId));
         MniUpdate.Click       += (_, _) => NavigationService.Navigate(new UpdateView());
         MniAbout.Click        += (_, _) => NavigationService.Navigate(new AboutView());
-        MniExit.Click         += (_, _) => NavigationService.ReplaceRoot(new LoginView());
     }
+
+    // ── Keyboard handling ─────────────────────────────────────────────────
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (KeyboardRouter.IsEscape(e))
+        {
+            e.Handled = true;
+            if (_openSubMenu != null)
+                CloseSubMenu();
+            else
+                NavigationService.ReplaceRoot(new LoginView());
+            return;
+        }
+
+        if (KeyboardRouter.IsF12(e))
+        {
+            e.Handled = true;
+            SetStatus("Sync tidak tersedia.");
+            return;
+        }
+
+        // F10 focuses first tile (bento grid entry point)
+        if (e.Key == Key.F10)
+        {
+            e.Handled = true;
+            CloseSubMenu();
+            BtnMaster.Focus();
+            return;
+        }
+
+        // Arrow-key navigation between tiles when bento grid is visible
+        if (_openSubMenu == null && BentoGrid.IsVisible)
+        {
+            HandleTileArrowNav(e);
+        }
+    }
+
+    private void HandleTileArrowNav(KeyEventArgs e)
+    {
+        // Tile order left-to-right, top-to-bottom: 0=Master 1=Transaksi 2=Akuntansi 3=Laporan 4=Utility 5=Keluar
+        var tiles = new Button[] { BtnMaster, BtnTransaksi, BtnAkuntansi, BtnLaporan, BtnUtility, BtnKeluar };
+        const int cols = 3;
+
+        int focused = -1;
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            if (tiles[i].IsFocused) { focused = i; break; }
+        }
+        if (focused < 0) return;
+
+        int next = focused;
+        if (e.Key == Key.Right)  next = (focused + 1) % tiles.Length;
+        else if (e.Key == Key.Left)  next = (focused - 1 + tiles.Length) % tiles.Length;
+        else if (e.Key == Key.Down)  next = Math.Min(focused + cols, tiles.Length - 1);
+        else if (e.Key == Key.Up)    next = Math.Max(focused - cols, 0);
+        else return;
+
+        e.Handled = true;
+        tiles[next].Focus();
+    }
+
+    // ── Status helpers ────────────────────────────────────────────────────
 
     private void RefreshStatus()
     {
@@ -89,14 +198,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         int count = _saleRepo.GetDailyCount(today);
         LblDailyCount.Text = $"Transaksi hari ini: {count}";
 
-        SetStatus("F12=Sync  Esc=Keluar");
-    }
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (KeyboardRouter.IsEscape(e)) { e.Handled = true; NavigationService.ReplaceRoot(new LoginView()); }
-        else if (KeyboardRouter.IsF12(e)) { e.Handled = true; SetStatus("Sync tidak tersedia."); }
+        SetStatus("F12=Sync  Esc=Keluar  F10=Menu");
     }
 
     private void SetStatus(string t) => StatusLabel.Text = t;
