@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/Panandika/kasir-pos/compare/v2.2.0...v2.2.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* **release:** trigger on release published event, not tag push ([88dcae1](https://github.com/Panandika/kasir-pos/commit/88dcae1e0db9e21e57b0d4742779d9db47c53887))
+
 ## [2.2.0](https://github.com/Panandika/kasir-pos/compare/v2.1.0...v2.2.0) (2026-04-18)
 
 
