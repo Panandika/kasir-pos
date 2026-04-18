@@ -1,12 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Kasir.Avalonia.Forms.Admin.FirstRunView"
-             Background="#000000">
+             Background="{DynamicResource Bg0Brush}">
   <DockPanel>
-    <Panel DockPanel.Dock="Bottom" Height="50" Background="#001400">
+    <Panel DockPanel.Dock="Bottom" Height="50" Background="{DynamicResource Bg1Brush}">
       <TextBlock x:Name="LblStatus"
-                 Foreground="#ff5050"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource DangerBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  TextWrapping="Wrap"
                  Margin="16,4" />
@@ -17,36 +17,36 @@
                 Spacing="16">
       <TextBlock Text="Database belum ditemukan."
                  FontSize="16"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" />
       <TextBlock Text="Pilih cara memulai:"
-                 Foreground="#008800"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgSecondaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" />
       <Button x:Name="BtnSeed"
               Content="1. Gunakan data contoh (Seed)"
               Height="44"
-              Background="#004400"
-              Foreground="#00dc00"
+              Background="{DynamicResource BgSelectedBrush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
               HorizontalAlignment="Stretch"
               FontSize="13"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+              FontFamily="{DynamicResource JetBrainsMonoFont}" />
       <Button x:Name="BtnImport"
               Content="2. Impor database yang sudah ada..."
               Height="44"
-              Background="#002800"
-              Foreground="#00dc00"
+              Background="{DynamicResource Bg2Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
               HorizontalAlignment="Stretch"
               FontSize="13"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+              FontFamily="{DynamicResource JetBrainsMonoFont}" />
       <Button x:Name="BtnCancel"
               Content="3. Batal (keluar)"
               Height="44"
-              Background="#440000"
-              Foreground="#ff5050"
+              Background="{DynamicResource AccentBgBrush}"
+              Foreground="{DynamicResource DangerBrush}"
               HorizontalAlignment="Stretch"
               FontSize="13"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+              FontFamily="{DynamicResource JetBrainsMonoFont}" />
     </StackPanel>
   </DockPanel>
 </UserControl>
