@@ -24,6 +24,7 @@ jobs:
       run: |
         $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.event.release.tag_name }}" }
         $ver = $tag -replace '^v', ''
+        echo "TAG=$tag" >> $env:GITHUB_OUTPUT
         echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
 
     - name: Setup .NET
@@ -97,9 +98,10 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ steps.version.outputs.TAG }}
         files: |
           kasir-${{ steps.version.outputs.VERSION }}.zip
-        generate_release_notes: true
+        generate_release_notes: false
         body: |
           ## Cara Install (Windows)
 
