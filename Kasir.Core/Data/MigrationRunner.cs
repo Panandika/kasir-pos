@@ -12,11 +12,18 @@ namespace Kasir.Data
     {
         private static readonly List<IMigration> Migrations = new List<IMigration>
         {
-            new Migration_002()
+            new Migration_002(),
+            new Migration_003()
             // Add new migrations here in order:
-            // new Migration_003(),
             // new Migration_004(),
         };
+
+        /// <summary>
+        /// Highest migration version known to this build. Single source of truth
+        /// for schema version — DatabaseValidator.ExpectedSchemaVersion derives from this.
+        /// </summary>
+        public static int LatestVersion =>
+            Migrations.Count == 0 ? 1 : Migrations.Max(m => m.Version);
 
         public static void Run(SqliteConnection db)
         {

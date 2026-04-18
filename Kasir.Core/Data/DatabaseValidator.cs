@@ -25,7 +25,7 @@ namespace Kasir.Data
 
     public static class DatabaseValidator
     {
-        public const int ExpectedSchemaVersion = 2;
+        public static int ExpectedSchemaVersion => MigrationRunner.LatestVersion;
 
         // The 57 base tables the app relies on. Derived from Schema.sql.
         // FTS virtual tables (products_fts, products_fts_*) and views (v_*) excluded.
