@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Admin.UpdateView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="12"
+                Width="560">
+      <TextBlock Text="PERIKSA UPDATE"
+                 FontSize="18"
+                 HorizontalAlignment="Center"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontWeight="Bold" />
+      <TextBlock x:Name="LblCurrentVersion"
+                 Foreground="{DynamicResource FgSecondaryBrush}"
+                 HorizontalAlignment="Center"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+      <TextBlock x:Name="LblStatus"
+                 Foreground="{DynamicResource WarningBrush}"
+                 HorizontalAlignment="Center"
+                 TextWrapping="Wrap"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+      <TextBox x:Name="TxtPatchNotes"
+               IsReadOnly="True"
+               IsVisible="False"
+               Background="{DynamicResource Bg1Brush}"
+               Foreground="{DynamicResource FgSecondaryBrush}"
+               AcceptsReturn="True"
+               Height="200"
+               TextWrapping="Wrap"
+               FontFamily="{DynamicResource JetBrainsMonoFont}"
+               FontSize="13" />
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  Spacing="10">
+        <Button x:Name="BtnCheck"
+                Content="F5 - Periksa Update"
+                Width="200"
+                Height="36"
+                Background="{DynamicResource BgSelectedBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource JetBrainsMonoFont}"
+                FontSize="13" />
+        <Button x:Name="BtnApply"
+                Content="F8 - Update Sekarang"
+                Width="200"
+                Height="36"
+                Background="{DynamicResource BgSelectedBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource JetBrainsMonoFont}"
+                FontSize="13"
+                IsVisible="False" />
+        <Button x:Name="BtnImportZip"
+                Content="Import ZIP (Hub)"
+                Width="180"
+                Height="36"
+                Background="{DynamicResource Bg2Brush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource JetBrainsMonoFont}"
+                FontSize="13" />
+      </StackPanel>
+    </StackPanel>
+  </DockPanel>
+</UserControl>

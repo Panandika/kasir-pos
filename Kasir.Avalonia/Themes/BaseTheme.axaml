@@ -1,0 +1,160 @@
+<!-- Specificity smoke test: DataGrid Background override verified by App.axaml include order (BaseTheme last wins). -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:system="clr-namespace:System;assembly=System.Runtime">
+  <Styles.Resources>
+    <ResourceDictionary>
+
+      <!-- ============================================================ -->
+      <!-- COLOR TOKENS — 17 semantic tokens (DESIGN-SYSTEM.md §5.1)   -->
+      <!-- Each token emitted as Color + SolidColorBrush                -->
+      <!-- ============================================================ -->
+
+      <!-- Background surfaces -->
+      <Color x:Key="Bg0Color">#FF000000</Color>
+      <SolidColorBrush x:Key="Bg0Brush" Color="{StaticResource Bg0Color}"/>
+
+      <Color x:Key="Bg1Color">#FF001400</Color>
+      <SolidColorBrush x:Key="Bg1Brush" Color="{StaticResource Bg1Color}"/>
+
+      <Color x:Key="Bg2Color">#FF002800</Color>
+      <SolidColorBrush x:Key="Bg2Brush" Color="{StaticResource Bg2Color}"/>
+
+      <Color x:Key="BgHoverColor">#FF003800</Color>
+      <SolidColorBrush x:Key="BgHoverBrush" Color="{StaticResource BgHoverColor}"/>
+
+      <Color x:Key="BgSelectedColor">#FF004400</Color>
+      <SolidColorBrush x:Key="BgSelectedBrush" Color="{StaticResource BgSelectedColor}"/>
+
+      <!-- AccentBg: dark amber/danger background for destructive actions -->
+      <Color x:Key="AccentBgColor">#FF440000</Color>
+      <SolidColorBrush x:Key="AccentBgBrush" Color="{StaticResource AccentBgColor}"/>
+
+      <!-- Border tokens -->
+      <Color x:Key="BorderSubtleColor">#FF00A000</Color>
+      <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}"/>
+
+      <Color x:Key="BorderStrongColor">#FF006400</Color>
+      <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}"/>
+
+      <!-- Foreground tokens -->
+      <Color x:Key="FgPrimaryColor">#FF00DC00</Color>
+      <SolidColorBrush x:Key="FgPrimaryBrush" Color="{StaticResource FgPrimaryColor}"/>
+
+      <Color x:Key="FgNumericColor">#FFFFC800</Color>
+      <SolidColorBrush x:Key="FgNumericBrush" Color="{StaticResource FgNumericColor}"/>
+
+      <Color x:Key="FgSecondaryColor">#FF008800</Color>
+      <SolidColorBrush x:Key="FgSecondaryBrush" Color="{StaticResource FgSecondaryColor}"/>
+
+      <Color x:Key="FgDimColor">#FF006400</Color>
+      <SolidColorBrush x:Key="FgDimBrush" Color="{StaticResource FgDimColor}"/>
+
+      <!-- Semantic state tokens -->
+      <Color x:Key="AccentColor">#FFFFC800</Color>
+      <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+
+      <Color x:Key="SuccessColor">#FF00DC00</Color>
+      <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+
+      <Color x:Key="WarningColor">#FFFF9900</Color>
+      <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+
+      <Color x:Key="DangerColor">#FFFF5050</Color>
+      <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+
+      <Color x:Key="FocusRingColor">#FF00DC00</Color>
+      <SolidColorBrush x:Key="FocusRingBrush" Color="{StaticResource FocusRingColor}"/>
+
+      <!-- ============================================================ -->
+      <!-- FONT FAMILY RESOURCES                                         -->
+      <!-- Using system-available fallbacks (font embedding = follow-up) -->
+      <!-- ============================================================ -->
+      <FontFamily x:Key="PlexSansFont">Segoe UI,Inter,sans-serif</FontFamily>
+      <FontFamily x:Key="JetBrainsMonoFont">Consolas,JetBrains Mono,Cascadia Mono,monospace</FontFamily>
+      <FontFamily x:Key="PlexMonoFont">Consolas,JetBrains Mono,Cascadia Mono,monospace</FontFamily>
+
+      <!-- ============================================================ -->
+      <!-- DENSITY TOKENS — Compact defaults (DESIGN-SYSTEM.md §4)      -->
+      <!-- ============================================================ -->
+      <system:Double x:Key="RowHeight">22</system:Double>
+      <system:Double x:Key="ControlHeight">24</system:Double>
+      <system:Double x:Key="FontSizeBody">12</system:Double>
+      <system:Double x:Key="FontSizeLabel">11</system:Double>
+      <system:Double x:Key="FontSizeNumeric">13</system:Double>
+      <system:Double x:Key="FontSizeHeading">14</system:Double>
+      <system:Double x:Key="CellPaddingX">6</system:Double>
+      <system:Double x:Key="CellPaddingY">4</system:Double>
+      <system:Double x:Key="SectionGap">8</system:Double>
+      <system:Double x:Key="FormPadding">8</system:Double>
+      <system:Double x:Key="BorderWidth">1</system:Double>
+      <system:Double x:Key="FocusRingWidth">2</system:Double>
+
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <!-- ============================================================ -->
+  <!-- SHARED STYLES — Baseline overrides over FluentTheme defaults  -->
+  <!-- DS-3 batches will fine-tune per-form needs                   -->
+  <!-- ============================================================ -->
+
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+  </Style>
+
+  <Style Selector="TextBox">
+    <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+    <Setter Property="Height" Value="{DynamicResource ControlHeight}"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+
+  <Style Selector="Button">
+    <Setter Property="Background" Value="{DynamicResource Bg2Brush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+    <Setter Property="Height" Value="{DynamicResource ControlHeight}"/>
+  </Style>
+
+  <Style Selector="Menu">
+    <Setter Property="Background" Value="{DynamicResource Bg0Brush}"/>
+  </Style>
+
+  <Style Selector="MenuItem">
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+  </Style>
+
+  <!-- Specificity smoke test: DataGrid Background override.
+       This Setter wins because App.axaml includes BaseTheme AFTER FluentTheme. -->
+  <Style Selector="DataGrid">
+    <Setter Property="Background" Value="{DynamicResource Bg0Brush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+    <Setter Property="GridLinesVisibility" Value="All"/>
+    <Setter Property="RowHeight" Value="{DynamicResource RowHeight}"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+  </Style>
+
+  <Style Selector="DataGridRow">
+    <Setter Property="Background" Value="{DynamicResource Bg0Brush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+  </Style>
+
+  <Style Selector="DataGridColumnHeader">
+    <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgSecondaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeLabel}"/>
+  </Style>
+
+</Styles>

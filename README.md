@@ -1,14 +1,13 @@
 # Kasir POS
 
 [![Build and Test](https://github.com/Panandika/kasir-pos/actions/workflows/build.yml/badge.svg)](https://github.com/Panandika/kasir-pos/actions)
-![.NET Framework 4.8](https://img.shields.io/badge/.NET_Framework-4.8-purple)
-![C# 7.3](https://img.shields.io/badge/C%23-7.3-blue)
+![.NET 10](https://img.shields.io/badge/.NET-10-purple)
+![C# 12](https://img.shields.io/badge/C%23-12-blue)
+![Avalonia](https://img.shields.io/badge/UI-Avalonia_12-orange)
 ![SQLite](https://img.shields.io/badge/SQLite-WAL_mode-green)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow)
 
 A full-featured Point of Sale system built to replace a **30-year-old FoxPro/Harbour retail system** running on Windows 7 register hardware. Handles 24,000+ products, 750+ vendors, 80,000+ AP records, and 3 registers with offline-first sync.
-
-<video src="docs/kasir-showcase.mp4" width="100%" autoplay muted loop></video>
 
 ## Why This Exists
 
@@ -68,8 +67,8 @@ This project migrates the entire system to a modern, maintainable stack while pr
 
 ```
                     +-----------------+
-                    |   WinForms UI   |
-                    |  (33 Forms)     |
+                    |  Avalonia UI    |
+                    |  (34 Windows)   |
                     +--------+--------+
                              |
               +--------------+--------------+
@@ -83,7 +82,7 @@ This project migrates the entire system to a modern, maintainable stack while pr
               |
      +--------v--------+
      |  Repositories    |
-     |  (17 repos)      |
+     |  (29 repos)      |
      +--------+---------+
               |
      +--------v--------+          +-----------------+
@@ -110,28 +109,34 @@ This project migrates the entire system to a modern, maintainable stack while pr
 
 | Technology | Version | Purpose |
 |-----------|---------|---------|
-| C# | 7.3 | Application language (max version for .NET 4.8) |
-| .NET Framework | 4.8 | Runtime (supports Windows 7 SP1) |
-| WinForms | - | Desktop UI with terminal-style theme |
+| C# | 12 | Application language |
+| .NET | 10 | Runtime (cross-platform, self-contained publish) |
+| Avalonia | 12.x | Cross-platform desktop UI (keyboard-driven, terminal theme) |
 | SQLite | WAL mode | Local database per register |
-| System.Data.SQLite | 1.0.119 | SQLite driver with FTS5 + json1 |
+| Microsoft.Data.Sqlite | 9.0.4 | SQLite driver with FTS5 + json1 |
+| ESCPOS_NET | 2.0.0 | Cross-platform ESC/POS receipt printer |
 | BCrypt.Net-Next | 4.1.0 | Password hashing (cost factor 10) |
 | ClosedXML | 0.104.2 | Excel report export |
 | Newtonsoft.Json | 13.0.4 | JSON serialization for sync |
 | NUnit + FluentAssertions | 3.14 / 6.12 | Testing framework |
-| GitHub Actions | - | CI: msbuild + vstest on Windows runner |
+| GitHub Actions | - | CI: dotnet build on windows/macos/ubuntu |
 
 ## Project Structure
 
 ```
 kasir-pos/
-+-- Kasir/                     # Main application (17,741 LOC)
++-- Kasir.Core/                # Core library (business logic, data, hardware)
 |   +-- Auth/                  # Authentication + role-based permissions
 |   +-- Data/
-|   |   +-- Repositories/      # 17 repository classes (CRUD)
+|   |   +-- Repositories/      # 29 repository classes (CRUD)
 |   |   +-- Schema.sql         # 57 tables, 28 triggers, 68 indexes
-|   |   +-- DbConnection.cs    # Singleton, WAL mode, FTS5 loading
-|   |   +-- SqlHelper.cs       # Parameterized query helpers
+|   |   +-- DbConnection.cs    # Singleton, WAL mode, FTS5
+|   +-- Hardware/              # ESC/POS printer, cash drawer, barcode scanner
+|   +-- Models/                # 35 domain models
+|   +-- Services/              # 13 business logic engines
+|   +-- Sync/                  # Multi-register sync (Push/Pull/Engine)
+|   +-- Utils/                 # Formatting, validation, clock
++-- Kasir.Avalonia/            # Avalonia UI project
 |   +-- Forms/
 |   |   +-- POS/               # Sale, Payment, Shift
 |   |   +-- Master/            # Product, Vendor, Department, CreditCard, PriceChange
@@ -140,53 +145,60 @@ kasir-pos/
 |   |   +-- Accounting/        # Accounts, Journal, Payables, Cash, Posting
 |   |   +-- Bank/              # Bank master, Giro processing
 |   |   +-- Reports/           # Sales, Inventory, Financial reports
-|   |   +-- Admin/             # Users, Printer, Backup
-|   +-- Hardware/              # ESC/POS printer, cash drawer, barcode scanner
-|   +-- Models/                # 35 domain models
-|   +-- Services/              # 13 business logic engines
-|   +-- Sync/                  # Multi-register sync (Push/Pull/Engine)
-|   +-- Utils/                 # Formatting, validation, clock
-+-- Kasir.Tests/               # 247 automated tests
-+-- data/                      # SQLite database (gitignored)
-+-- NETWORK-SETUP.md           # Multi-register network configuration guide
+|   |   +-- Admin/             # Users, Printer, Backup, Update
+|   |   +-- Shared/            # MsgBox, InputDialog, KeyboardRouter, ThemeConstants
++-- Kasir.Core.Tests/          # 247+ automated tests (NUnit)
++-- Kasir/                     # Legacy WinForms app (kept for reference)
++-- Kasir.Tests/               # Legacy WinForms tests
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- **Windows 7 SP1** or later (production targets Win7 registers)
-- **Visual Studio 2022** with .NET Framework 4.8 targeting pack
-- **.NET Framework 4.8** runtime
+- **.NET 10 SDK** — [download](https://dotnet.microsoft.com/download/dotnet/10.0)
+- Works on **Windows 10/11**, **macOS**, **Linux**
+- For receipt printing: thermal printer on a COM port or USB serial device
 
 ### Build
 
 ```bash
-# Clone
 git clone https://github.com/Panandika/kasir-pos.git
 cd kasir-pos
-
-# Restore + Build (use msbuild, NOT dotnet build)
-msbuild Kasir.sln /t:Restore /p:Configuration=Release /p:Platform=x86
-msbuild Kasir.sln /p:Configuration=Release /p:Platform=x86
+dotnet build Kasir.Avalonia.slnx
 ```
 
 ### Run
 
 ```bash
-# From Visual Studio: F5
-# Or directly:
-Kasir\bin\Release\Kasir.exe
+dotnet run --project Kasir.Avalonia/Kasir.Avalonia.csproj
 ```
 
-The app creates a fresh database with schema on first run. To use migrated production data, place `kasir.db` in the `data/` folder next to the executable.
+On first run a setup dialog appears — choose **Seed** for a fresh database or **Import** to load an existing `kasir.db`.
 
-### Deploy to Register
+### Run Tests
 
 ```bash
-# Copy entire bin/Release/ folder to target PC
-xcopy /E /I bin\Release\ \\REGISTER02\kasir\app\
+dotnet test Kasir.Core.Tests/Kasir.Core.Tests.csproj
 ```
+
+### Deploy to Windows Register
+
+```bash
+dotnet publish Kasir.Avalonia/Kasir.Avalonia.csproj -c Release -r win-x64 --self-contained -o publish/
+# Copy publish/ folder to register PC — no .NET install required
+```
+
+### Printer Configuration
+
+Set the `printer_name` config key in the database to your device path:
+
+| Platform | Example |
+|----------|---------|
+| Windows (serial) | `COM4` |
+| Windows (parallel) | `LPT1` |
+| macOS | `/dev/cu.usbserial-1234` |
+| Linux | `/dev/ttyUSB0` or `/dev/usb/lp0` |
 
 ## Data Migration
 
@@ -208,25 +220,6 @@ python3 migrate.py /path/to/main-kasir ./output/kasir.db
 
 Key migrations: 24,455 products, 754 vendors, 194 departments, 76,213 price history records, 80,557 AP records, 68,101 purchase line items, 26,319 payment records.
 
-## Testing
-
-```bash
-# Run tests via vstest
-vstest.console.exe Kasir.Tests\bin\Release\Kasir.Tests.dll
-```
-
-**247 tests** covering:
-- PricingEngine (5-tier price resolution)
-- DiscountEngine (first-match-wins from 4 sources)
-- PaymentCalculator (split payment, loyalty points)
-- SalesService (full POS transaction lifecycle)
-- AccountingService (debit=credit enforcement for all journal types)
-- PostingService (batch GL posting, period close, balance check)
-- PayablesService (payment allocation, AP aging)
-- InventoryService (FIFO cost, average cost, stock on hand)
-- PurchasingService (PO > GR > Invoice > Return chain)
-- Auth, Sync, Formatting, Validation
-
 ## Design Decisions
 
 | Decision | Rationale |
@@ -234,7 +227,8 @@ vstest.console.exe Kasir.Tests\bin\Release\Kasir.Tests.dll
 | **C# over Python** | Python 3.9+ dropped Win7 support; C# has massive AI training data for productivity |
 | **SQLite over PostgreSQL** | Each register works offline; no network dependency for transactions |
 | **INTEGER money (x100)** | No floating-point errors in financial calculations |
-| **WinForms over WPF** | Simpler, lighter, runs on Win7 without GPU acceleration |
+| **Avalonia over WinForms** | Cross-platform (Windows/macOS/Linux), .NET 10, self-contained publish |
+| **AXAML + code-behind** | Matches the WinForms pattern — no MVVM framework needed |
 | **Sync via JSON files** | SQLite over SMB is officially unsupported; JSON batches are safe and auditable |
 | **HMAC-SHA256 signing** | Prevents tampered sync batches from corrupting register data |
 | **No CASCADE DELETE** | Financial data must never be accidentally deleted; all deletes are soft (control=3) |

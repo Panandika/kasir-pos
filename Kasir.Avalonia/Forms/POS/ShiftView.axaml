@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.POS.ShiftView"
+        x:DataType="x:Object"
+        Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Panel>
+      <StackPanel HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Spacing="16"
+                  Width="500">
+        <TextBlock Text="MANAJEMEN SHIFT"
+                   FontSize="18"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   HorizontalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
+        <TextBlock x:Name="LblStatus"
+                   FontSize="15"
+                   Foreground="{DynamicResource WarningBrush}"
+                   HorizontalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
+        <TextBlock x:Name="LblInfo"
+                   Foreground="{DynamicResource FgSecondaryBrush}"
+                   FontSize="13"
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+          <Button x:Name="BtnOpenShift"
+                  Content="F1 - Buka Shift"
+                  Width="220" Height="44"
+                  Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
+                  FontSize="13" />
+          <Button x:Name="BtnCloseShift"
+                  Content="F2 - Tutup Shift"
+                  Width="220" Height="44"
+                  Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
+                  FontSize="13" />
+        </StackPanel>
+      </StackPanel>
+    </Panel>
+  </DockPanel>
+</UserControl>

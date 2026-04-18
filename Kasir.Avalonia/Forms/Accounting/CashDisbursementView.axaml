@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Accounting.CashDisbursementView"
+             x:DataType="x:Object"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="42" Padding="8,4">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="Tanggal:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="0,0,6,0" />
+        <TextBox Grid.Column="1"
+                 x:Name="TxtDate"
+                 Width="140"
+                 Height="30"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13"
+                 Margin="0,0,16,0" />
+        <TextBlock Grid.Column="2"
+                   Text="Keterangan:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="0,0,6,0" />
+        <TextBox Grid.Column="3"
+                 x:Name="TxtRemark"
+                 Width="420"
+                 Height="30"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+      </Grid>
+    </Border>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="38" Padding="8,4">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock x:Name="LblTotal"
+                   Grid.Column="0"
+                   Text="Total: 0"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1"
+                   Text="Ins: Tambah Baris   F5: Simpan"
+                   Foreground="{DynamicResource FgDimBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="12"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+    <DataGrid x:Name="DgvLines"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              Background="{DynamicResource Bg0Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              GridLinesVisibility="Horizontal"
+              HorizontalScrollBarVisibility="Disabled"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode Akun"  Binding="{Binding AccCode}" Width="1.2*" />
+        <DataGridTextColumn Header="Nama Akun"  Binding="{Binding AccName}" Width="2.5*" />
+        <DataGridTextColumn Header="Jumlah"     Binding="{Binding Amount}"  Width="1.5*" />
+        <DataGridTextColumn Header="Keterangan" Binding="{Binding Remark}"  Width="2.5*" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

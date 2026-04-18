@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Kasir.Core/Kasir.Core.csproj" />
+  <Project Path="Kasir.Avalonia/Kasir.Avalonia.csproj" />
+  <Project Path="Kasir.Core.Tests/Kasir.Core.Tests.csproj" />
+</Solution>

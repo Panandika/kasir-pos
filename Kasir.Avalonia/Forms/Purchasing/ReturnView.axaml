@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Purchasing.ReturnView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Border>
+
+    <!-- Footer total -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg1Brush}" Height="38"
+            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0">
+      <TextBlock x:Name="LblTotal"
+                 Text="TOTAL RETUR: Rp 0"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="14"
+                 FontWeight="Bold"
+                 HorizontalAlignment="Right"
+                 VerticalAlignment="Center"
+                 Margin="0,0,20,0" />
+    </Border>
+
+    <!-- Header: two rows -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="60"
+            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,250,Auto,Auto,120" RowDefinitions="Auto,Auto" Margin="10,4">
+        <!-- Row 0: Supplier + Dengan Faktur checkbox -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Supplier:"
+                   Foreground="{DynamicResource FgDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" />
+        <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtVendor"
+                 IsReadOnly="True"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" CaretBrush="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" Height="26" Margin="0,2,16,2" />
+        <CheckBox Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="3" x:Name="ChkWithInvoice"
+                  Content="Dengan Faktur"
+                  IsChecked="True"
+                  Foreground="{DynamicResource AccentBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
+                  FontSize="13"
+                  VerticalAlignment="Center" />
+
+        <!-- Row 1: No Faktur + Tgl -->
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="No Faktur:"
+                   Foreground="{DynamicResource FgDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" />
+        <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtRefInvoice"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" CaretBrush="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" Height="26" Margin="0,2,16,2" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="Tgl:"
+                   Foreground="{DynamicResource FgDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" />
+        <TextBox Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="2" x:Name="TxtDate"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" CaretBrush="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" Height="26" Margin="0,2,0,2" />
+      </Grid>
+    </Border>
+
+    <!-- Items grid -->
+    <DataGrid x:Name="DgvItems"
+              AutoGenerateColumns="False"
+              SelectionMode="Single"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              Background="{DynamicResource Bg1Brush}"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              CanUserReorderColumns="False"
+              CanUserResizeColumns="True"
+              IsReadOnly="True"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="No"          Binding="{Binding No}"    Width="0.4*" CanUserSort="False" />
+        <DataGridTextColumn Header="Kode"        Binding="{Binding Code}"  Width="1.4*" CanUserSort="False" />
+        <DataGridTextColumn Header="Nama"        Binding="{Binding Name}"  Width="2.5*" CanUserSort="False" />
+        <DataGridTextColumn Header="Qty Retur"   Binding="{Binding Qty}"   Width="0.8*" CanUserSort="False" />
+        <DataGridTextColumn Header="Harga"       Binding="{Binding Price}" Width="1.2*" CanUserSort="False" />
+        <DataGridTextColumn Header="Jumlah"      Binding="{Binding Total}" Width="1.2*" CanUserSort="False" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

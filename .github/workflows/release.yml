@@ -7,6 +7,8 @@ on:
 jobs:
   release:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
     - uses: actions/checkout@v4
@@ -18,63 +20,33 @@ jobs:
         $tag = "${{ github.ref_name }}"
         $ver = $tag -replace '^v', ''
         echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
-        $parts = $ver -split '\.'
-        $asmVer = "$($parts[0]).$($parts[1]).$($parts[2]).0"
-        echo "ASM_VERSION=$asmVer" >> $env:GITHUB_OUTPUT
 
-    - name: Patch AssemblyInfo with tag version
-      shell: pwsh
-      run: |
-        $ver = "${{ steps.version.outputs.VERSION }}"
-        $asmVer = "${{ steps.version.outputs.ASM_VERSION }}"
-        $file = "Kasir/Properties/AssemblyInfo.cs"
-        $content = Get-Content $file -Raw
-        $content = $content -replace 'AssemblyVersion\(".*?"\)', "AssemblyVersion(`"$asmVer`")"
-        $content = $content -replace 'AssemblyFileVersion\(".*?"\)', "AssemblyFileVersion(`"$asmVer`")"
-        $content = $content -replace 'AssemblyInformationalVersion\(".*?"\)', "AssemblyInformationalVersion(`"$ver`")"
-        Set-Content $file $content -NoNewline
-        Write-Host "Patched AssemblyInfo to version $ver ($asmVer)"
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.x'
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
+    - name: Build
+      run: dotnet build Kasir.Avalonia.slnx -c Release
 
-    - name: Restore packages
-      run: msbuild Kasir.sln /t:Restore /p:Configuration=Release /p:Platform=x86
+    - name: Test
+      run: dotnet test Kasir.Core.Tests/Kasir.Core.Tests.csproj -c Release --no-build
 
-    - name: Build solution
-      run: msbuild Kasir.sln /p:Configuration=Release /p:Platform=x86 /p:TreatWarningsAsErrors=true
-
-    - name: Setup VSTest
-      uses: darenm/Setup-VSTest@v1.3
-
-    - name: Run tests
-      run: vstest.console.exe Kasir.Tests\bin\Release\Kasir.Tests.dll
+    - name: Publish win-x64 self-contained
+      run: dotnet publish Kasir.Avalonia/Kasir.Avalonia.csproj -c Release -r win-x64 --self-contained -o publish/win-x64
 
     - name: Prepare release directory
       shell: pwsh
       run: |
-        $releaseDir = "Kasir/bin/Release"
-
-        # Remove files that should not be in the update ZIP
-        Remove-Item "$releaseDir/Kasir.exe.config" -ErrorAction SilentlyContinue
-        Remove-Item "$releaseDir/data" -Recurse -ErrorAction SilentlyContinue
-        Remove-Item "$releaseDir/*.pdb" -ErrorAction SilentlyContinue
-        Remove-Item "$releaseDir/*.xml" -ErrorAction SilentlyContinue
+        $releaseDir = "publish/win-x64"
 
         # Write version.txt
         "${{ steps.version.outputs.VERSION }}" | Set-Content "$releaseDir/version.txt" -NoNewline
 
-        # Copy whatsnew.txt
-        if (Test-Path "whatsnew.txt") {
-          Copy-Item "whatsnew.txt" "$releaseDir/"
-        } else {
-          "No release notes." | Set-Content "$releaseDir/whatsnew.txt"
-        }
-
     - name: Generate checksums
       shell: pwsh
       run: |
-        $releaseDir = "Kasir/bin/Release"
+        $releaseDir = "publish/win-x64"
         $checksumLines = @()
 
         Get-ChildItem $releaseDir -Recurse -File |
@@ -94,7 +66,7 @@ jobs:
       env:
         SYNC_HMAC_KEY: ${{ secrets.SYNC_HMAC_KEY }}
       run: |
-        $releaseDir = "Kasir/bin/Release"
+        $releaseDir = "publish/win-x64"
         $checksumContent = Get-Content "$releaseDir/checksum.sha256" -Raw
 
         if ([string]::IsNullOrEmpty($env:SYNC_HMAC_KEY)) {
@@ -113,8 +85,8 @@ jobs:
     - name: Create release ZIP
       shell: pwsh
       run: |
-        Push-Location "Kasir/bin/Release"
-        Compress-Archive -Path "*" -DestinationPath "../../../kasir-${{ steps.version.outputs.VERSION }}.zip"
+        Push-Location "publish/win-x64"
+        Compress-Archive -Path "*" -DestinationPath "../../kasir-${{ steps.version.outputs.VERSION }}.zip"
         Pop-Location
 
     - name: Create GitHub Release
@@ -123,3 +95,25 @@ jobs:
         files: |
           kasir-${{ steps.version.outputs.VERSION }}.zip
         generate_release_notes: true
+        body: |
+          ## Cara Install (Windows)
+
+          1. Download file `kasir-${{ steps.version.outputs.VERSION }}.zip` di bawah
+          2. Klik kanan → **Extract All** → pilih folder tujuan (misal: `C:\Kasir`)
+          3. Buka folder hasil ekstrak → double-click **`Kasir.Avalonia.exe`**
+          4. Tidak perlu install .NET atau software tambahan
+
+          > **Upgrade dari versi lama?**
+          > Ekstrak ke folder yang sama, timpa file lama. Data (`kasir.db`) tidak akan tertimpa.
+
+          ---
+
+          ## Installation (English)
+
+          1. Download `kasir-${{ steps.version.outputs.VERSION }}.zip` below
+          2. Right-click → **Extract All** → choose a destination folder (e.g. `C:\Kasir`)
+          3. Open the extracted folder → double-click **`Kasir.Avalonia.exe`**
+          4. No .NET runtime or additional software required — everything is bundled
+
+          > **Upgrading from an older version?**
+          > Extract into the same folder and overwrite existing files. Your database (`kasir.db`) will not be affected.

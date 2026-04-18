@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.LoginView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Panel>
+      <Border Background="{DynamicResource Bg1Brush}"
+              CornerRadius="4"
+              Padding="30"
+              Width="440"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock x:Name="LblStoreName"
+                     Text="TOKO SINAR MAKMUR"
+                     Foreground="{DynamicResource FgSecondaryBrush}"
+                     HorizontalAlignment="Center"
+                     FontSize="14"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <TextBlock Text="KASIR POS"
+                     Foreground="{DynamicResource FgPrimaryBrush}"
+                     FontSize="28"
+                     HorizontalAlignment="Center"
+                     FontWeight="Bold"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <TextBlock x:Name="LblVersion"
+                     Foreground="{DynamicResource FgDimBrush}"
+                     FontSize="12"
+                     HorizontalAlignment="Center"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <TextBlock Text="Username:"
+                     Foreground="{DynamicResource FgSecondaryBrush}"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}"
+                     FontSize="13" />
+          <TextBox x:Name="TxtUsername"
+                   Background="{DynamicResource Bg1Brush}"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontSize="15"
+                   Height="34"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <TextBlock Text="Password:"
+                     Foreground="{DynamicResource FgSecondaryBrush}"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}"
+                     FontSize="13" />
+          <TextBox x:Name="TxtPassword"
+                   Background="{DynamicResource Bg1Brush}"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontSize="15"
+                   Height="34"
+                   PasswordChar="*"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <TextBlock Text="Password peka huruf besar/kecil"
+                     Foreground="{DynamicResource FgDimBrush}"
+                     FontSize="11"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <TextBlock x:Name="LblCapsLock"
+                     Text="&#x26A0; CAPS LOCK AKTIF"
+                     Foreground="{DynamicResource WarningBrush}"
+                     IsVisible="False"
+                     FontSize="12"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <TextBlock x:Name="LblMessage"
+                     Foreground="{DynamicResource DangerBrush}"
+                     FontSize="13"
+                     TextWrapping="Wrap"
+                     HorizontalAlignment="Center"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <Button x:Name="BtnLogin"
+                  Content="LOGIN"
+                  Background="{DynamicResource BgSelectedBrush}"
+                  Foreground="{DynamicResource FgPrimaryBrush}"
+                  Height="40"
+                  HorizontalAlignment="Stretch"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
+                  FontSize="15"
+                  FontWeight="Bold" />
+        </StackPanel>
+      </Border>
+    </Panel>
+  </DockPanel>
+</UserControl>

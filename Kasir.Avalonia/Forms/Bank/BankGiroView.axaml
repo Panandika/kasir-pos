@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Bank.BankGiroView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource Bg2Brush}"
+            Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Border>
+    <Border DockPanel.Dock="Top"
+            Background="{DynamicResource Bg2Brush}"
+            Height="40">
+      <Grid ColumnDefinitions="Auto,Auto,*">
+        <TextBlock Grid.Column="0"
+                   Text="Supplier:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="8,0,6,0" />
+        <TextBox Grid.Column="1"
+                 x:Name="TxtVendor"
+                 Width="250"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13"
+                 Height="28"
+                 VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+    <DataGrid x:Name="DgvGiros"
+              AutoGenerateColumns="False"
+              Background="{DynamicResource Bg1Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              IsReadOnly="True"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="No. Giro"
+                            Binding="{Binding GiroNo}"
+                            Width="1.5*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Tgl Giro"
+                            Binding="{Binding GiroDate}"
+                            Width="1.2*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Tgl Dokumen"
+                            Binding="{Binding DocDate}"
+                            Width="1.2*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Nilai"
+                            Binding="{Binding Value}"
+                            Width="1.3*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Status"
+                            Binding="{Binding Status}"
+                            Width="0.8*"
+                            CanUserSort="False" />
+        <DataGridTextColumn Header="Keterangan"
+                            Binding="{Binding Remark}"
+                            Width="2*"
+                            CanUserSort="False" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

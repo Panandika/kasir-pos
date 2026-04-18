@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Accounting.AccountsView"
+             x:DataType="x:Object"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="38" Padding="8,4">
+      <Grid ColumnDefinitions="Auto,Auto,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="Search:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0" />
+        <TextBox Grid.Column="1"
+                 x:Name="TxtSearch"
+                 Width="320"
+                 Height="28"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+        <Button Grid.Column="2"
+                x:Name="BtnSearch"
+                Content="F2"
+                Width="50"
+                Height="28"
+                Margin="6,0,0,0"
+                Background="{DynamicResource BgSelectedBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontFamily="{DynamicResource PlexSansFont}"
+                FontSize="13" />
+      </Grid>
+    </Border>
+    <DataGrid x:Name="DgvAccounts"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              Background="{DynamicResource Bg0Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              GridLinesVisibility="Horizontal"
+              HorizontalScrollBarVisibility="Disabled"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode"       Binding="{Binding Code}"      Width="1.2*" />
+        <DataGridTextColumn Header="Nama"       Binding="{Binding Name}"      Width="3*"   />
+        <DataGridTextColumn Header="Grup"       Binding="{Binding Group}"     Width="1*"   />
+        <DataGridTextColumn Header="Saldo Nor." Binding="{Binding NormalBal}" Width="0.6*" />
+        <DataGridTextColumn Header="Detail"     Binding="{Binding Detail}"    Width="0.6*" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Accounting.PayablesView"
+             x:DataType="x:Object"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="38" Padding="8,4">
+      <Grid ColumnDefinitions="Auto,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="Supplier:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0" />
+        <TextBox Grid.Column="1"
+                 x:Name="TxtVendor"
+                 Width="320"
+                 Height="28"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+      </Grid>
+    </Border>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="44" Padding="8,4">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock x:Name="LblTotal"
+                   Grid.Column="0"
+                   Text="Total Hutang: 0"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1"
+                   Text="Bayar:"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource PlexSansFont}"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0" />
+        <TextBox Grid.Column="2"
+                 x:Name="TxtPayment"
+                 Width="220"
+                 Height="30"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+      </Grid>
+    </Border>
+    <DataGrid x:Name="DgvPayables"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              Background="{DynamicResource Bg0Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              GridLinesVisibility="Horizontal"
+              HorizontalScrollBarVisibility="Disabled"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="No. Jurnal"  Binding="{Binding JournalNo}" Width="1.5*" />
+        <DataGridTextColumn Header="Tgl Dok"     Binding="{Binding DocDate}"   Width="1.2*" />
+        <DataGridTextColumn Header="Jatuh Tempo" Binding="{Binding DueDate}"   Width="1.2*" />
+        <DataGridTextColumn Header="Jumlah"      Binding="{Binding Amount}"    Width="1.3*" />
+        <DataGridTextColumn Header="Dibayar"     Binding="{Binding Paid}"      Width="1.3*" />
+        <DataGridTextColumn Header="Sisa"        Binding="{Binding Remaining}" Width="1.3*" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

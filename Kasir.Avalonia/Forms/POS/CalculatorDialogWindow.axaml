@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.POS.CalculatorDialogWindow"
+        x:DataType="x:Object"
+        Width="420" Height="260"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource Bg0Brush}"
+        WindowDecorations="None">
+  <DockPanel Margin="20">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                HorizontalAlignment="Right" Spacing="10" Margin="0,12,0,0">
+      <Button x:Name="BtnOk" Content="OK"
+              Width="90" Height="32"
+              Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13" />
+      <Button x:Name="BtnTutup" Content="Tutup"
+              Width="90" Height="32"
+              Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13" />
+    </StackPanel>
+    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*" Margin="0,8,0,0">
+      <!-- Row 0: multiply -->
+      <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12"
+                  VerticalAlignment="Center">
+        <TextBox x:Name="TxtA" Width="100" Height="30"
+                 TextAlignment="Right"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+        <TextBlock Text="×" Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" VerticalAlignment="Center" />
+        <TextBox x:Name="TxtB" Width="100" Height="30"
+                 TextAlignment="Right"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+        <TextBlock Text="=" Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" VerticalAlignment="Center" />
+        <TextBlock x:Name="LblMultResult" Text="0"
+                   Foreground="{DynamicResource FgNumericBrush}" Width="100"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" VerticalAlignment="Center"
+                   TextAlignment="Right" />
+      </StackPanel>
+      <!-- Row 1: add -->
+      <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8"
+                  VerticalAlignment="Center">
+        <TextBox x:Name="TxtC" Width="100" Height="30"
+                 TextAlignment="Right"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+        <TextBlock Text="+" Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" VerticalAlignment="Center" />
+        <TextBox x:Name="TxtD" Width="100" Height="30"
+                 TextAlignment="Right"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" />
+        <TextBlock Text="=" Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" VerticalAlignment="Center" />
+        <TextBlock x:Name="LblAddResult" Text="0"
+                   Foreground="{DynamicResource FgNumericBrush}" Width="100"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" VerticalAlignment="Center"
+                   TextAlignment="Right" />
+      </StackPanel>
+    </Grid>
+  </DockPanel>
+</Window>

@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Inventory.OpnameView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource Bg2Brush}"
+            Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Border>
+    <DataGrid x:Name="DgvOpname"
+              AutoGenerateColumns="False"
+              Background="{DynamicResource Bg1Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              IsReadOnly="False"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              HorizontalAlignment="Stretch"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode"
+                            Binding="{Binding Code}"
+                            Width="1.4*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+        <DataGridTextColumn Header="Nama Barang"
+                            Binding="{Binding Name}"
+                            Width="2.5*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+        <DataGridTextColumn Header="Sistem"
+                            Binding="{Binding System}"
+                            Width="*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+        <DataGridTextColumn Header="Fisik"
+                            Binding="{Binding Physical}"
+                            Width="*"
+                            CanUserSort="False"
+                            IsReadOnly="True">
+          <DataGridTextColumn.CellTheme>
+            <ControlTheme TargetType="DataGridCell">
+              <Setter Property="Foreground" Value="{DynamicResource FgNumericBrush}" />
+            </ControlTheme>
+          </DataGridTextColumn.CellTheme>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="Selisih"
+                            Binding="{Binding Variance}"
+                            Width="0.8*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

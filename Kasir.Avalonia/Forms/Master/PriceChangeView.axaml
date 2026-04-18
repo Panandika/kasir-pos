@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.Master.PriceChangeView"
+        x:DataType="x:Object"
+        Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Border>
+
+    <!-- Header: search -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="40"
+            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+        <TextBlock Text="Cari:"
+                   Foreground="{DynamicResource FgDimBrush}"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13" />
+        <TextBox x:Name="TxtSearch"
+                 Width="300"
+                 Background="{DynamicResource Bg1Brush}"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13" Height="28" />
+        <TextBlock Text="  F5: Muat  Enter: Edit Harga  F10: Simpan  Esc: Keluar"
+                   Foreground="{DynamicResource FgDimBrush}"
+                   VerticalAlignment="Center"
+                   Margin="16,0,0,0"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="12" />
+      </StackPanel>
+    </Border>
+
+    <!-- Products grid (read-only list; price editing via dialog) -->
+    <DataGrid x:Name="DgvPrices"
+              AutoGenerateColumns="False"
+              SelectionMode="Single"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              Background="{DynamicResource Bg1Brush}"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="13"
+              HorizontalAlignment="Stretch"
+              CanUserReorderColumns="False"
+              CanUserResizeColumns="True"
+              IsReadOnly="True"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode"        Binding="{Binding Code}"     Width="1.2*" CanUserSort="False" />
+        <DataGridTextColumn Header="Nama Barang" Binding="{Binding Name}"     Width="3*"   CanUserSort="False" />
+        <DataGridTextColumn Header="Jual Lama"   Binding="{Binding OldPrice}" Width="1.2*" CanUserSort="False" />
+        <DataGridTextColumn Header="Jual Baru"   Binding="{Binding NewPrice}" Width="1.2*" CanUserSort="False" />
+        <DataGridTextColumn Header="Beli"        Binding="{Binding BuyPrice}" Width="1.2*" CanUserSort="False" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>
