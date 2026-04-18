@@ -66,10 +66,37 @@ namespace Kasir.Services
             return AddItem(codeOrBarcode, qty, 0);
         }
 
+        // Reserved product code for "Barang Tanpa Kode" — items without a catalog entry
+        // but with a known price. Posts to department 100 (DLL) via the seeded product row.
+        public const string MiscProductCode = "1";
+        public const string MiscProductName = "Barang Tanpa Kode";
+
+        public SaleItem AddMiscItem(int qty, long unitPrice)
+        {
+            if (qty <= 0) throw new ArgumentException("Qty harus > 0", nameof(qty));
+            if (unitPrice <= 0) throw new ArgumentException("Harga harus > 0", nameof(unitPrice));
+
+            var item = new SaleItem
+            {
+                ProductCode = MiscProductCode,
+                ProductName = MiscProductName,
+                Quantity = qty,
+                UnitPrice = unitPrice,
+                Value = unitPrice * qty,
+                Cogs = 0,
+                DiscPct = 0,
+                DiscValue = 0,
+                PointValue = 0,
+                IsPriceOverridden = true,
+            };
+            _currentItems.Add(item);
+            return item;
+        }
+
         public SaleItem AddItem(string codeOrBarcode, int qty, int overridePrice)
         {
             // Look up product: try barcode table first, then product code/barcode
-            int barcodeOverridePrice = 0;
+            long barcodeOverridePrice = 0;
             int barcodeQty = 0;
             Product product = null;
 

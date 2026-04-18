@@ -276,6 +276,16 @@ namespace Kasir.Data
                     cmd.Parameters.AddWithValue("@hmacKey", hmacKey);
                     cmd.ExecuteNonQuery();
 
+                    // Seed "Barang Tanpa Kode" reserved product for misc-item sales flow.
+                    // Users trigger this row by entering product code "1" in the POS.
+                    // dept_code 100 = DLL so GL posting routes miscellaneous revenue correctly.
+                    cmd.CommandText = @"
+                        INSERT OR IGNORE INTO products
+                          (product_code, dept_code, name, status, unit, price, buying_price, cost_price)
+                        VALUES
+                          ('1', '100', 'Barang Tanpa Kode', 'A', 'PCS', 0, 0, 0);";
+                    cmd.ExecuteNonQuery();
+
                     // Seed counter prefixes to avoid race on first use
                     cmd.CommandText = @"
                         INSERT OR IGNORE INTO counters (prefix, register_id, current_value, format) VALUES
