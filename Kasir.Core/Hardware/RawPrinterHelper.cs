@@ -1,3 +1,4 @@
+#if WINDOWS
 using System;
 using System.Runtime.InteropServices;
 
@@ -73,3 +74,4 @@ namespace Kasir.Hardware
         }
     }
 }
+#endif

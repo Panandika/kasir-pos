@@ -1,5 +1,4 @@
 using System.IO;
-using System.Runtime.InteropServices;
 
 namespace Kasir.Utils
 {
@@ -51,34 +50,19 @@ namespace Kasir.Utils
             return new FileInfo(path).Length;
         }
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern bool GetDiskFreeSpaceEx(
-            string lpDirectoryName,
-            out ulong lpFreeBytesAvailableToCaller,
-            out ulong lpTotalNumberOfBytes,
-            out ulong lpTotalNumberOfFreeBytes);
-
         public long GetAvailableDiskSpace(string path)
         {
-            ulong freeBytesAvailable, totalBytes, totalFreeBytes;
-            if (GetDiskFreeSpaceEx(path, out freeBytesAvailable, out totalBytes, out totalFreeBytes))
-            {
-                return (long)freeBytesAvailable;
-            }
-
-            // Fallback for local paths
             try
             {
-                string root = Path.GetPathRoot(path);
-                if (!string.IsNullOrEmpty(root) && root.Length >= 2)
+                string root = Path.GetPathRoot(Path.GetFullPath(path));
+                if (!string.IsNullOrEmpty(root))
                 {
-                    var drive = new DriveInfo(root.Substring(0, 1));
-                    return drive.AvailableFreeSpace;
+                    return new DriveInfo(root).AvailableFreeSpace;
                 }
             }
             catch
             {
-                // Ignore
+                // ignore — unknown drive or network path
             }
 
             return long.MaxValue;

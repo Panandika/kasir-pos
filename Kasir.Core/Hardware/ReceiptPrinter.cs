@@ -6,36 +6,33 @@ namespace Kasir.Hardware
 {
     public class ReceiptPrinter : IReceiptPrinter
     {
-        private readonly string _printerName;
+        private readonly IRawPrinter _raw;
+
+        public ReceiptPrinter(IRawPrinter raw)
+        {
+            _raw = raw;
+        }
 
         public ReceiptPrinter(string printerName)
         {
-            _printerName = printerName;
+            _raw = string.IsNullOrEmpty(printerName)
+                ? (IRawPrinter)new NullRawPrinter()
+                : new UsbReceiptPrinter(printerName);
         }
 
         public ReceiptPrinter(ConfigRepository config)
+            : this(config.Get("printer_name") ?? "")
         {
-            _printerName = config.Get("printer_name") ?? "LPT1:";
         }
 
         public bool Print(byte[] escPosData)
         {
-            if (string.IsNullOrEmpty(_printerName))
-            {
-                return false;
-            }
-
-            return RawPrinterHelper.SendBytesToPrinter(_printerName, escPosData);
+            return _raw.Send(escPosData);
         }
 
         public bool IsAvailable()
         {
-            if (string.IsNullOrEmpty(_printerName))
-            {
-                return false;
-            }
-
-            return RawPrinterHelper.SendBytesToPrinter(_printerName, EscPosCommands.Init);
+            return _raw.Send(EscPosCommands.Init);
         }
 
         public bool PrintTestReceipt(string storeName)
@@ -49,7 +46,6 @@ namespace Kasir.Hardware
             receipt.Add(EscPosCommands.LeftAlign);
             receipt.Add(EscPosCommands.Text("================================\n"));
             receipt.Add(EscPosCommands.Text("TEST PRINT\n"));
-            receipt.Add(EscPosCommands.Text("Printer: " + _printerName + "\n"));
             receipt.Add(EscPosCommands.Text("================================\n"));
             receipt.Add(EscPosCommands.Text("\n\n\n"));
             receipt.Add(EscPosCommands.PartialCut);

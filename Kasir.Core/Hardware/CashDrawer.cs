@@ -2,30 +2,26 @@ namespace Kasir.Hardware
 {
     public class CashDrawer : ICashDrawer
     {
-        private readonly string _printerName;
+        private readonly IRawPrinter _raw;
+
+        public CashDrawer(IRawPrinter raw)
+        {
+            _raw = raw;
+        }
 
         public CashDrawer(string printerName)
         {
-            _printerName = printerName;
+            _raw = string.IsNullOrEmpty(printerName)
+                ? (IRawPrinter)new NullRawPrinter()
+                : new UsbReceiptPrinter(printerName);
         }
 
         public bool Open()
         {
-            if (string.IsNullOrEmpty(_printerName))
-            {
-                return false;
-            }
+            if (_raw.Send(EscPosCommands.KickDrawerPin0))
+                return true;
 
-            bool success = RawPrinterHelper.SendBytesToPrinter(
-                _printerName, EscPosCommands.KickDrawerPin0);
-
-            if (!success)
-            {
-                success = RawPrinterHelper.SendBytesToPrinter(
-                    _printerName, EscPosCommands.KickDrawerPin1);
-            }
-
-            return success;
+            return _raw.Send(EscPosCommands.KickDrawerPin1);
         }
     }
 }
