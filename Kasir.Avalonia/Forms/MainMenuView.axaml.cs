@@ -145,6 +145,8 @@ public partial class MainMenuView : UserControl, INavigationAware
         RebuildTiles(SubTiles(category));
     }
 
+    private int _lastRowCount = 1;
+
     private void RebuildTiles(IReadOnlyList<TileSpec> tiles)
     {
         BentoGrid.Children.Clear();
@@ -155,6 +157,7 @@ public partial class MainMenuView : UserControl, INavigationAware
 
         int cols = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(tiles.Count)));
         int rows = (int)Math.Ceiling((double)tiles.Count / cols);
+        _lastRowCount = rows;
 
         for (int r = 0; r < rows; r++)
             BentoGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Star, MaxHeight = 220 });
@@ -169,11 +172,32 @@ public partial class MainMenuView : UserControl, INavigationAware
             BentoGrid.Children.Add(btn);
         }
 
+        // Responsive tile height: fit (rows*Height + gaps) within BentoGrid bounds.
+        // Avalonia Button doesn't stretch vertically (AvaloniaUI#7331) so we set
+        // Height explicitly, recomputing on size change to keep tiles from
+        // overflowing the status bar on small windows.
+        BentoGrid.SizeChanged -= BentoGrid_SizeChanged;
+        BentoGrid.SizeChanged += BentoGrid_SizeChanged;
+        ApplyTileHeight();
+
         // Focus first tile so arrow-key nav and Enter work immediately
         if (BentoGrid.Children.Count > 0 && BentoGrid.Children[0] is Button first)
         {
             first.Focus();
         }
+    }
+
+    private void BentoGrid_SizeChanged(object? sender, SizeChangedEventArgs e) => ApplyTileHeight();
+
+    private void ApplyTileHeight()
+    {
+        double avail = BentoGrid.Bounds.Height;
+        if (avail <= 0 || _lastRowCount <= 0) return;
+        double gap = BentoGrid.RowSpacing;
+        double h = (avail - gap * (_lastRowCount - 1)) / _lastRowCount;
+        h = Math.Clamp(h, 60, 180);
+        foreach (var child in BentoGrid.Children)
+            if (child is Button b) b.Height = h;
     }
 
     private Button BuildTileButton(TileSpec spec)
@@ -215,10 +239,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         {
             Content = stack,
             Padding = new Thickness(16, 20, 16, 20),
-            // Explicit Height needed because Avalonia Button doesn't stretch vertically
-            // even with VerticalAlignment=Stretch (see AvaloniaUI#7331). ClipToBounds on
-            // the parent row keeps overflow from invading the status bar on small windows.
-            Height = 180,
+            // Height set dynamically by ApplyTileHeight() — see RebuildTiles.
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Center,

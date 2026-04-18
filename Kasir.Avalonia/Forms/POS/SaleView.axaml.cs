@@ -49,7 +49,12 @@ public partial class SaleView : UserControl
         _saleRepo = new SaleRepository(conn);
         _productRepo = new ProductRepository(conn);
         _salesService = new SalesService(conn, _clock);
-        _salesService.SetCashier(_auth.CurrentUser.Alias, _auth.CurrentUser.Id);
+        // Cashier identity comes from the shared session populated by LoginView.
+        // If missing (e.g. deep link or navigation from a non-login state), fall
+        // back to whatever AuthService knows and default to "UNKNOWN"/0 so the
+        // POS can at least render — user can re-login via Esc → Keluar if needed.
+        var cashier = CurrentSession.User ?? _auth.CurrentUser;
+        _salesService.SetCashier(cashier?.Alias ?? "UNKNOWN", cashier?.Id ?? 0);
 
         DgvItems.ItemsSource = _rows;
         DgvSearch.ItemsSource = _searchRows;

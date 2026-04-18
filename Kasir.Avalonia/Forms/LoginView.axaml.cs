@@ -56,6 +56,7 @@ public partial class LoginView : UserControl
 
         if (result.Success)
         {
+            CurrentSession.User = _auth.CurrentUser;
             LblMessage.Text = "";
             NavigationService.ReplaceRoot(new MainMenuView(_auth.CurrentUser?.Id ?? 1));
         }
