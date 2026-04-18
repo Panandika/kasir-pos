@@ -131,3 +131,25 @@ jobs:
         files: |
           kasir-${{ steps.version.outputs.VERSION }}.zip
         generate_release_notes: true
+        body: |
+          ## Cara Install (Windows)
+
+          1. Download file `kasir-${{ steps.version.outputs.VERSION }}.zip` di bawah
+          2. Klik kanan → **Extract All** → pilih folder tujuan (misal: `C:\Kasir`)
+          3. Buka folder hasil ekstrak → double-click **`Kasir.exe`**
+          4. Tidak perlu install .NET atau software tambahan
+
+          > **Upgrade dari versi lama?**
+          > Ekstrak ke folder yang sama, timpa file lama. Data (`kasir.db`) tidak akan tertimpa.
+
+          ---
+
+          ## Installation (English)
+
+          1. Download `kasir-${{ steps.version.outputs.VERSION }}.zip` below
+          2. Right-click → **Extract All** → choose a destination folder (e.g. `C:\Kasir`)
+          3. Open the extracted folder → double-click **`Kasir.exe`**
+          4. No .NET runtime or additional software required — everything is bundled
+
+          > **Upgrading from an older version?**
+          > Extract into the same folder and overwrite existing files. Your database (`kasir.db`) will not be affected.
