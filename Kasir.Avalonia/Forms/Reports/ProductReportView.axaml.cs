@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
@@ -27,8 +28,11 @@ public partial class ProductReportView : UserControl
         InitializeComponent();
         DgvReport.ItemsSource = _rows;
         StatusLabel.Text = "Cetak Master Barang — F5=Refresh  F7=Export Excel  Esc=Keluar";
+        LblSummary.Text = "Memuat…";
         TxtSearch.TextChanged += (_, _) => FilterGrid();
-        GenerateReport();
+        // Defer the 24k-row load to background priority so navigation paints
+        // this view immediately instead of blocking on the DB round-trip.
+        Dispatcher.UIThread.Post(GenerateReport, DispatcherPriority.Background);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
