@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.MainMenuView"
+             Background="#000000">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Menu DockPanel.Dock="Top"
+          Background="#002800"
+          FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+          FontSize="13">
+      <MenuItem Header="_Master" Foreground="#00dc00">
+        <MenuItem x:Name="MniDepartment"  Header="_Departemen"          Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniVendor"      Header="_Supplier"            Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniProduct"     Header="_Barang"              Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniCreditCard"  Header="_Credit Card"         Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniPriceChange" Header="_Ganti Harga Jual"    Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniOpname"      Header="Stok _Opname"         Foreground="#00dc00" Background="#001400" />
+      </MenuItem>
+      <MenuItem Header="_Transaksi" Foreground="#00dc00">
+        <MenuItem x:Name="MniPurchaseOrder"   Header="Pemesanan/_Order"          Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniGoodsReceipt"    Header="P_enerimaan Barang"        Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniPurchaseInvoice" Header="_Nota Pembelian"           Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniPayables"        Header="_Hutang"                   Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniReturn"          Header="_Retur Pembelian"          Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniStockOut"        Header="Pema_kaian/Rusak/Hilang"   Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniSale"            Header="_Penjualan"                Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniTransfer"        Header="_Transfer"                 Foreground="#00dc00" Background="#001400" />
+      </MenuItem>
+      <MenuItem Header="A_kuntansi" Foreground="#00dc00">
+        <MenuItem x:Name="MniAccounts"     Header="_Daftar Perkiraan"    Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniJournal"      Header="_Jurnal Memorial"     Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniCashReceipt"  Header="Penerimaan _Kas"      Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniCashDisburse" Header="_Pengeluaran Kas"     Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniPosting"      Header="Pr_oses Posting"      Foreground="#00dc00" Background="#001400" />
+      </MenuItem>
+      <MenuItem Header="_Laporan" Foreground="#00dc00">
+        <MenuItem x:Name="MniRptProduct"   Header="Cetak Master _Barang"   Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniRptSupplier"  Header="Cetak Master _Supplier" Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniRptSales"     Header="Pen_jualan"             Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniRptInventory" Header="St_ok Barang"           Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniRptFinancial" Header="_Laporan Keuangan"      Foreground="#00dc00" Background="#001400" />
+      </MenuItem>
+      <MenuItem Header="_Utility" Foreground="#00dc00">
+        <MenuItem x:Name="MniUsers"         Header="_User Management"    Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniPrinterConfig" Header="_Printer Config"     Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniBackup"        Header="_Backup"             Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniShift"         Header="_Shift Management"   Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniUpdate"        Header="Periksa _Update"     Foreground="#00dc00" Background="#001400" />
+        <MenuItem x:Name="MniAbout"         Header="_Tentang"            Foreground="#00dc00" Background="#001400" />
+      </MenuItem>
+      <MenuItem x:Name="MniExit" Header="K_eluar" Foreground="#00dc00" />
+    </Menu>
+    <DockPanel>
+      <Panel DockPanel.Dock="Top" Height="80">
+        <TextBlock x:Name="LblStoreName"
+                   FontSize="22"
+                   Foreground="#00dc00"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   FontWeight="Bold" />
+      </Panel>
+      <Panel DockPanel.Dock="Top" Height="30">
+        <TextBlock x:Name="LblGreeting"
+                   Foreground="#008800"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   FontSize="13" />
+      </Panel>
+      <Grid DockPanel.Dock="Top" Height="40" ColumnDefinitions="*,*">
+        <TextBlock x:Name="LblShiftStatus"
+                   Grid.Column="0"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="#ff9900"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   FontSize="13" />
+        <TextBlock x:Name="LblDailyCount"
+                   Grid.Column="1"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="#008800"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   FontSize="13" />
+      </Grid>
+      <TextBlock HorizontalAlignment="Center"
+                 TextWrapping="Wrap"
+                 Foreground="#004400"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 Margin="20,20,20,0"
+                 Text="F12=Sync  Esc=Keluar  Gunakan menu di atas untuk mengakses semua modul." />
+    </DockPanel>
+  </DockPanel>
+</UserControl>
