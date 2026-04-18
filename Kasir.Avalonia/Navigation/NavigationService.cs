@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
+using Avalonia.Threading;
 
 namespace Kasir.Avalonia.Navigation;
 
@@ -40,6 +41,7 @@ public static class NavigationService
     {
         _stack.Push(view);
         _host!.Content = view;
+        FocusAfterSwap(view);
     }
 
     public static void GoBack()
@@ -49,7 +51,23 @@ public static class NavigationService
         {
             (prev as INavigationAware)?.OnNavigatedTo();
             _host!.Content = prev;
+            FocusAfterSwap(prev);
         }
+    }
+
+    /// <summary>
+    /// Ensures the newly-activated view owns keyboard focus so its OnKeyDown
+    /// override (including Esc) fires without requiring a click first. Deferred
+    /// to Background priority so the visual tree is settled before Focus() runs.
+    /// Views that want focus on a specific descendant should implement
+    /// INavigationAware and call Focus() there instead.
+    /// </summary>
+    private static void FocusAfterSwap(UserControl view)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!view.IsKeyboardFocusWithin) view.Focus();
+        }, DispatcherPriority.Background);
     }
 
     public static void ReplaceRoot(UserControl view)
