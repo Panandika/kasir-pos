@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia;
 using Kasir.Auth;
 using Kasir.Data;
 using Kasir.Data.Repositories;
@@ -9,6 +10,7 @@ using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -17,6 +19,7 @@ public partial class UserView : UserControl
     private record UserRow(string Username, string DisplayName, string Alias, string Role, string Active, User Tag);
 
     private readonly ObservableCollection<UserRow> _rows = new();
+    private readonly List<UserRow> _allRows = new();
     private readonly UserRepository _userRepo;
     private readonly RoleRepository _roleRepo;
     private List<Role> _roles = new();
@@ -28,18 +31,42 @@ public partial class UserView : UserControl
         _roleRepo = new RoleRepository(DbConnection.GetConnection());
         _roles = _roleRepo.GetAll();
         DgvUsers.ItemsSource = _rows;
+        TxtSearch.TextChanged += (_, _) => FilterGrid(TxtSearch.Text ?? "");
+        ViewShortcuts.WireGridEnter(DgvUsers, EditUser);
         SetStatus("Ins=Tambah  Enter=Edit  Del=Hapus  P=Ganti Password  Esc=Keluar");
         LoadData();
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ViewShortcuts.AutoFocus(TxtSearch);
+    }
+
     private void LoadData()
     {
-        _rows.Clear();
+        _allRows.Clear();
         foreach (var user in _userRepo.GetAll())
         {
             string roleName = GetRoleName(user.RoleId);
             string active = user.IsActive == 1 ? "Ya" : "Tidak";
-            _rows.Add(new UserRow(user.Username, user.DisplayName ?? "", user.Alias ?? "", roleName, active, user));
+            _allRows.Add(new UserRow(user.Username, user.DisplayName ?? "", user.Alias ?? "", roleName, active, user));
+        }
+        FilterGrid(TxtSearch.Text ?? "");
+    }
+
+    private void FilterGrid(string query)
+    {
+        string q = query.Trim().ToLower();
+        _rows.Clear();
+        foreach (var row in _allRows)
+        {
+            if (string.IsNullOrEmpty(q) ||
+                row.Username.ToLower().Contains(q) ||
+                row.DisplayName.ToLower().Contains(q))
+            {
+                _rows.Add(row);
+            }
         }
     }
 
