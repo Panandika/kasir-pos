@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Kasir.Data;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Forms;
@@ -23,9 +24,13 @@ public partial class ShellWindow : Window
     {
         base.OnOpened(e);
 
-        // Force fullscreen on all platforms. The XAML WindowState="FullScreen"
-        // is sometimes ignored on macOS until re-applied after the window is shown.
-        WindowState = WindowState.FullScreen;
+        // Fullscreen on macOS/Linux requires deferring the state change until after
+        // the window has been shown (see avaloniaui/Avalonia#4846, #7202). Setting it
+        // in XAML or synchronously in OnOpened silently fails or is reverted.
+        Dispatcher.UIThread.Post(() =>
+        {
+            WindowState = WindowState.FullScreen;
+        }, DispatcherPriority.Background);
 
         // AppStartup: measure from process start to main window shown.
         Program.StartupWatch.Stop();
