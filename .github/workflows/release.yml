@@ -22,23 +22,24 @@ jobs:
         $numericParts = $parts | ForEach-Object { $_ -replace '[^0-9].*', '' }
         # CalVer has year >= 2000 in first segment; fall back to today's date for semver tags
         if ([int]$numericParts[0] -ge 2000) {
-            $asmVer = "$($numericParts[0]).$($numericParts[1]).$($numericParts[2]).0"
+            $calVer = "$($numericParts[0]).$($numericParts[1]).$($numericParts[2])"
         } else {
             $today = Get-Date
-            $asmVer = "$($today.Year).$($today.ToString('MM')).$($today.Day).0"
+            $calVer = "$($today.Year).$($today.ToString('MM')).$($today.Day)"
         }
-        echo "ASM_VERSION=$asmVer" >> $env:GITHUB_OUTPUT
+        echo "ASM_VERSION=$calVer.0" >> $env:GITHUB_OUTPUT
+        echo "CALVER=$calVer" >> $env:GITHUB_OUTPUT
 
     - name: Patch AssemblyInfo with tag version
       shell: pwsh
       run: |
-        $ver = "${{ steps.version.outputs.VERSION }}"
         $asmVer = "${{ steps.version.outputs.ASM_VERSION }}"
+        $calVer = "${{ steps.version.outputs.CALVER }}"
         $file = "Kasir/Properties/AssemblyInfo.cs"
         $content = Get-Content $file -Raw
         $content = $content -replace 'AssemblyVersion\(".*?"\)', "AssemblyVersion(`"$asmVer`")"
         $content = $content -replace 'AssemblyFileVersion\(".*?"\)', "AssemblyFileVersion(`"$asmVer`")"
-        $content = $content -replace 'AssemblyInformationalVersion\(".*?"\)', "AssemblyInformationalVersion(`"$ver`")"
+        $content = $content -replace 'AssemblyInformationalVersion\(".*?"\)', "AssemblyInformationalVersion(`"$calVer`")"
         Set-Content $file $content -NoNewline
         Write-Host "Patched AssemblyInfo to version $ver ($asmVer)"
 
