@@ -3,6 +3,11 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build (e.g. v2.2.1)'
+        required: true
 
 jobs:
   release:
@@ -17,7 +22,7 @@ jobs:
       id: version
       shell: pwsh
       run: |
-        $tag = "${{ github.event.release.tag_name }}"
+        $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.event.release.tag_name }}" }
         $ver = $tag -replace '^v', ''
         echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
 
