@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.Master.CreditCardWindow"
+        WindowState="FullScreen"
+        WindowDecorations="None"
+        Background="#000000">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <DataGrid x:Name="DgvCards"
+              AutoGenerateColumns="False"
+              SelectionMode="Single"
+              Foreground="#00dc00"
+              Background="#001400"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontSize="13"
+              CanUserReorderColumns="False"
+              CanUserResizeColumns="True"
+              IsReadOnly="True">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode" Binding="{Binding Code}"
+                            Width="*" CanUserSort="False" />
+        <DataGridTextColumn Header="Nama" Binding="{Binding Name}"
+                            Width="2.5*" CanUserSort="False" />
+        <DataGridTextColumn Header="Fee %" Binding="{Binding Fee}"
+                            Width="0.8*" CanUserSort="False" />
+        <DataGridTextColumn Header="Akun" Binding="{Binding Account}"
+                            Width="1.5*" CanUserSort="False" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</Window>

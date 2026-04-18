@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.Inventory.OpnameWindow"
+        WindowState="FullScreen"
+        WindowDecorations="None"
+        Background="#000000">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom"
+            Background="#002800"
+            Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Border>
+    <DataGrid x:Name="DgvOpname"
+              AutoGenerateColumns="False"
+              Background="#001400"
+              Foreground="#00dc00"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              IsReadOnly="False"
+              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontSize="13">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode"
+                            Binding="{Binding Code}"
+                            Width="1.4*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+        <DataGridTextColumn Header="Nama Barang"
+                            Binding="{Binding Name}"
+                            Width="2.5*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+        <DataGridTextColumn Header="Sistem"
+                            Binding="{Binding System}"
+                            Width="*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+        <DataGridTextColumn Header="Fisik"
+                            Binding="{Binding Physical}"
+                            Width="*"
+                            CanUserSort="False"
+                            IsReadOnly="True">
+          <DataGridTextColumn.CellTheme>
+            <ControlTheme TargetType="DataGridCell">
+              <Setter Property="Foreground" Value="#ffc800" />
+            </ControlTheme>
+          </DataGridTextColumn.CellTheme>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="Selisih"
+                            Binding="{Binding Variance}"
+                            Width="0.8*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</Window>

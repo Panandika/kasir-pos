@@ -1,0 +1,134 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Kasir.Data;
+using Kasir.Data.Repositories;
+using Kasir.Models;
+using Kasir.Services;
+using Kasir.Utils;
+using Kasir.Avalonia.Forms.Shared;
+
+namespace Kasir.Avalonia.Forms.Purchasing;
+
+public partial class PurchaseOrderWindow : Window
+{
+    private record OrderItemRow(string No, string Code, string Name, string Qty, string Price, string Total, OrderItem Tag);
+
+    private readonly ObservableCollection<OrderItemRow> _rows = new();
+    private readonly List<OrderItem> _items = new();
+    private readonly PurchasingService _service;
+    private readonly SubsidiaryRepository _vendorRepo;
+    private readonly ProductRepository _productRepo;
+    private string _vendorCode = "";
+
+    public PurchaseOrderWindow()
+    {
+        InitializeComponent();
+        var conn = DbConnection.GetConnection();
+        _service = new PurchasingService(conn, new ClockImpl());
+        _vendorRepo = new SubsidiaryRepository(conn);
+        _productRepo = new ProductRepository(conn);
+        DgvItems.ItemsSource = _rows;
+        TxtDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
+        SetStatus("Purchase Order — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan, Esc: Keluar");
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (KeyboardRouter.IsF2(e))     { e.Handled = true; SelectVendor(); }
+        else if (KeyboardRouter.IsInsert(e)) { e.Handled = true; AddItem(); }
+        else if (KeyboardRouter.IsDelete(e)) { e.Handled = true; DeleteItem(); }
+        else if (KeyboardRouter.IsF10(e))    { e.Handled = true; SaveOrder(); }
+        else if (KeyboardRouter.IsEscape(e)) { e.Handled = true; Close(); }
+    }
+
+    private async void SelectVendor()
+    {
+        var (ok, vals) = await InputDialogWindow.Show(this, "Supplier", new[] { "Kode Supplier" }, new[] { "" });
+        if (!ok || string.IsNullOrWhiteSpace(vals[0])) return;
+        var vendor = _vendorRepo.GetByCode(vals[0].Trim().ToUpper());
+        if (vendor == null) { await MsgBox.Show(this, "Supplier tidak ditemukan."); return; }
+        _vendorCode = vendor.SubCode;
+        TxtVendor.Text = $"{vendor.SubCode} — {vendor.Name}";
+        SetStatus($"Supplier: {vendor.Name}");
+    }
+
+    private async void AddItem()
+    {
+        var (ok1, codeVals) = await InputDialogWindow.Show(this, "Tambah Item", new[] { "Kode Barang" }, new[] { "" });
+        if (!ok1 || string.IsNullOrWhiteSpace(codeVals[0])) return;
+
+        var product = _productRepo.GetByCode(codeVals[0].Trim().ToUpper());
+        if (product == null) { await MsgBox.Show(this, "Barang tidak ditemukan."); return; }
+
+        string defaultPrice = (product.BuyingPrice / 100.0).ToString("F0");
+        var (ok2, vals) = await InputDialogWindow.Show(this, "Detail Item",
+            new[] { "Qty", "Harga Beli" },
+            new[] { "1", defaultPrice });
+        if (!ok2) return;
+
+        if (!int.TryParse(vals[0], out int qty) || qty <= 0)
+        { await MsgBox.Show(this, "Qty tidak valid."); return; }
+        if (!decimal.TryParse(vals[1], out decimal price) || price < 0)
+        { await MsgBox.Show(this, "Harga tidak valid."); return; }
+
+        var item = new OrderItem
+        {
+            ProductCode = product.ProductCode,
+            ProductName = product.Name,
+            Quantity = qty,
+            UnitPrice = (int)(price * 100m),
+            Value = (long)(price * 100m) * qty
+        };
+        _items.Add(item);
+        RefreshGrid();
+    }
+
+    private void DeleteItem()
+    {
+        var row = DgvItems.SelectedItem as OrderItemRow;
+        if (row == null) return;
+        _items.Remove(row.Tag);
+        RefreshGrid();
+    }
+
+    private void RefreshGrid()
+    {
+        _rows.Clear();
+        long total = 0;
+        int no = 1;
+        foreach (var item in _items)
+        {
+            _rows.Add(new OrderItemRow(
+                no++.ToString(),
+                item.ProductCode,
+                item.ProductName,
+                item.Quantity.ToString(),
+                Formatting.FormatCurrencyShort(item.UnitPrice),
+                Formatting.FormatCurrencyShort(item.Value),
+                item));
+            total += item.Value;
+        }
+        LblTotal.Text = $"TOTAL: {Formatting.FormatCurrency(total)}";
+    }
+
+    private async void SaveOrder()
+    {
+        if (string.IsNullOrEmpty(_vendorCode)) { await MsgBox.Show(this, "Pilih supplier dulu."); return; }
+        if (_items.Count == 0) { await MsgBox.Show(this, "Tambah item dulu."); return; }
+
+        var order = new Order { SubCode = _vendorCode, DocDate = TxtDate.Text.Trim() };
+        string jnl = _service.CreatePurchaseOrder(order, _items, 1);
+        await MsgBox.Show(this, $"PO disimpan: {jnl}");
+        _items.Clear();
+        RefreshGrid();
+        _vendorCode = "";
+        TxtVendor.Text = "";
+        SetStatus("Purchase Order — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan, Esc: Keluar");
+    }
+
+    private void SetStatus(string text) => StatusLabel.Text = text;
+}

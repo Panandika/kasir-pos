@@ -1,0 +1,115 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Kasir.Avalonia.Forms.Shared;
+using Kasir.Data;
+using Kasir.Data.Repositories;
+using Kasir.Models;
+using Kasir.Services;
+using Kasir.Utils;
+
+namespace Kasir.Avalonia.Forms.Inventory;
+
+public partial class StockOutWindow : Window
+{
+    private record ItemRow(string Code, string Name, string Qty);
+
+    private readonly ObservableCollection<ItemRow> _rows = new();
+    private readonly List<StockAdjustmentItem> _items = new();
+    private readonly StockOpnameService _service;
+    private readonly ProductRepository _productRepo;
+
+    public StockOutWindow()
+    {
+        InitializeComponent();
+        var db = DbConnection.GetConnection();
+        _service = new StockOpnameService(db, new ClockImpl());
+        _productRepo = new ProductRepository(db);
+
+        CboType.ItemsSource = new[] { "USAGE - Pemakaian", "DAMAGE - Rusak", "LOSS - Hilang" };
+        CboType.SelectedIndex = 0;
+
+        DgvItems.ItemsSource = _rows;
+        SetStatus("Mutasi Barang Keluar — Ins: Add Item, F10: Save, Esc: Close");
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (KeyboardRouter.IsInsert(e)) { AddItem(); e.Handled = true; }
+        else if (KeyboardRouter.IsF10(e)) { Save(); e.Handled = true; }
+        else if (KeyboardRouter.IsEscape(e)) { Close(); e.Handled = true; }
+    }
+
+    private async void AddItem()
+    {
+        var (ok, vals) = await InputDialogWindow.Show(
+            this,
+            "Tambah Barang",
+            new[] { "Kode Barang", "Qty" },
+            new[] { "", "1" });
+
+        if (!ok) return;
+
+        string code = vals[0].Trim();
+        if (string.IsNullOrEmpty(code)) return;
+
+        if (!int.TryParse(vals[1], out int qty) || qty <= 0)
+        {
+            await MsgBox.Show(this, "Qty tidak valid.");
+            return;
+        }
+
+        var product = _productRepo.GetByCode(code);
+        if (product == null)
+        {
+            await MsgBox.Show(this, $"Barang '{code}' tidak ditemukan.");
+            return;
+        }
+
+        _items.Add(new StockAdjustmentItem
+        {
+            ProductCode = product.ProductCode,
+            ProductName = product.Name,
+            Quantity = qty
+        });
+
+        RefreshGrid();
+    }
+
+    private void RefreshGrid()
+    {
+        _rows.Clear();
+        foreach (var item in _items)
+        {
+            _rows.Add(new ItemRow(item.ProductCode ?? "", item.ProductName ?? "", item.Quantity.ToString()));
+        }
+    }
+
+    private async void Save()
+    {
+        if (_items.Count == 0)
+        {
+            await MsgBox.Show(this, "Tidak ada barang yang diinput.");
+            return;
+        }
+
+        string selectedType = CboType.SelectedItem as string ?? "USAGE - Pemakaian";
+        string docType = selectedType.Split(' ')[0];
+
+        bool confirmed = await MsgBox.Confirm(this, $"Simpan {_items.Count} item mutasi keluar ({docType})?");
+        if (!confirmed) return;
+
+        string journalNo = _service.CreateStockOut(docType, "TOKO", _items, 1);
+        await MsgBox.Show(this, $"Tersimpan: {journalNo}");
+
+        _items.Clear();
+        RefreshGrid();
+    }
+
+    private void SetStatus(string text)
+    {
+        StatusLabel.Text = text;
+    }
+}
