@@ -63,6 +63,18 @@ This project migrates the entire system to a modern, maintainable stack while pr
 - Transactions: one-way each register > hub (partitioned by register ID)
 - Automatic sync: push every 15s, pull every 60s
 
+## Release Process
+
+Releases are automated via [Release Please](https://github.com/googleapis/release-please). Commits to `main` using conventional prefixes accumulate in an auto-generated Release PR. Merging the PR creates a tag and publishes to GitHub Releases.
+
+| Prefix | Effect |
+|--------|--------|
+| `feat: ...` | minor version bump |
+| `fix: ...` | patch version bump |
+| `ds-N: ...` | design system (patch bump, appears in changelog) |
+| `refactor: ...` | patch bump |
+| `chore: ...` | no release |
+
 ## Architecture
 
 ```
