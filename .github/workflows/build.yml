@@ -24,6 +24,10 @@ jobs:
     - name: Build Kasir.Avalonia solution
       run: dotnet build Kasir.Avalonia.slnx -c Release
 
+    - name: Run grep assertions
+      run: bash ci/grep-assertions.sh
+      shell: bash
+
     - name: Run tests
       run: dotnet test Kasir.Core.Tests/Kasir.Core.Tests.csproj -c Release --no-build --logger "trx;LogFileName=test-results.trx"
 

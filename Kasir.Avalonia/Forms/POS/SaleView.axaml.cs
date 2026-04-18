@@ -15,6 +15,7 @@ using Kasir.Services;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Diagnostics;
 
 namespace Kasir.Avalonia.Forms.POS;
 
@@ -81,7 +82,11 @@ public partial class SaleView : UserControl
         if (!KeyboardRouter.IsEnter(e)) return;
         e.Handled = true;
         string code = TxtBarcode.Text?.Trim() ?? "";
-        if (!string.IsNullOrEmpty(code)) AddItemByCode(code);
+        if (!string.IsNullOrEmpty(code))
+        {
+            using var _ = PerfMetrics.Measure(PerfMetrics.BarcodeScanLine);
+            AddItemByCode(code);
+        }
         TxtBarcode.Text = "";
     }
 
@@ -140,7 +145,9 @@ public partial class SaleView : UserControl
         if (result == null) return;
         try
         {
-            var sale = _salesService.CompleteSale(result.CashAmount, result.CardAmount, result.VoucherAmount, result.CardCode, result.CardType, "");
+            Sale sale;
+            using (var _ = PerfMetrics.Measure(PerfMetrics.SaleCommit))
+                sale = _salesService.CompleteSale(result.CashAmount, result.CardAmount, result.VoucherAmount, result.CardCode, result.CardType, "");
             StatusLabel.Text = $"LUNAS: {sale.JournalNo} — Kembali: {Formatting.FormatCurrency(sale.ChangeAmount)}";
             _ = PrintReceiptAsync(sale);
             if (result.CashAmount > 0) OpenCashDrawer();
@@ -156,7 +163,9 @@ public partial class SaleView : UserControl
         try
         {
             var t = _salesService.GetTotals();
-            var sale = _salesService.CompleteSale(t.NetAmount, 0, 0, "", "", "");
+            Sale sale;
+            using (var _ = PerfMetrics.Measure(PerfMetrics.SaleCommit))
+                sale = _salesService.CompleteSale(t.NetAmount, 0, 0, "", "", "");
             StatusLabel.Text = $"LUNAS (PAS): {sale.JournalNo}";
             _ = PrintReceiptAsync(sale);
             OpenCashDrawer();
@@ -265,7 +274,11 @@ public partial class SaleView : UserControl
         List<Product> results;
         if (string.IsNullOrEmpty(query)) results = _productRepo.GetAllActive();
         else if (_searchByCode) results = _productRepo.SearchByCodePrefix(query, 50);
-        else results = _productRepo.SearchByName(query, 50);
+        else
+        {
+            using var _ = PerfMetrics.Measure(PerfMetrics.ProductSearch);
+            results = _productRepo.SearchByName(query, 50);
+        }
         foreach (var p in results)
             _searchRows.Add(new SearchRow(p.ProductCode, p.Name, Formatting.FormatCurrencyShort(p.Price), p));
         if (_searchRows.Count > 0) DgvSearch.SelectedIndex = 0;
@@ -298,11 +311,17 @@ public partial class SaleView : UserControl
     protected override async void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        PerfMetrics.Record(PerfMetrics.KeypressEcho, 0); // key routed to handler — latency is sub-ms
         if (SearchPanel.IsVisible) return;
         if (KeyboardRouter.IsF1(e)) { e.Handled = true; ShowSearch(true); }
         else if (KeyboardRouter.IsF2(e)) { e.Handled = true; ShowSearch(false); }
         else if (KeyboardRouter.IsF3(e)) { e.Handled = true; await ChangeQty(); }
-        else if (KeyboardRouter.IsF5(e)) { e.Handled = true; OpenPayment(); }
+        else if (KeyboardRouter.IsF5(e))
+        {
+            e.Handled = true;
+            using (var _ = PerfMetrics.Measure(PerfMetrics.F8PaymentVisible))
+                OpenPayment();
+        }
         else if (KeyboardRouter.IsF8(e)) { e.Handled = true; await VoidItem(); }
         else if (KeyboardRouter.IsF9(e))
         {
