@@ -1,0 +1,16 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "kasir",
+      "changelog-sections": [
+        { "type": "feat",     "section": "Features" },
+        { "type": "fix",      "section": "Bug Fixes" },
+        { "type": "refactor", "section": "Refactoring" },
+        { "type": "ds",       "section": "Design System" },
+        { "type": "perf",     "section": "Performance" },
+        { "type": "chore",    "section": "Maintenance", "hidden": true }
+      ]
+    }
+  }
+}
