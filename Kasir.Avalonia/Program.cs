@@ -19,11 +19,14 @@ class Program
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
+    {
+        var b = AppBuilder.Configure<App>().UsePlatformDetect();
 #if DEBUG
-            .WithDeveloperTools()
+        // DevTools (F12) crashes on macOS when the native bundle isn't installed.
+        // See AvaloniaUI/Avalonia#14457 — F12 gesture is hardcoded in DiagnosticsSupport.
+        if (!OperatingSystem.IsMacOS())
+            b = b.WithDeveloperTools();
 #endif
-            .WithInterFont()
-            .LogToTrace();
+        return b.WithInterFont().LogToTrace();
+    }
 }
