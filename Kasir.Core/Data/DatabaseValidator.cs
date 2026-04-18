@@ -59,9 +59,9 @@ namespace Kasir.Data
                 { "roles", new[] { "id", "name", "permissions" } },
                 { "config", new[] { "key", "value" } },
                 { "counters", new[] { "prefix", "register_id", "current_value" } },
-                { "products", new[] { "id", "code", "description" } },
-                { "sales", new[] { "id", "doc_number", "total" } },
-                { "accounts", new[] { "code", "name" } }
+                { "products", new[] { "id", "product_code", "name" } },
+                { "sales", new[] { "id", "journal_no", "total_value" } },
+                { "accounts", new[] { "account_code", "account_name" } }
             };
 
         public static ValidationResult Validate(string dbPath, bool runIntegrityCheck = false)
