@@ -34,6 +34,7 @@ public partial class MainMenuView : UserControl, INavigationAware
     private enum Level { Main, SubMenu }
     private Level _level = Level.Main;
     private string? _openCategory;
+    private TopLevel? _registeredTopLevel;
 
     public MainMenuView(int userId = 1)
     {
@@ -272,14 +273,18 @@ public partial class MainMenuView : UserControl, INavigationAware
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        var topLevel = TopLevel.GetTopLevel(this);
-        topLevel?.AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+        _registeredTopLevel = TopLevel.GetTopLevel(this);
+        _registeredTopLevel?.AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        topLevel?.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
+        // GetTopLevel(this) returns null once detached, so use the cached
+        // reference from OnAttachedToVisualTree — otherwise the tunneled Esc
+        // handler leaks onto the window and fires when other views are active,
+        // hijacking their Esc and sending the user back to login.
+        _registeredTopLevel?.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
+        _registeredTopLevel = null;
         base.OnDetachedFromVisualTree(e);
     }
 
