@@ -28,6 +28,7 @@ public partial class OpnameView : UserControl
 
         DgvOpname.ItemsSource = _rows;
         ViewShortcuts.WireGridEnter(DgvOpname, EditPhysical);
+        ViewShortcuts.AutoFocusOnAttach(this, DgvOpname);
         SetStatus("Stock Opname — F3: Load Sheet, Enter: Edit Fisik, F10: Save, Esc: Close");
     }
 

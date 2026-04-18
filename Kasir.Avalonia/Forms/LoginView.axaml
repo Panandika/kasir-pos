@@ -57,6 +57,10 @@
                    Height="34"
                    PasswordChar="*"
                    FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <TextBlock Text="Password peka huruf besar/kecil"
+                     Foreground="{DynamicResource FgDimBrush}"
+                     FontSize="11"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}" />
           <TextBlock x:Name="LblCapsLock"
                      Text="&#x26A0; CAPS LOCK AKTIF"
                      Foreground="{DynamicResource WarningBrush}"

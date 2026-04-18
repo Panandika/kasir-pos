@@ -16,10 +16,11 @@ using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Diagnostics;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.POS;
 
-public partial class SaleView : UserControl
+public partial class SaleView : UserControl, INavigationAware
 {
     private record SaleItemRow(int No, string Code, string Name, int Qty, string Price, string Total, string Disc);
     private record SearchRow(string Code, string Name, string Price, Product Tag);
@@ -32,11 +33,16 @@ public partial class SaleView : UserControl
     private readonly ShiftRepository _shiftRepo;
     private readonly ProductRepository _productRepo;
     private readonly AuthService _auth;
+    private readonly User _cashier;
     private readonly IClock _clock;
     private Shift? _currentShift;
     private bool _searchByCode;
     private DispatcherTimer? _debounce;
     private DispatcherTimer? _clockTimer;
+
+    private enum InputMode { Normal, AwaitingMiscPrice }
+    private InputMode _inputMode = InputMode.Normal;
+    private int _pendingMiscQty = 1;
 
     public SaleView(AuthService auth)
     {
@@ -53,8 +59,9 @@ public partial class SaleView : UserControl
         // If missing (e.g. deep link or navigation from a non-login state), fall
         // back to whatever AuthService knows and default to "UNKNOWN"/0 so the
         // POS can at least render — user can re-login via Esc → Keluar if needed.
-        var cashier = CurrentSession.User ?? _auth.CurrentUser;
-        _salesService.SetCashier(cashier?.Alias ?? "UNKNOWN", cashier?.Id ?? 0);
+        _cashier = CurrentSession.User ?? _auth.CurrentUser
+                   ?? new User { Id = 0, Alias = "UNKNOWN" };
+        _salesService.SetCashier(_cashier.Alias ?? "UNKNOWN", _cashier.Id);
 
         DgvItems.ItemsSource = _rows;
         DgvSearch.ItemsSource = _searchRows;
@@ -73,6 +80,14 @@ public partial class SaleView : UserControl
         _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _clockTimer.Tick += (_, _) => UpdateFooter();
         _clockTimer.Start();
+
+        ViewShortcuts.AutoFocusOnAttach(this, TxtBarcode);
+    }
+
+    public void OnNavigatedTo()
+    {
+        CheckShift();
+        Dispatcher.UIThread.Post(() => TxtBarcode.Focus(), DispatcherPriority.Background);
     }
 
     private void CheckShift()
@@ -84,25 +99,67 @@ public partial class SaleView : UserControl
 
     private void OnBarcodeKeyDown(object? sender, KeyEventArgs e)
     {
+        // Esc during misc-price prompt cancels the prompt without exiting the sale.
+        if (_inputMode == InputMode.AwaitingMiscPrice && e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            TxtBarcode.Text = "";
+            ExitPricePromptMode();
+            StatusLabel.Text = "Input Barang Tanpa Kode dibatalkan.";
+            return;
+        }
+
         if (!KeyboardRouter.IsEnter(e)) return;
         e.Handled = true;
-        string code = TxtBarcode.Text?.Trim() ?? "";
-        if (!string.IsNullOrEmpty(code))
-        {
-            using var _ = PerfMetrics.Measure(PerfMetrics.BarcodeScanLine);
-            AddItemByCode(code);
-        }
+        string raw = (TxtBarcode.Text ?? "").Trim();
         TxtBarcode.Text = "";
+        if (raw.Length == 0) return;
+
+        if (_inputMode == InputMode.AwaitingMiscPrice)
+        {
+            HandleMiscPriceInput(raw);
+            return;
+        }
+
+        // Normal mode: "<code>" or "<code>*<qty>"
+        string code; int qty = 1;
+        int star = raw.IndexOf('*');
+        if (star >= 0)
+        {
+            code = raw.Substring(0, star).Trim();
+            string qtyStr = raw.Substring(star + 1).Trim();
+            if (!int.TryParse(qtyStr, out qty) || qty < 1)
+            {
+                StatusLabel.Text = "Qty tidak valid.";
+                return;
+            }
+        }
+        else
+        {
+            code = raw;
+        }
+
+        if (code == SalesService.MiscProductCode)
+        {
+            EnterPricePromptMode(qty);
+            return;
+        }
+
+        using var _ = PerfMetrics.Measure(PerfMetrics.BarcodeScanLine);
+        AddItemByCode(code, qty);
     }
 
-    private void AddItemByCode(string code)
+    private async void AddItemByCode(string code, int qty = 1)
     {
         if (_currentShift == null)
         {
-            StatusLabel.Text = "Tidak ada shift terbuka. Buka shift dahulu (Utility > Shift).";
+            bool openNow = await MsgBox.Confirm(NavigationService.Owner,
+                "Tidak ada shift terbuka. Buka shift sekarang?");
+            if (!openNow) { StatusLabel.Text = "Shift belum dibuka."; return; }
+            NavigationService.Navigate(new ShiftView(_cashier.Id));
             return;
         }
-        var item = _salesService.AddItem(code, 1);
+        var item = _salesService.AddItem(code, qty);
         if (item == null)
         {
             if (long.TryParse(code, out long numVal))
@@ -112,7 +169,42 @@ public partial class SaleView : UserControl
         }
         RefreshGrid();
         UpdateTotals();
-        StatusLabel.Text = $"Ditambahkan: {item.ProductCode} — {item.ProductName}";
+        StatusLabel.Text = $"Ditambahkan: {item.ProductCode} — {item.ProductName}" + (qty > 1 ? $" x{qty}" : "");
+    }
+
+    private void EnterPricePromptMode(int qty)
+    {
+        _pendingMiscQty = qty;
+        _inputMode = InputMode.AwaitingMiscPrice;
+        StatusLabel.Text = $"Barang Tanpa Kode (qty={qty}) — ketik harga (Rp), Enter utk simpan, Esc utk batal.";
+    }
+
+    private void ExitPricePromptMode()
+    {
+        _inputMode = InputMode.Normal;
+        _pendingMiscQty = 1;
+    }
+
+    private void HandleMiscPriceInput(string text)
+    {
+        if (!long.TryParse(text, out long rupiah) || rupiah <= 0)
+        {
+            StatusLabel.Text = "Harga tidak valid. Ketik angka > 0 atau Esc utk batal.";
+            return;
+        }
+        try
+        {
+            long unitPriceCents = rupiah * 100;
+            var item = _salesService.AddMiscItem(_pendingMiscQty, unitPriceCents);
+            RefreshGrid();
+            UpdateTotals();
+            StatusLabel.Text = $"Ditambahkan: {SalesService.MiscProductName} — {_pendingMiscQty} x {Formatting.FormatCurrency(unitPriceCents)}";
+        }
+        catch (Exception ex)
+        {
+            StatusLabel.Text = "Gagal: " + ex.Message;
+        }
+        ExitPricePromptMode();
     }
 
     private void RefreshGrid()
@@ -139,7 +231,7 @@ public partial class SaleView : UserControl
         string regId = _configRepo.Get("register_id") ?? "01";
         string today = _clock.Now.ToString("yyyy-MM-dd");
         int cnt = _saleRepo.GetDailyCount(today);
-        LblFooter.Text = $"JAM\u2192 {_clock.Now:HH:mm:ss}  MESIN#{regId}  ID#{_auth.CurrentUser.Id}  JRNL#{cnt:D5}";
+        LblFooter.Text = $"JAM\u2192 {_clock.Now:HH:mm:ss}  MESIN#{regId}  ID#{_cashier.Id}  JRNL#{cnt:D5}";
     }
 
     private async void OpenPayment()
@@ -276,9 +368,9 @@ public partial class SaleView : UserControl
     private void LoadSearchResults(string query)
     {
         _searchRows.Clear();
+        if (string.IsNullOrEmpty(query)) return; // lazy: don't preload 24k products on F1/F2
         List<Product> results;
-        if (string.IsNullOrEmpty(query)) results = _productRepo.GetAllActive();
-        else if (_searchByCode) results = _productRepo.SearchByCodePrefix(query, 50);
+        if (_searchByCode) results = _productRepo.SearchByCodePrefix(query, 50);
         else
         {
             using var _ = PerfMetrics.Measure(PerfMetrics.ProductSearch);
@@ -348,14 +440,14 @@ public partial class SaleView : UserControl
         else if (KeyboardRouter.IsEscape(e))
         {
             e.Handled = true;
-            if (_salesService.CurrentItems.Count > 0)
-            {
-                bool ok = await MsgBox.Confirm(NavigationService.Owner, "Tinggalkan transaksi yang sedang berjalan?");
-                if (!ok) return;
-            }
+            string prompt = _salesService.CurrentItems.Count > 0
+                ? "Tinggalkan transaksi yang sedang berjalan dan kembali ke menu utama?"
+                : "Kembali ke menu utama?";
+            bool ok = await MsgBox.Confirm(NavigationService.Owner, prompt);
+            if (!ok) return;
             _clockTimer?.Stop();
             _debounce?.Stop();
-            NavigationService.GoBack();
+            NavigationService.GoHome();
         }
     }
 

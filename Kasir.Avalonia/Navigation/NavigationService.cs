@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 
@@ -16,10 +17,23 @@ public static class NavigationService
     public static ShellWindow Instance { get; private set; } = null!;
     public static Window Owner => Instance;
 
+    /// <summary>
+    /// Factory that rebuilds the post-login home view. Set by LoginView on
+    /// successful auth so any view (SaleView, ShiftView, etc.) can return
+    /// to the main menu via GoHome() without juggling AuthService refs.
+    /// </summary>
+    public static Func<UserControl>? HomeFactory { get; set; }
+
     public static void Initialize(ShellWindow shell, ContentControl host)
     {
         Instance = shell;
         _host = host;
+    }
+
+    public static void GoHome()
+    {
+        if (HomeFactory == null) return;
+        ReplaceRoot(HomeFactory());
     }
 
     public static void Navigate(UserControl view)

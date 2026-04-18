@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Utils;
@@ -50,7 +51,17 @@ public partial class MainMenuView : UserControl, INavigationAware
         RefreshStatus();
     }
 
-    public void OnNavigatedTo() => RefreshStatus();
+    public void OnNavigatedTo()
+    {
+        RefreshStatus();
+        // Re-focus a tile after GoBack so OnKeyDown/OnPreviewKeyDown receive keys
+        // without the user having to click. Deferred to Background so the visual
+        // tree is settled after NavigationService swaps content.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (BentoGrid.Children.Count > 0 && BentoGrid.Children[0] is Button b) b.Focus();
+        }, DispatcherPriority.Background);
+    }
 
     // ── Tile models ───────────────────────────────────────────────────────
 
@@ -280,6 +291,16 @@ public partial class MainMenuView : UserControl, INavigationAware
         // Don't hijack keys when a TextBox is focused (defensive — none exist on this view today).
         if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox) return;
 
+        // Escape on tunneled path so back-nav works even when no tile has focus
+        // (e.g. right after NavigationService.GoBack restores this view).
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            if (_level == Level.SubMenu) ShowMainTiles();
+            else NavigationService.ReplaceRoot(new LoginView());
+            return;
+        }
+
         var tiles = _level == Level.Main ? MainTiles() : SubTiles(_openCategory ?? "");
         foreach (var t in tiles)
         {
@@ -295,14 +316,9 @@ public partial class MainMenuView : UserControl, INavigationAware
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-
-        if (KeyboardRouter.IsEscape(e))
-        {
-            e.Handled = true;
-            if (_level == Level.SubMenu) ShowMainTiles();
-            else NavigationService.ReplaceRoot(new LoginView());
-            return;
-        }
+        // Escape is handled by the tunneled OnPreviewKeyDown above — it fires
+        // regardless of which descendant owns focus, which we need because after
+        // GoBack the restored view may not have focus on a tile yet.
 
         if (KeyboardRouter.IsF12(e))
         {

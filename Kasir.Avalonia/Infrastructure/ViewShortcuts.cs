@@ -35,4 +35,17 @@ public static class ViewShortcuts
         if (target == null) return;
         Dispatcher.UIThread.Post(() => target.Focus(), DispatcherPriority.Background);
     }
+
+    /// <summary>
+    /// Focus <paramref name="target"/> the first time <paramref name="host"/>
+    /// attaches to a visual tree. Ensures key events have a focused listener
+    /// immediately on entry — otherwise users must click inside the view
+    /// before Esc / shortcut keys start firing.
+    /// </summary>
+    public static void AutoFocusOnAttach(Control host, Control? target)
+    {
+        if (target == null) return;
+        host.AttachedToVisualTree += (_, _) =>
+            Dispatcher.UIThread.Post(() => target.Focus(), DispatcherPriority.Background);
+    }
 }

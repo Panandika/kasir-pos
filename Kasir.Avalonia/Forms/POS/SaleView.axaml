@@ -38,15 +38,16 @@
                  FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,16,0"/>
     </Panel>
-    <!-- Subtotal header -->
-    <Panel DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="60">
+    <!-- Subtotal header (legacy-style prominent banner) -->
+    <Panel DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" Height="96">
       <TextBlock Text="SUBTOTAL" Foreground="{DynamicResource FgPrimaryBrush}"
                  FontFamily="{DynamicResource JetBrainsMonoFont}"
-                 FontSize="16" VerticalAlignment="Center" Margin="10,0"/>
+                 FontWeight="Bold"
+                 FontSize="40" VerticalAlignment="Center" Margin="16,0"/>
       <TextBlock x:Name="LblSubtotal" Text="0"
                  Foreground="{DynamicResource FgPrimaryBrush}" FontWeight="Bold"
                  FontFamily="{DynamicResource JetBrainsMonoFont}"
-                 FontSize="28" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0"/>
+                 FontSize="56" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,24,0"/>
     </Panel>
     <!-- Inline search panel (hidden by default) -->
     <Border x:Name="SearchPanel" DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" IsVisible="False" Height="220">

@@ -54,7 +54,7 @@ public partial class ShiftView : UserControl
         base.OnKeyDown(e);
         if (KeyboardRouter.IsF1(e)) { e.Handled = true; _ = OpenShift(); }
         else if (KeyboardRouter.IsF2(e)) { e.Handled = true; _ = CloseShift(); }
-        else if (KeyboardRouter.IsEscape(e)) { e.Handled = true; NavigationService.GoBack(); }
+        else if (KeyboardRouter.IsEscape(e)) { e.Handled = true; NavigationService.GoHome(); }
     }
 
     private async System.Threading.Tasks.Task OpenShift()
