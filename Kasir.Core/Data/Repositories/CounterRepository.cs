@@ -1,19 +1,19 @@
 using System;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Utils;
 
 namespace Kasir.Data.Repositories
 {
     public class CounterRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly IClock _clock;
 
-        public CounterRepository(SQLiteConnection db) : this(db, null)
+        public CounterRepository(SqliteConnection db) : this(db, null)
         {
         }
 
-        public CounterRepository(SQLiteConnection db, IClock clock)
+        public CounterRepository(SqliteConnection db, IClock clock)
         {
             _db = db;
             _clock = clock ?? new ClockImpl();
@@ -21,69 +21,88 @@ namespace Kasir.Data.Repositories
 
         public string GetNext(string prefix, string registerId)
         {
-            // Atomic: BEGIN IMMEDIATE ensures exclusive write lock
-            using (var txn = _db.BeginTransaction(System.Data.IsolationLevel.Serializable))
+            // Microsoft.Data.Sqlite doesn't support nested transactions; join the existing
+            // transaction if one is already active on the connection.
+            bool joinExisting = false;
+            SqliteTransaction txn = null;
+            try
             {
                 try
                 {
-                    // Try to get existing counter
-                    int currentValue = 0;
-                    string format = null;
+                    txn = (SqliteTransaction)_db.BeginTransaction(System.Data.IsolationLevel.Serializable);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Already in a transaction — proceed without creating our own
+                    joinExisting = true;
+                }
 
-                    using (var cmd = new SQLiteCommand(
-                        "SELECT current_value, format FROM counters WHERE prefix = @prefix AND register_id = @reg",
-                        _db))
+                // Try to get existing counter
+                int currentValue = 0;
+                string format = null;
+
+                using (var cmd = _db.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT current_value, format FROM counters WHERE prefix = @prefix AND register_id = @reg";
+                    cmd.Parameters.AddWithValue("@prefix", prefix);
+                    cmd.Parameters.AddWithValue("@reg", registerId);
+
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        cmd.Parameters.AddWithValue("@prefix", prefix);
-                        cmd.Parameters.AddWithValue("@reg", registerId);
-
-                        using (var reader = cmd.ExecuteReader())
+                        if (reader.Read())
                         {
-                            if (reader.Read())
-                            {
-                                currentValue = reader.GetInt32(0);
-                                format = reader.IsDBNull(1) ? null : reader.GetString(1);
-                            }
-                            else
-                            {
-                                // Create counter if it doesn't exist
-                                SqlHelper.ExecuteNonQuery(_db,
-                                    "INSERT INTO counters (prefix, register_id, current_value) VALUES (@prefix, @reg, 0)",
-                                    SqlHelper.Param("@prefix", prefix),
-                                    SqlHelper.Param("@reg", registerId));
-                            }
+                            currentValue = reader.GetInt32(0);
+                            format = reader.IsDBNull(1) ? null : reader.GetString(1);
+                        }
+                        else
+                        {
+                            // Create counter if it doesn't exist
+                            SqlHelper.ExecuteNonQuery(_db,
+                                "INSERT INTO counters (prefix, register_id, current_value) VALUES (@prefix, @reg, 0)",
+                                SqlHelper.Param("@prefix", prefix),
+                                SqlHelper.Param("@reg", registerId));
                         }
                     }
-
-                    // Increment
-                    int nextValue = currentValue + 1;
-
-                    SqlHelper.ExecuteNonQuery(_db,
-                        "UPDATE counters SET current_value = @val WHERE prefix = @prefix AND register_id = @reg",
-                        SqlHelper.Param("@val", nextValue),
-                        SqlHelper.Param("@prefix", prefix),
-                        SqlHelper.Param("@reg", registerId));
-
-                    txn.Commit();
-
-                    // Format the number
-                    if (!string.IsNullOrEmpty(format))
-                    {
-                        return FormatNumber(format, prefix, registerId, nextValue);
-                    }
-
-                    // Default format: PREFIX-REG-YYMM-SEQ
-                    return string.Format("{0}-{1}-{2}-{3}",
-                        prefix,
-                        registerId,
-                        _clock.Now.ToString("yyMM"),
-                        nextValue.ToString("D4"));
                 }
-                catch
+
+                // Increment
+                int nextValue = currentValue + 1;
+
+                SqlHelper.ExecuteNonQuery(_db,
+                    "UPDATE counters SET current_value = @val WHERE prefix = @prefix AND register_id = @reg",
+                    SqlHelper.Param("@val", nextValue),
+                    SqlHelper.Param("@prefix", prefix),
+                    SqlHelper.Param("@reg", registerId));
+
+                if (!joinExisting && txn != null)
                 {
-                    txn.Rollback();
-                    throw;
+                    txn.Commit();
                 }
+
+                // Format the number
+                if (!string.IsNullOrEmpty(format))
+                {
+                    return FormatNumber(format, prefix, registerId, nextValue);
+                }
+
+                // Default format: PREFIX-REG-YYMM-SEQ
+                return string.Format("{0}-{1}-{2}-{3}",
+                    prefix,
+                    registerId,
+                    _clock.Now.ToString("yyMM"),
+                    nextValue.ToString("D4"));
+            }
+            catch
+            {
+                if (!joinExisting && txn != null)
+                {
+                    try { txn.Rollback(); } catch { }
+                }
+                throw;
+            }
+            finally
+            {
+                if (txn != null) txn.Dispose();
             }
         }
 

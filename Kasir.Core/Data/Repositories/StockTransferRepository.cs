@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class StockTransferRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public StockTransferRepository(SQLiteConnection db)
+        public StockTransferRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -48,7 +48,7 @@ namespace Kasir.Data.Repositories
                     }
 
                     txn.Commit();
-                    return (int)_db.LastInsertRowId;
+                    return (int)SqlHelper.LastInsertRowId(_db);
                 }
                 catch { txn.Rollback(); throw; }
             }

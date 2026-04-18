@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class ProductBarcodeRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public ProductBarcodeRepository(SQLiteConnection db)
+        public ProductBarcodeRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -41,7 +41,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@price", barcode.PriceOverride),
                 SqlHelper.Param("@customer", barcode.CustomerCode));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public void Delete(int id)
@@ -51,7 +51,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", id));
         }
 
-        private static ProductBarcode MapBarcode(SQLiteDataReader reader)
+        private static ProductBarcode MapBarcode(SqliteDataReader reader)
         {
             return new ProductBarcode
             {

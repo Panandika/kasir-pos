@@ -1,5 +1,5 @@
 using System;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data;
 using Kasir.Utils;
 
@@ -7,7 +7,7 @@ namespace Kasir.Sync
 {
     public class SyncEngine
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly ISyncFileWriter _fileWriter;
         private readonly ISyncFileReader _fileReader;
         private readonly IClock _clock;
@@ -16,7 +16,7 @@ namespace Kasir.Sync
         public string LastPullResult { get; private set; }
         public DateTime LastSyncTime { get; private set; }
 
-        public SyncEngine(SQLiteConnection db)
+        public SyncEngine(SqliteConnection db)
         {
             _db = db;
             _fileWriter = new SyncFileWriter();
@@ -25,7 +25,7 @@ namespace Kasir.Sync
         }
 
         public SyncEngine(
-            SQLiteConnection db,
+            SqliteConnection db,
             ISyncFileWriter fileWriter,
             ISyncFileReader fileReader,
             IClock clock)

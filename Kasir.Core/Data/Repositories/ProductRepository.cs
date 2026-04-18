@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class ProductRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public ProductRepository(SQLiteConnection db)
+        public ProductRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -223,7 +223,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@type", product.ProductType),
                 SqlHelper.Param("@changedBy", product.ChangedBy));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public void Update(Product product)
@@ -265,7 +265,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", id));
         }
 
-        private static Product MapProduct(SQLiteDataReader reader)
+        private static Product MapProduct(SqliteDataReader reader)
         {
             return new Product
             {

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Linq;
 using Kasir.Data.Migrations;
@@ -18,7 +18,7 @@ namespace Kasir.Data
             // new Migration_004(),
         };
 
-        public static void Run(SQLiteConnection db)
+        public static void Run(SqliteConnection db)
         {
             var configRepo = new ConfigRepository(db);
             string versionStr = configRepo.Get("schema_version") ?? "1";
@@ -61,11 +61,11 @@ namespace Kasir.Data
             }
         }
 
-        private static void BackupDatabase(SQLiteConnection db)
+        private static void BackupDatabase(SqliteConnection db)
         {
             try
             {
-                string dbPath = db.FileName;
+                string dbPath = new SqliteConnectionStringBuilder(db.ConnectionString).DataSource;
                 if (string.IsNullOrEmpty(dbPath) || !File.Exists(dbPath))
                     return;
 

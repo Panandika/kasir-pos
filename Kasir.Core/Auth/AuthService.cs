@@ -1,5 +1,5 @@
 using System;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 
@@ -12,7 +12,7 @@ namespace Kasir.Auth
         private int _failedAttempts;
         private DateTime _lockoutUntil;
 
-        public AuthService(SQLiteConnection db)
+        public AuthService(SqliteConnection db)
         {
             _userRepo = new UserRepository(db);
             _failedAttempts = 0;

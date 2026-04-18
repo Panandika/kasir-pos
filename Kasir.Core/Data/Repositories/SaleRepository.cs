@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class SaleRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public SaleRepository(SQLiteConnection db)
+        public SaleRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -71,7 +71,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@register", sale.RegisterId ?? "01"),
                 SqlHelper.Param("@changedBy", sale.ChangedBy));
 
-            int saleId = (int)_db.LastInsertRowId;
+            int saleId = (int)SqlHelper.LastInsertRowId(_db);
 
             foreach (var item in items)
             {
@@ -152,7 +152,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@date", date));
         }
 
-        private static Sale MapSale(SQLiteDataReader reader)
+        private static Sale MapSale(SqliteDataReader reader)
         {
             return new Sale
             {
@@ -188,7 +188,7 @@ namespace Kasir.Data.Repositories
             };
         }
 
-        private static SaleItem MapSaleItem(SQLiteDataReader reader)
+        private static SaleItem MapSaleItem(SqliteDataReader reader)
         {
             return new SaleItem
             {

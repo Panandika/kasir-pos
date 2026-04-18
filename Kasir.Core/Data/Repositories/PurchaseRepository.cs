@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class PurchaseRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public PurchaseRepository(SQLiteConnection db)
+        public PurchaseRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -65,7 +65,7 @@ namespace Kasir.Data.Repositories
                     }
 
                     txn.Commit();
-                    return (int)_db.LastInsertRowId;
+                    return (int)SqlHelper.LastInsertRowId(_db);
                 }
                 catch { txn.Rollback(); throw; }
             }
@@ -96,7 +96,7 @@ namespace Kasir.Data.Repositories
                 MapPurchaseItem, SqlHelper.Param("@jnl", journalNo));
         }
 
-        private static Purchase MapPurchase(SQLiteDataReader r)
+        private static Purchase MapPurchase(SqliteDataReader r)
         {
             return new Purchase
             {
@@ -126,7 +126,7 @@ namespace Kasir.Data.Repositories
             };
         }
 
-        private static PurchaseItem MapPurchaseItem(SQLiteDataReader r)
+        private static PurchaseItem MapPurchaseItem(SqliteDataReader r)
         {
             return new PurchaseItem
             {

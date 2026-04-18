@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class FiscalPeriodRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public FiscalPeriodRepository(SQLiteConnection db)
+        public FiscalPeriodRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -59,7 +59,7 @@ namespace Kasir.Data.Repositories
             return period != null && period.Status == "C";
         }
 
-        private static FiscalPeriod MapPeriod(SQLiteDataReader r)
+        private static FiscalPeriod MapPeriod(SqliteDataReader r)
         {
             return new FiscalPeriod
             {

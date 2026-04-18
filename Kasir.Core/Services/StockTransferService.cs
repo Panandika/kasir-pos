@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
@@ -9,14 +9,14 @@ namespace Kasir.Services
 {
     public class StockTransferService
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly StockTransferRepository _transferRepo;
         private readonly CounterRepository _counterRepo;
         private readonly ConfigRepository _configRepo;
         private readonly InventoryService _inventoryService;
         private readonly IClock _clock;
 
-        public StockTransferService(SQLiteConnection db, IClock clock)
+        public StockTransferService(SqliteConnection db, IClock clock)
         {
             _db = db;
             _transferRepo = new StockTransferRepository(db);

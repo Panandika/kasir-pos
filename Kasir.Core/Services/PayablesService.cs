@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
@@ -35,12 +35,12 @@ namespace Kasir.Services
 
     public class PayablesService
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly PayablesRepository _payablesRepo;
         private readonly AccountingService _accountingService;
         private readonly CounterRepository _counterRepo;
 
-        public PayablesService(SQLiteConnection db)
+        public PayablesService(SqliteConnection db)
         {
             _db = db;
             _payablesRepo = new PayablesRepository(db);

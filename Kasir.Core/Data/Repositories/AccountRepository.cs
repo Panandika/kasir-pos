@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class AccountRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public AccountRepository(SQLiteConnection db)
+        public AccountRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -30,7 +30,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@vf", account.VerifyFlag ?? ""),
                 SqlHelper.Param("@changedBy", account.ChangedBy));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public void Update(Account account)
@@ -96,7 +96,7 @@ namespace Kasir.Data.Repositories
                 MapAccount, SqlHelper.Param("@kw", "%" + keyword + "%"));
         }
 
-        private static Account MapAccount(SQLiteDataReader r)
+        private static Account MapAccount(SqliteDataReader r)
         {
             return new Account
             {

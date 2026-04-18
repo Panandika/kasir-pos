@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class PayablesRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public PayablesRepository(SQLiteConnection db)
+        public PayablesRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -34,7 +34,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@period", entry.PeriodCode),
                 SqlHelper.Param("@changedBy", entry.ChangedBy));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public List<PayablesEntry> GetUnpaidByVendor(string vendorCode)
@@ -72,7 +72,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@jnl", journalNo));
         }
 
-        private static PayablesEntry MapEntry(SQLiteDataReader r)
+        private static PayablesEntry MapEntry(SqliteDataReader r)
         {
             return new PayablesEntry
             {

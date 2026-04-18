@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class CreditCardRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public CreditCardRepository(SQLiteConnection db)
+        public CreditCardRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -40,7 +40,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@min", card.MinValue),
                 SqlHelper.Param("@changedBy", card.ChangedBy));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public void Update(CreditCard card)
@@ -64,7 +64,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", id));
         }
 
-        private static CreditCard MapCard(SQLiteDataReader reader)
+        private static CreditCard MapCard(SqliteDataReader reader)
         {
             return new CreditCard
             {

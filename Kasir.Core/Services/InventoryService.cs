@@ -1,5 +1,5 @@
 using System;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
@@ -8,11 +8,11 @@ namespace Kasir.Services
 {
     public class InventoryService
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly StockMovementRepository _movementRepo;
         private readonly ConfigRepository _configRepo;
 
-        public InventoryService(SQLiteConnection db)
+        public InventoryService(SqliteConnection db)
         {
             _db = db;
             _movementRepo = new StockMovementRepository(db);

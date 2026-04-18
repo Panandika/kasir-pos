@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class AccountBalanceRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public AccountBalanceRepository(SQLiteConnection db)
+        public AccountBalanceRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -115,7 +115,7 @@ namespace Kasir.Data.Repositories
             }
         }
 
-        private static AccountBalance MapBalance(SQLiteDataReader r)
+        private static AccountBalance MapBalance(SqliteDataReader r)
         {
             return new AccountBalance
             {

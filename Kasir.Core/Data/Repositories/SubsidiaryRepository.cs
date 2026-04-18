@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class SubsidiaryRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public SubsidiaryRepository(SQLiteConnection db)
+        public SubsidiaryRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -95,7 +95,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@bank", sub.BankName),
                 SqlHelper.Param("@bankNo", sub.BankAccountNo),
                 SqlHelper.Param("@changedBy", sub.ChangedBy));
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public void Update(Subsidiary sub)
@@ -116,7 +116,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", sub.Id));
         }
 
-        private static Subsidiary MapSubsidiary(SQLiteDataReader reader)
+        private static Subsidiary MapSubsidiary(SqliteDataReader reader)
         {
             return new Subsidiary
             {

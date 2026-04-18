@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class DepartmentRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public DepartmentRepository(SQLiteConnection db)
+        public DepartmentRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -37,7 +37,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@name", dept.Name),
                 SqlHelper.Param("@changedBy", dept.ChangedBy));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public void Update(Department dept)
@@ -58,7 +58,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", id));
         }
 
-        private static Department MapDepartment(SQLiteDataReader reader)
+        private static Department MapDepartment(SqliteDataReader reader)
         {
             return new Department
             {

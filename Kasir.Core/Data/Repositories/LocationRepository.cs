@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class LocationRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public LocationRepository(SQLiteConnection db)
+        public LocationRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -37,10 +37,10 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@name", loc.Name),
                 SqlHelper.Param("@remark", loc.Remark),
                 SqlHelper.Param("@changedBy", loc.ChangedBy));
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
-        private static Location MapLocation(SQLiteDataReader reader)
+        private static Location MapLocation(SqliteDataReader reader)
         {
             return new Location
             {

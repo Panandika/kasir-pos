@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
@@ -15,12 +15,12 @@ namespace Kasir.Sync
     {
         private static readonly Regex ValidColumnName = new Regex(@"^[a-z_][a-z0-9_]{0,63}$");
 
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly ConfigRepository _configRepo;
         private readonly ISyncFileReader _fileReader;
 
         public PullService(
-            SQLiteConnection db,
+            SqliteConnection db,
             ISyncFileReader fileReader)
         {
             _db = db;
@@ -47,8 +47,12 @@ namespace Kasir.Sync
 
             foreach (string file in files)
             {
-                // Skip files from our own register
-                string fileName = System.IO.Path.GetFileName(file);
+                // Skip files from our own register.
+                // Path.GetFileName only splits on the OS-native separator, so handle both
+                // '\' (Windows SMB paths) and '/' explicitly.
+                string fileName = file;
+                int sep = fileName.LastIndexOfAny(new[] { '\\', '/' });
+                if (sep >= 0) fileName = fileName.Substring(sep + 1);
                 if (fileName.StartsWith(registerId + "_"))
                 {
                     continue;
@@ -216,7 +220,7 @@ namespace Kasir.Sync
 
             var columns = new List<string>();
             var paramNames = new List<string>();
-            var parameters = new List<SQLiteParameter>();
+            var parameters = new List<SqliteParameter>();
 
             int i = 0;
             foreach (var kvp in evt.Data)
@@ -225,7 +229,7 @@ namespace Kasir.Sync
                 columns.Add("[" + kvp.Key + "]");
                 string paramName = "@p" + i;
                 paramNames.Add(paramName);
-                parameters.Add(new SQLiteParameter(paramName, kvp.Value ?? DBNull.Value));
+                parameters.Add(new SqliteParameter(paramName, kvp.Value ?? DBNull.Value));
                 i++;
             }
 
@@ -235,8 +239,9 @@ namespace Kasir.Sync
                 string.Join(", ", columns),
                 string.Join(", ", paramNames));
 
-            using (var cmd = new SQLiteCommand(sql, _db))
+            using (var cmd = _db.CreateCommand())
             {
+                cmd.CommandText = sql;
                 foreach (var p in parameters)
                 {
                     cmd.Parameters.Add(p);
@@ -257,7 +262,7 @@ namespace Kasir.Sync
 
             // Then UPDATE
             var setClauses = new List<string>();
-            var parameters = new List<SQLiteParameter>();
+            var parameters = new List<SqliteParameter>();
 
             int i = 0;
             foreach (var kvp in evt.Data)
@@ -266,19 +271,20 @@ namespace Kasir.Sync
                 if (!ValidColumnName.IsMatch(kvp.Key)) continue;
                 string paramName = "@u" + i;
                 setClauses.Add(string.Format("[{0}] = {1}", kvp.Key, paramName));
-                parameters.Add(new SQLiteParameter(paramName, kvp.Value ?? DBNull.Value));
+                parameters.Add(new SqliteParameter(paramName, kvp.Value ?? DBNull.Value));
                 i++;
             }
 
-            parameters.Add(new SQLiteParameter("@key", evt.RecordKey));
+            parameters.Add(new SqliteParameter("@key", evt.RecordKey));
 
             string sql = string.Format("UPDATE [{0}] SET {1} WHERE [{2}] = @key",
                 evt.TableName,
                 string.Join(", ", setClauses),
                 keyColumn);
 
-            using (var cmd = new SQLiteCommand(sql, _db))
+            using (var cmd = _db.CreateCommand())
             {
+                cmd.CommandText = sql;
                 foreach (var p in parameters)
                 {
                     cmd.Parameters.Add(p);
@@ -295,8 +301,9 @@ namespace Kasir.Sync
             string sql = string.Format("DELETE FROM [{0}] WHERE [{1}] = @key",
                 evt.TableName, keyColumn);
 
-            using (var cmd = new SQLiteCommand(sql, _db))
+            using (var cmd = _db.CreateCommand())
             {
+                cmd.CommandText = sql;
                 cmd.Parameters.AddWithValue("@key", evt.RecordKey);
                 cmd.ExecuteNonQuery();
             }

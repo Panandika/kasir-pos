@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class CashTransactionRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public CashTransactionRepository(SQLiteConnection db)
+        public CashTransactionRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -61,7 +61,7 @@ namespace Kasir.Data.Repositories
                     }
 
                     dbTxn.Commit();
-                    return (int)_db.LastInsertRowId;
+                    return (int)SqlHelper.LastInsertRowId(_db);
                 }
                 catch { dbTxn.Rollback(); throw; }
             }
@@ -108,7 +108,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@jnl", journalNo));
         }
 
-        private static CashTransaction MapTransaction(SQLiteDataReader r)
+        private static CashTransaction MapTransaction(SqliteDataReader r)
         {
             return new CashTransaction
             {
@@ -132,7 +132,7 @@ namespace Kasir.Data.Repositories
             };
         }
 
-        private static CashTransactionLine MapLine(SQLiteDataReader r)
+        private static CashTransactionLine MapLine(SqliteDataReader r)
         {
             return new CashTransactionLine
             {

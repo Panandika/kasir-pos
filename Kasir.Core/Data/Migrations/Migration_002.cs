@@ -1,4 +1,4 @@
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 
 namespace Kasir.Data.Migrations
 {
@@ -10,7 +10,7 @@ namespace Kasir.Data.Migrations
         public int Version { get { return 2; } }
         public string Description { get { return "Add discount engine columns (dept_code, is_active, priority, etc.)"; } }
 
-        public void Up(SQLiteConnection db)
+        public void Up(SqliteConnection db)
         {
             // Add columns if they don't already exist (fresh DBs have them from Schema.sql)
             string[] columns = new string[]
@@ -24,7 +24,7 @@ namespace Kasir.Data.Migrations
                 "ALTER TABLE discounts ADD COLUMN priority INTEGER DEFAULT 0",
                 "ALTER TABLE discounts ADD COLUMN is_active INTEGER DEFAULT 1"
             };
-            using (var cmd = new SQLiteCommand(db))
+            using (var cmd = db.CreateCommand())
             {
                 foreach (string sql in columns)
                 {
@@ -33,7 +33,7 @@ namespace Kasir.Data.Migrations
                         cmd.CommandText = sql;
                         cmd.ExecuteNonQuery();
                     }
-                    catch (SQLiteException)
+                    catch (SqliteException)
                     {
                         // Column already exists (fresh DB from Schema.sql)
                     }

@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class OrderRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public OrderRepository(SQLiteConnection db)
+        public OrderRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -52,7 +52,7 @@ namespace Kasir.Data.Repositories
                     }
 
                     txn.Commit();
-                    return (int)_db.LastInsertRowId;
+                    return (int)SqlHelper.LastInsertRowId(_db);
                 }
                 catch { txn.Rollback(); throw; }
             }
@@ -79,7 +79,7 @@ namespace Kasir.Data.Repositories
                 MapOrderItem, SqlHelper.Param("@jnl", journalNo));
         }
 
-        private static Order MapOrder(SQLiteDataReader r)
+        private static Order MapOrder(SqliteDataReader r)
         {
             return new Order
             {
@@ -103,7 +103,7 @@ namespace Kasir.Data.Repositories
             };
         }
 
-        private static OrderItem MapOrderItem(SQLiteDataReader r)
+        private static OrderItem MapOrderItem(SqliteDataReader r)
         {
             return new OrderItem
             {

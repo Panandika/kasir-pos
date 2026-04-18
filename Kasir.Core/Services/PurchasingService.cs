@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
@@ -9,7 +9,7 @@ namespace Kasir.Services
 {
     public class PurchasingService
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly OrderRepository _orderRepo;
         private readonly PurchaseRepository _purchaseRepo;
         private readonly PayablesRepository _payablesRepo;
@@ -18,7 +18,7 @@ namespace Kasir.Services
         private readonly InventoryService _inventoryService;
         private readonly IClock _clock;
 
-        public PurchasingService(SQLiteConnection db, IClock clock)
+        public PurchasingService(SqliteConnection db, IClock clock)
         {
             _db = db;
             _orderRepo = new OrderRepository(db);

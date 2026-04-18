@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class MemorialJournalRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public MemorialJournalRepository(SQLiteConnection db)
+        public MemorialJournalRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -36,7 +36,7 @@ namespace Kasir.Data.Repositories
                 MapLine, SqlHelper.Param("@jnl", journalNo));
         }
 
-        private static MemorialJournal MapJournal(SQLiteDataReader r)
+        private static MemorialJournal MapJournal(SqliteDataReader r)
         {
             return new MemorialJournal
             {
@@ -57,7 +57,7 @@ namespace Kasir.Data.Repositories
             };
         }
 
-        private static MemorialJournalLine MapLine(SQLiteDataReader r)
+        private static MemorialJournalLine MapLine(SqliteDataReader r)
         {
             return new MemorialJournalLine
             {

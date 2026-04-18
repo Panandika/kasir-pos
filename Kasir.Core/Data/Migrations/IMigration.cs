@@ -1,4 +1,4 @@
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 
 namespace Kasir.Data.Migrations
 {
@@ -6,6 +6,6 @@ namespace Kasir.Data.Migrations
     {
         int Version { get; }
         string Description { get; }
-        void Up(SQLiteConnection db);
+        void Up(SqliteConnection db);
     }
 }

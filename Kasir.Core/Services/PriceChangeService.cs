@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
@@ -10,11 +10,11 @@ namespace Kasir.Services
 {
     public class PriceChangeService
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly ProductRepository _productRepo;
         private readonly PriceHistoryRepository _historyRepo;
 
-        public PriceChangeService(SQLiteConnection db)
+        public PriceChangeService(SqliteConnection db)
         {
             _db = db;
             _productRepo = new ProductRepository(db);

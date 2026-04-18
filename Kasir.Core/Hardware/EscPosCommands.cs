@@ -4,6 +4,12 @@ namespace Kasir.Hardware
 {
     public static class EscPosCommands
     {
+        static EscPosCommands()
+        {
+            // Register CodePages provider so Encoding.GetEncoding(437) works on .NET Core/.NET 5+
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        }
+
         public static readonly byte[] Init        = { 0x1B, 0x40 };                        // ESC @
         public static readonly byte[] CenterAlign = { 0x1B, 0x61, 0x01 };                  // ESC a 1
         public static readonly byte[] LeftAlign   = { 0x1B, 0x61, 0x00 };                  // ESC a 0

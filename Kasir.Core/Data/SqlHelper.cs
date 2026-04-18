@@ -1,20 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 
 namespace Kasir.Data
 {
     public static class SqlHelper
     {
         public static List<T> Query<T>(
-            SQLiteConnection db,
+            SqliteConnection db,
             string sql,
-            Func<SQLiteDataReader, T> mapper,
-            params SQLiteParameter[] parameters)
+            Func<SqliteDataReader, T> mapper,
+            params SqliteParameter[] parameters)
         {
             var results = new List<T>();
-            using (var cmd = new SQLiteCommand(sql, db))
+            using (var cmd = db.CreateCommand())
             {
+                cmd.CommandText = sql;
                 foreach (var p in parameters)
                 {
                     cmd.Parameters.Add(p);
@@ -32,13 +33,14 @@ namespace Kasir.Data
         }
 
         public static T QuerySingle<T>(
-            SQLiteConnection db,
+            SqliteConnection db,
             string sql,
-            Func<SQLiteDataReader, T> mapper,
-            params SQLiteParameter[] parameters) where T : class
+            Func<SqliteDataReader, T> mapper,
+            params SqliteParameter[] parameters) where T : class
         {
-            using (var cmd = new SQLiteCommand(sql, db))
+            using (var cmd = db.CreateCommand())
             {
+                cmd.CommandText = sql;
                 foreach (var p in parameters)
                 {
                     cmd.Parameters.Add(p);
@@ -56,12 +58,13 @@ namespace Kasir.Data
         }
 
         public static T ExecuteScalar<T>(
-            SQLiteConnection db,
+            SqliteConnection db,
             string sql,
-            params SQLiteParameter[] parameters)
+            params SqliteParameter[] parameters)
         {
-            using (var cmd = new SQLiteCommand(sql, db))
+            using (var cmd = db.CreateCommand())
             {
+                cmd.CommandText = sql;
                 foreach (var p in parameters)
                 {
                     cmd.Parameters.Add(p);
@@ -77,12 +80,13 @@ namespace Kasir.Data
         }
 
         public static int ExecuteNonQuery(
-            SQLiteConnection db,
+            SqliteConnection db,
             string sql,
-            params SQLiteParameter[] parameters)
+            params SqliteParameter[] parameters)
         {
-            using (var cmd = new SQLiteCommand(sql, db))
+            using (var cmd = db.CreateCommand())
             {
+                cmd.CommandText = sql;
                 foreach (var p in parameters)
                 {
                     cmd.Parameters.Add(p);
@@ -92,26 +96,54 @@ namespace Kasir.Data
             }
         }
 
-        public static SQLiteParameter Param(string name, object value)
+        public static long LastInsertRowId(SqliteConnection db)
         {
-            return new SQLiteParameter(name, value ?? DBNull.Value);
+            using (var cmd = db.CreateCommand())
+            {
+                cmd.CommandText = "SELECT last_insert_rowid();";
+                object result = cmd.ExecuteScalar();
+                return result == null || result == DBNull.Value ? 0L : Convert.ToInt64(result);
+            }
         }
 
-        public static string GetString(SQLiteDataReader reader, string column)
+        public static SqliteParameter Param(string name, object value)
         {
-            int ordinal = reader.GetOrdinal(column);
+            return new SqliteParameter(name, value ?? DBNull.Value);
+        }
+
+        private static int FindOrdinal(SqliteDataReader reader, string column)
+        {
+            // Microsoft.Data.Sqlite's GetOrdinal is case-sensitive and throws when
+            // the column is missing. Emulate System.Data.SQLite's lenient behavior:
+            // case-insensitive lookup, returning -1 when absent.
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                if (string.Equals(reader.GetName(i), column, StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        public static string GetString(SqliteDataReader reader, string column)
+        {
+            int ordinal = FindOrdinal(reader, column);
+            if (ordinal < 0) return null;
             return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
         }
 
-        public static int GetInt(SQLiteDataReader reader, string column)
+        public static int GetInt(SqliteDataReader reader, string column)
         {
-            int ordinal = reader.GetOrdinal(column);
+            int ordinal = FindOrdinal(reader, column);
+            if (ordinal < 0) return 0;
             return reader.IsDBNull(ordinal) ? 0 : reader.GetInt32(ordinal);
         }
 
-        public static long GetLong(SQLiteDataReader reader, string column)
+        public static long GetLong(SqliteDataReader reader, string column)
         {
-            int ordinal = reader.GetOrdinal(column);
+            int ordinal = FindOrdinal(reader, column);
+            if (ordinal < 0) return 0L;
             return reader.IsDBNull(ordinal) ? 0L : reader.GetInt64(ordinal);
         }
     }

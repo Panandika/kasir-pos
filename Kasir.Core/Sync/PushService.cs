@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,14 +14,14 @@ namespace Kasir.Sync
 {
     public class PushService
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly SyncQueueRepository _queueRepo;
         private readonly ConfigRepository _configRepo;
         private readonly ISyncFileWriter _fileWriter;
         private readonly IClock _clock;
 
         public PushService(
-            SQLiteConnection db,
+            SqliteConnection db,
             ISyncFileWriter fileWriter,
             IClock clock)
         {
@@ -154,8 +154,9 @@ namespace Kasir.Sync
 
             var data = new Dictionary<string, object>();
 
-            using (var cmd = new SQLiteCommand(sql, _db))
+            using (var cmd = _db.CreateCommand())
             {
+                cmd.CommandText = sql;
                 cmd.Parameters.AddWithValue("@key", recordKey);
                 using (var reader = cmd.ExecuteReader())
                 {

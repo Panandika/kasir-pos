@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class UserRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public UserRepository(SQLiteConnection db)
+        public UserRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -49,7 +49,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@role", user.RoleId),
                 SqlHelper.Param("@active", user.IsActive));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public void Update(User user)
@@ -84,7 +84,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", userId));
         }
 
-        private static User MapUser(SQLiteDataReader reader)
+        private static User MapUser(SqliteDataReader reader)
         {
             return new User
             {

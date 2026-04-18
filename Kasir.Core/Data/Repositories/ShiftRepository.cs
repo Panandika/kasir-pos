@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class ShiftRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public ShiftRepository(SQLiteConnection db)
+        public ShiftRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -24,7 +24,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@opened", shift.OpenedAt),
                 SqlHelper.Param("@cash", shift.OpeningCash));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public void CloseShift(int id, long closingCash, long expectedCash)
@@ -65,7 +65,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@to", dateTo + " 23:59:59"));
         }
 
-        private static Shift MapShift(SQLiteDataReader reader)
+        private static Shift MapShift(SqliteDataReader reader)
         {
             return new Shift
             {

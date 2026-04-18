@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
@@ -9,7 +9,7 @@ namespace Kasir.Services
 {
     public class StockOpnameService
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly StockAdjustmentRepository _adjRepo;
         private readonly CounterRepository _counterRepo;
         private readonly ConfigRepository _configRepo;
@@ -17,7 +17,7 @@ namespace Kasir.Services
         private readonly ProductRepository _productRepo;
         private readonly IClock _clock;
 
-        public StockOpnameService(SQLiteConnection db, IClock clock)
+        public StockOpnameService(SqliteConnection db, IClock clock)
         {
             _db = db;
             _adjRepo = new StockAdjustmentRepository(db);

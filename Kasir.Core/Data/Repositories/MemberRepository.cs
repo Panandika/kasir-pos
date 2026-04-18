@@ -1,13 +1,13 @@
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class MemberRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public MemberRepository(SQLiteConnection db)
+        public MemberRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -29,7 +29,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@code", memberCode));
         }
 
-        private static Member MapMember(SQLiteDataReader reader)
+        private static Member MapMember(SqliteDataReader reader)
         {
             return new Member
             {

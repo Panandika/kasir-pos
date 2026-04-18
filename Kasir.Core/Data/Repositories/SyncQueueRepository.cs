@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class SyncQueueRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public SyncQueueRepository(SQLiteConnection db)
+        public SyncQueueRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -68,7 +68,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", beforeId));
         }
 
-        private static SyncQueueEntry MapEntry(SQLiteDataReader reader)
+        private static SyncQueueEntry MapEntry(SqliteDataReader reader)
         {
             return new SyncQueueEntry
             {

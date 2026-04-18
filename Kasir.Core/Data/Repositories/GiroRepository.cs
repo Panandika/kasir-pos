@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class GiroRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public GiroRepository(SQLiteConnection db)
+        public GiroRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -34,7 +34,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@period", giro.PeriodCode),
                 SqlHelper.Param("@changedBy", giro.ChangedBy));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public GiroEntry GetById(int id)
@@ -72,7 +72,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", id));
         }
 
-        private static GiroEntry MapGiro(SQLiteDataReader r)
+        private static GiroEntry MapGiro(SqliteDataReader r)
         {
             return new GiroEntry
             {

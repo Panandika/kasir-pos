@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data;
 using Kasir.Models;
 using Newtonsoft.Json;
@@ -15,12 +15,12 @@ namespace Kasir.Auth
             // Fallback: hardcoded permissions (backward compat for tests)
         }
 
-        public PermissionService(SQLiteConnection db)
+        public PermissionService(SqliteConnection db)
         {
             LoadPermissionsFromDb(db);
         }
 
-        private void LoadPermissionsFromDb(SQLiteConnection db)
+        private void LoadPermissionsFromDb(SqliteConnection db)
         {
             try
             {

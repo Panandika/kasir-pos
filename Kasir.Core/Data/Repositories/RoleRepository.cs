@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class RoleRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public RoleRepository(SQLiteConnection db)
+        public RoleRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -36,7 +36,7 @@ namespace Kasir.Data.Repositories
                 MapRole);
         }
 
-        private static Role MapRole(SQLiteDataReader reader)
+        private static Role MapRole(SqliteDataReader reader)
         {
             return new Role
             {

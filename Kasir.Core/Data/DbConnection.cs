@@ -1,5 +1,5 @@
 using System;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -36,11 +36,11 @@ namespace Kasir.Data
         private static readonly string DbPath = Path.Combine(DbDirectory, "kasir.db");
 
         private static readonly string ConnectionString =
-            string.Format("Data Source={0};Version=3;", DbPath);
+            string.Format("Data Source={0}", DbPath);
 
-        private static SQLiteConnection _connection;
+        private static SqliteConnection _connection;
 
-        public static SQLiteConnection GetConnection()
+        public static SqliteConnection GetConnection()
         {
             // Record UI thread on first call; warn if called from a background thread
             if (_uiThreadId == 0)
@@ -52,7 +52,7 @@ namespace Kasir.Data
 
             if (_connection == null)
             {
-                _connection = new SQLiteConnection(ConnectionString);
+                _connection = new SqliteConnection(ConnectionString);
                 _connection.Open();
                 ConfigurePragmas(_connection);
                 TryLoadFts5(_connection);
@@ -68,9 +68,9 @@ namespace Kasir.Data
             return _connection;
         }
 
-        public static SQLiteConnection CreateConnection()
+        public static SqliteConnection CreateConnection()
         {
-            var conn = new SQLiteConnection(ConnectionString);
+            var conn = new SqliteConnection(ConnectionString);
             conn.Open();
             ConfigurePragmas(conn);
             TryLoadFts5(conn);
@@ -99,7 +99,7 @@ namespace Kasir.Data
                 }
             }
 
-            using (var conn = new SQLiteConnection(ConnectionString))
+            using (var conn = new SqliteConnection(ConnectionString))
             {
                 conn.Open();
                 ConfigurePragmas(conn);
@@ -147,7 +147,7 @@ namespace Kasir.Data
 
         private static void CreateFromEmbeddedSchema()
         {
-            using (var conn = new SQLiteConnection(ConnectionString))
+            using (var conn = new SqliteConnection(ConnectionString))
             {
                 conn.Open();
                 ConfigurePragmas(conn);
@@ -159,9 +159,9 @@ namespace Kasir.Data
             }
         }
 
-        private static void ConfigurePragmas(SQLiteConnection conn)
+        private static void ConfigurePragmas(SqliteConnection conn)
         {
-            using (var cmd = new SQLiteCommand(conn))
+            using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = "PRAGMA journal_mode=WAL;";
                 cmd.ExecuteNonQuery();
@@ -183,24 +183,15 @@ namespace Kasir.Data
             }
         }
 
-        private static void TryLoadFts5(SQLiteConnection conn)
+        private static void TryLoadFts5(SqliteConnection conn)
         {
-            try
-            {
-                conn.EnableExtensions(true);
-                conn.LoadExtension("SQLite.Interop.dll", "sqlite3_fts5_init");
-            }
-            catch (Exception)
-            {
-                // FTS5 may be built-in (Win11) or unavailable
-                // ProductRepository.Search will use LIKE fallback
-            }
+            // FTS5 is compiled into SQLitePCLRaw.bundle_e_sqlite3 — no extension loading needed
         }
 
         private static string ReadEmbeddedSchema()
         {
             var assembly = Assembly.GetExecutingAssembly();
-            string resourceName = "Kasir.Core.Data.Schema.sql";
+            string resourceName = "Kasir.Data.Schema.sql";
 
             using (var stream = assembly.GetManifestResourceStream(resourceName))
             {
@@ -217,23 +208,23 @@ namespace Kasir.Data
             }
         }
 
-        private static void ExecuteSchema(SQLiteConnection conn, string schema)
+        private static void ExecuteSchema(SqliteConnection conn, string schema)
         {
             // Split on semicolons to handle multi-statement schema
             // But we need to be careful with triggers that contain semicolons
             // So execute the entire schema as one command
-            using (var cmd = new SQLiteCommand(conn))
+            using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = schema;
                 cmd.ExecuteNonQuery();
             }
         }
 
-        private static void SeedDefaultData(SQLiteConnection conn)
+        private static void SeedDefaultData(SqliteConnection conn)
         {
             using (var txn = conn.BeginTransaction())
             {
-                using (var cmd = new SQLiteCommand(conn))
+                using (var cmd = conn.CreateCommand())
                 {
                     // Seed roles — UPSERT to update permissions on existing DBs
                     cmd.CommandText = @"
@@ -255,10 +246,7 @@ namespace Kasir.Data
 
                     // Generate cryptographically random HMAC key for this installation
                     byte[] hmacKeyBytes = new byte[32];
-                    using (var rng = new RNGCryptoServiceProvider())
-                    {
-                        rng.GetBytes(hmacKeyBytes);
-                    }
+                    RandomNumberGenerator.Fill(hmacKeyBytes);
                     string hmacKey = Convert.ToBase64String(hmacKeyBytes);
 
                     // Seed config

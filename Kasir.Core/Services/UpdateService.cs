@@ -1,5 +1,5 @@
 using System;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -29,15 +29,15 @@ namespace Kasir.Services
     public class UpdateService
     {
         private readonly ConfigRepository _configRepo;
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly IFileSystem _fs;
         private readonly int _timeoutMs;
 
-        public UpdateService(SQLiteConnection db) : this(db, new FileSystemImpl(), 15000)
+        public UpdateService(SqliteConnection db) : this(db, new FileSystemImpl(), 15000)
         {
         }
 
-        public UpdateService(SQLiteConnection db, IFileSystem fs, int timeoutMs)
+        public UpdateService(SqliteConnection db, IFileSystem fs, int timeoutMs)
         {
             _db = db;
             _configRepo = new ConfigRepository(db);
@@ -193,7 +193,7 @@ namespace Kasir.Services
         {
             try
             {
-                using (var cmd = new SQLiteCommand(_db))
+                using (var cmd = _db.CreateCommand())
                 {
                     cmd.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
                     cmd.ExecuteNonQuery();

@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class GlDetailRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public GlDetailRepository(SQLiteConnection db)
+        public GlDetailRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -38,7 +38,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@qtyOut", detail.QtyOut),
                 SqlHelper.Param("@period", detail.PeriodCode));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public List<GlDetail> GetByJournalNo(string journalNo)
@@ -96,7 +96,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@acc", accountCode));
         }
 
-        private static GlDetail MapGlDetail(SQLiteDataReader r)
+        private static GlDetail MapGlDetail(SqliteDataReader r)
         {
             return new GlDetail
             {

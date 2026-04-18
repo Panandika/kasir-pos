@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
@@ -9,7 +9,7 @@ namespace Kasir.Services
 {
     public class SalesService
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
         private readonly ProductRepository _productRepo;
         private readonly ProductBarcodeRepository _barcodeRepo;
         private readonly SaleRepository _saleRepo;
@@ -27,7 +27,7 @@ namespace Kasir.Services
         private string _cashierAlias;
         private int _cashierUserId;
 
-        public SalesService(SQLiteConnection db, IClock clock)
+        public SalesService(SqliteConnection db, IClock clock)
         {
             _db = db;
             _productRepo = new ProductRepository(db);

@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class PriceHistoryRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public PriceHistoryRepository(SQLiteConnection db)
+        public PriceHistoryRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -38,7 +38,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@code", productCode));
         }
 
-        private static PriceHistory MapEntry(SQLiteDataReader reader)
+        private static PriceHistory MapEntry(SqliteDataReader reader)
         {
             return new PriceHistory
             {

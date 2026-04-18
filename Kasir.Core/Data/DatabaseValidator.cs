@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.IO;
 
 namespace Kasir.Data
@@ -80,11 +80,11 @@ namespace Kasir.Data
                 return result;
             }
 
-            string connStr = string.Format("Data Source={0};Version=3;", dbPath);
+            string connStr = string.Format("Data Source={0}", dbPath);
 
             try
             {
-                using (var conn = new SQLiteConnection(connStr))
+                using (var conn = new SqliteConnection(connStr))
                 {
                     conn.Open();
 
@@ -107,7 +107,7 @@ namespace Kasir.Data
                     CheckAtLeastOneActiveUser(conn, result);
                 }
             }
-            catch (SQLiteException ex)
+            catch (SqliteException ex)
             {
                 result.AddError("SQLite error opening database: " + ex.Message);
             }
@@ -119,9 +119,9 @@ namespace Kasir.Data
             return result;
         }
 
-        private static bool CheckIntegrity(SQLiteConnection conn, ValidationResult result)
+        private static bool CheckIntegrity(SqliteConnection conn, ValidationResult result)
         {
-            using (var cmd = new SQLiteCommand("PRAGMA integrity_check;", conn))
+            using (var cmd = new SqliteCommand("PRAGMA integrity_check;", conn))
             using (var reader = cmd.ExecuteReader())
             {
                 if (reader.Read())
@@ -137,10 +137,10 @@ namespace Kasir.Data
             return true;
         }
 
-        private static HashSet<string> LoadTableNames(SQLiteConnection conn)
+        private static HashSet<string> LoadTableNames(SqliteConnection conn)
         {
             var tables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            using (var cmd = new SQLiteCommand(
+            using (var cmd = new SqliteCommand(
                 "SELECT name FROM sqlite_master WHERE type IN ('table','view');", conn))
             using (var reader = cmd.ExecuteReader())
             {
@@ -168,7 +168,7 @@ namespace Kasir.Data
             }
         }
 
-        private static void CheckRequiredColumns(SQLiteConnection conn, ValidationResult result)
+        private static void CheckRequiredColumns(SqliteConnection conn, ValidationResult result)
         {
             foreach (var kv in RequiredColumns)
             {
@@ -189,10 +189,10 @@ namespace Kasir.Data
             }
         }
 
-        private static HashSet<string> LoadColumns(SQLiteConnection conn, string table)
+        private static HashSet<string> LoadColumns(SqliteConnection conn, string table)
         {
             var cols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            using (var cmd = new SQLiteCommand("PRAGMA table_info(" + table + ");", conn))
+            using (var cmd = new SqliteCommand("PRAGMA table_info(" + table + ");", conn))
             using (var reader = cmd.ExecuteReader())
             {
                 while (reader.Read())
@@ -203,11 +203,11 @@ namespace Kasir.Data
             return cols;
         }
 
-        private static void CheckSchemaVersion(SQLiteConnection conn, ValidationResult result)
+        private static void CheckSchemaVersion(SqliteConnection conn, ValidationResult result)
         {
             try
             {
-                using (var cmd = new SQLiteCommand(
+                using (var cmd = new SqliteCommand(
                     "SELECT value FROM config WHERE key = 'schema_version';", conn))
                 {
                     var raw = cmd.ExecuteScalar();
@@ -232,17 +232,17 @@ namespace Kasir.Data
                     // Older versions are acceptable — MigrationRunner will upgrade.
                 }
             }
-            catch (SQLiteException ex)
+            catch (SqliteException ex)
             {
                 result.AddError("Could not read schema_version: " + ex.Message);
             }
         }
 
-        private static void CheckAtLeastOneActiveUser(SQLiteConnection conn, ValidationResult result)
+        private static void CheckAtLeastOneActiveUser(SqliteConnection conn, ValidationResult result)
         {
             try
             {
-                using (var cmd = new SQLiteCommand(
+                using (var cmd = new SqliteCommand(
                     "SELECT COUNT(*) FROM users WHERE is_active = 1;", conn))
                 {
                     var raw = cmd.ExecuteScalar();
@@ -253,7 +253,7 @@ namespace Kasir.Data
                     }
                 }
             }
-            catch (SQLiteException ex)
+            catch (SqliteException ex)
             {
                 result.AddError("Could not count users: " + ex.Message);
             }

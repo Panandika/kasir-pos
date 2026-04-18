@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class StockMovementRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public StockMovementRepository(SQLiteConnection db)
+        public StockMovementRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -38,7 +38,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@cost", m.CostPrice),
                 SqlHelper.Param("@changedBy", m.ChangedBy));
 
-            return (int)_db.LastInsertRowId;
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public int GetStockOnHand(string productCode)
@@ -87,7 +87,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@jnl", journalNo));
         }
 
-        private static StockMovement MapMovement(SQLiteDataReader reader)
+        private static StockMovement MapMovement(SqliteDataReader reader)
         {
             return new StockMovement
             {

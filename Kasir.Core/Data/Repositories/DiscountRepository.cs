@@ -1,14 +1,14 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
 namespace Kasir.Data.Repositories
 {
     public class DiscountRepository
     {
-        private readonly SQLiteConnection _db;
+        private readonly SqliteConnection _db;
 
-        public DiscountRepository(SQLiteConnection db)
+        public DiscountRepository(SqliteConnection db)
         {
             _db = db;
         }
@@ -38,7 +38,7 @@ namespace Kasir.Data.Repositories
                 MapDiscount);
         }
 
-        private static Discount MapDiscount(SQLiteDataReader reader)
+        private static Discount MapDiscount(SqliteDataReader reader)
         {
             return new Discount
             {
