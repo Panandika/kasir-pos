@@ -1,0 +1,11 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.ShellWindow"
+        WindowState="FullScreen"
+        WindowDecorations="None"
+        Background="#000000"
+        Focusable="True">
+  <ContentControl x:Name="ContentArea"
+                  HorizontalContentAlignment="Stretch"
+                  VerticalContentAlignment="Stretch" />
+</Window>
