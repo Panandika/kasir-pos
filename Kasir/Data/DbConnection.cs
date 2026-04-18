@@ -5,6 +5,8 @@ using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Threading;
+using System.Windows.Forms;
+using Kasir.Forms.Admin;
 
 namespace Kasir.Data
 {
@@ -65,7 +67,20 @@ namespace Kasir.Data
                 Directory.CreateDirectory(DbDirectory);
             }
 
-            bool isNew = !File.Exists(DbPath);
+            bool isFresh = !File.Exists(DbPath) || new FileInfo(DbPath).Length == 0;
+
+            if (isFresh)
+            {
+                HandleFirstRun();
+            }
+            else
+            {
+                var validation = Kasir.Data.DatabaseValidator.Validate(DbPath);
+                if (!validation.IsValid)
+                {
+                    throw new DatabaseCorruptException(validation.Errors);
+                }
+            }
 
             using (var conn = new SQLiteConnection(ConnectionString))
             {
@@ -73,15 +88,56 @@ namespace Kasir.Data
                 ConfigurePragmas(conn);
                 TryLoadFts5(conn);
 
-                if (isNew)
+                // Run pending schema migrations (for existing and imported databases)
+                MigrationRunner.Run(conn);
+            }
+        }
+
+        private static void HandleFirstRun()
+        {
+            using (var dlg = new FirstRunDialog())
+            {
+                var result = dlg.ShowDialog();
+                if (result != DialogResult.OK)
                 {
-                    string schema = ReadEmbeddedSchema();
-                    ExecuteSchema(conn, schema);
-                    SeedDefaultData(conn);
+                    Environment.Exit(0);
                 }
 
-                // Run pending schema migrations (for existing databases)
-                MigrationRunner.Run(conn);
+                if (dlg.Choice == FirstRunChoice.Seed)
+                {
+                    CreateFromEmbeddedSchema();
+                }
+                else if (dlg.Choice == FirstRunChoice.Import)
+                {
+                    // Dialog already validated the file (with integrity check).
+                    // Re-validate defensively in case the file changed between selection and copy.
+                    var validation = Kasir.Data.DatabaseValidator.Validate(
+                        dlg.ImportPath, runIntegrityCheck: true);
+                    if (!validation.IsValid)
+                    {
+                        throw new DatabaseCorruptException(validation.Errors);
+                    }
+                    // Overwrite a stale 0-byte file if present (isFresh permits this).
+                    File.Copy(dlg.ImportPath, DbPath, overwrite: true);
+                }
+                else
+                {
+                    Environment.Exit(0);
+                }
+            }
+        }
+
+        private static void CreateFromEmbeddedSchema()
+        {
+            using (var conn = new SQLiteConnection(ConnectionString))
+            {
+                conn.Open();
+                ConfigurePragmas(conn);
+                TryLoadFts5(conn);
+
+                string schema = ReadEmbeddedSchema();
+                ExecuteSchema(conn, schema);
+                SeedDefaultData(conn);
             }
         }
 
@@ -170,11 +226,13 @@ namespace Kasir.Data
                         ON CONFLICT(id) DO UPDATE SET permissions = excluded.permissions;";
                     cmd.ExecuteNonQuery();
 
-                    // Seed admin user (password: admin, BCrypt cost 10)
-                    // BCrypt hash for "admin" — pre-computed so we don't need BCrypt dependency at init time
+                    // Seed default user (username SM, password 74121, BCrypt cost 10)
+                    // Pre-computed hash so we don't need BCrypt dependency at init time.
+                    // NOTE: This is a development/first-run seed credential. Change immediately
+                    // in production by editing the user's password via Admin > User Management.
                     cmd.CommandText = @"
                         INSERT OR IGNORE INTO users (id, username, password_hash, password_salt, display_name, alias, role_id, is_active)
-                        VALUES (1, 'ADMIN', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '', 'Administrator', 'ADM', 1, 1);";
+                        VALUES (1, 'SM', '$2a$10$NY6KtUrBIR4TrEXaYB/do.3q4.2hQPBZmoFDYqRcf2hxdpnsdvlY.', '', 'Sinar Makmur', 'SM', 1, 1);";
                     cmd.ExecuteNonQuery();
 
                     // Generate cryptographically random HMAC key for this installation

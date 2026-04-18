@@ -53,6 +53,8 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Data\DbConnection.cs" />
+    <Compile Include="Data\DatabaseValidator.cs" />
+    <Compile Include="Data\DatabaseCorruptException.cs" />
     <Compile Include="Data\SqlHelper.cs" />
     <Compile Include="Data\Repositories\UserRepository.cs" />
     <Compile Include="Data\Repositories\RoleRepository.cs" />
@@ -160,6 +162,7 @@
     <Compile Include="Forms\LoginForm.cs" />
     <Compile Include="Forms\MainMenuForm.cs" />
     <Compile Include="Forms\Shared\InputDialog.cs" />
+    <Compile Include="Forms\Admin\FirstRunDialog.cs" />
     <Compile Include="Forms\Admin\UserForm.cs" />
     <Compile Include="Forms\Admin\PrinterConfigForm.cs" />
     <Compile Include="Forms\Admin\BackupForm.cs" />
