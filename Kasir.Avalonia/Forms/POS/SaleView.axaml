@@ -1,66 +1,67 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Kasir.Avalonia.Forms.POS.SaleView"
-        Background="#000000">
+        x:DataType="x:Object"
+        Background="{DynamicResource Bg0Brush}">
   <DockPanel>
     <!-- Status bar bottom -->
-    <Panel DockPanel.Dock="Bottom" Background="#001400" Height="24">
-      <TextBlock x:Name="LblFooter" Foreground="#004400"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg1Brush}" Height="24">
+      <TextBlock x:Name="LblFooter" Foreground="{DynamicResource FgDimBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0"/>
     </Panel>
     <!-- Action bar -->
-    <Panel DockPanel.Dock="Bottom" Background="#001400" Height="24">
-      <TextBlock x:Name="StatusLabel" Foreground="#008800"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg1Brush}" Height="24">
+      <TextBlock x:Name="StatusLabel" Foreground="{DynamicResource FgSecondaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="11" VerticalAlignment="Center" Margin="8,0"/>
     </Panel>
     <!-- Barcode input bar -->
-    <Panel DockPanel.Dock="Bottom" Background="#000000" Height="34">
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg0Brush}" Height="34">
       <Grid ColumnDefinitions="Auto,*">
-        <TextBlock Grid.Column="0" Text="&gt;" Foreground="#00dc00" VerticalAlignment="Center"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+        <TextBlock Grid.Column="0" Text="&gt;" Foreground="{DynamicResource FgPrimaryBrush}" VerticalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="15" Margin="8,0,6,0"/>
-        <TextBox Grid.Column="1" x:Name="TxtBarcode" Background="#000000" Foreground="#00dc00"
+        <TextBox Grid.Column="1" x:Name="TxtBarcode" Background="{DynamicResource Bg0Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
                  BorderBrush="Transparent" BorderThickness="0"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="15" Height="30"/>
       </Grid>
     </Panel>
     <!-- Total row -->
-    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="30">
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="30">
       <TextBlock x:Name="LblTotalRow" Text="TOTAL&#x2192;  0"
-                 Foreground="#00dc00" FontWeight="Bold"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}" FontWeight="Bold"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="14" VerticalAlignment="Center" Margin="10,0"/>
       <TextBlock x:Name="LblItemCount" Text="0"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,16,0"/>
     </Panel>
     <!-- Subtotal header -->
-    <Panel DockPanel.Dock="Top" Background="#001400" Height="60">
-      <TextBlock Text="SUBTOTAL" Foreground="#ffffff"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+    <Panel DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="60">
+      <TextBlock Text="SUBTOTAL" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="16" VerticalAlignment="Center" Margin="10,0"/>
       <TextBlock x:Name="LblSubtotal" Text="0"
-                 Foreground="#ffffff" FontWeight="Bold"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}" FontWeight="Bold"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="28" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0"/>
     </Panel>
     <!-- Inline search panel (hidden by default) -->
-    <Border x:Name="SearchPanel" DockPanel.Dock="Top" Background="#002800" IsVisible="False" Height="220">
+    <Border x:Name="SearchPanel" DockPanel.Dock="Top" Background="{DynamicResource Bg2Brush}" IsVisible="False" Height="220">
       <DockPanel>
-        <Panel DockPanel.Dock="Top" Background="#001400" Height="32">
-          <TextBlock x:Name="LblSearchMode" Text="Cari Kode:" Foreground="#ff9900"
-                     FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+        <Panel DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="32">
+          <TextBlock x:Name="LblSearchMode" Text="Cari Kode:" Foreground="{DynamicResource WarningBrush}"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}"
                      FontSize="13" VerticalAlignment="Center" Margin="8,0"/>
         </Panel>
-        <TextBox x:Name="TxtSearchInput" DockPanel.Dock="Top" Background="#001400" Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+        <TextBox x:Name="TxtSearchInput" DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="13" Height="30"/>
         <DataGrid x:Name="DgvSearch" AutoGenerateColumns="False" IsReadOnly="True"
-                  Background="#001400" Foreground="#00dc00" GridLinesVisibility="Horizontal"
-                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                  Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" GridLinesVisibility="Horizontal"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="12" x:CompileBindings="False">
           <DataGrid.Columns>
             <DataGridTextColumn Header="KODE" Binding="{Binding Code}" Width="1.5*" CanUserSort="False"/>
@@ -72,8 +73,8 @@
     </Border>
     <!-- Items grid -->
     <DataGrid x:Name="DgvItems" AutoGenerateColumns="False" IsReadOnly="True"
-              Background="#000000" Foreground="#00dc00" GridLinesVisibility="Horizontal"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              Background="{DynamicResource Bg0Brush}" Foreground="{DynamicResource FgPrimaryBrush}" GridLinesVisibility="Horizontal"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
               FontSize="13" x:CompileBindings="False">
       <DataGrid.Columns>
         <DataGridTextColumn Header="NO" Binding="{Binding No}" Width="0.4*" CanUserSort="False"/>

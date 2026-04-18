@@ -1,26 +1,27 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Kasir.Avalonia.Forms.Bank.BankView"
-             Background="#000000">
+             x:DataType="x:Object"
+             Background="{DynamicResource Bg0Brush}">
   <DockPanel>
     <Border DockPanel.Dock="Bottom"
-            Background="#002800"
+            Background="{DynamicResource Bg2Brush}"
             Height="28">
       <TextBlock x:Name="StatusLabel"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
                  Margin="8,0" />
     </Border>
     <DataGrid x:Name="DgvBanks"
               AutoGenerateColumns="False"
-              Background="#001400"
-              Foreground="#00dc00"
+              Background="{DynamicResource Bg1Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
               GridLinesVisibility="Horizontal"
               HeadersVisibility="Column"
               IsReadOnly="True"
-              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
               FontSize="13"
               x:CompileBindings="False">
       <DataGrid.Columns>

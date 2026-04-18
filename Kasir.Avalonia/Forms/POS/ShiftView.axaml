@@ -1,12 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Kasir.Avalonia.Forms.POS.ShiftView"
-        Background="#000000">
+        x:DataType="x:Object"
+        Background="{DynamicResource Bg0Brush}">
   <DockPanel>
-    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
       <TextBlock x:Name="StatusLabel"
-                 Foreground="#00dc00"
-                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  VerticalAlignment="Center"
                  Margin="8,0" />
@@ -18,32 +19,32 @@
                   Width="500">
         <TextBlock Text="MANAJEMEN SHIFT"
                    FontSize="18"
-                   Foreground="#00dc00"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
                    HorizontalAlignment="Center"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
         <TextBlock x:Name="LblStatus"
                    FontSize="15"
-                   Foreground="#ff9900"
+                   Foreground="{DynamicResource WarningBrush}"
                    HorizontalAlignment="Center"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
         <TextBlock x:Name="LblInfo"
-                   Foreground="#008800"
+                   Foreground="{DynamicResource FgSecondaryBrush}"
                    FontSize="13"
                    TextWrapping="Wrap"
                    HorizontalAlignment="Center"
-                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
           <Button x:Name="BtnOpenShift"
                   Content="F1 - Buka Shift"
                   Width="220" Height="44"
-                  Background="#004400" Foreground="#00dc00"
-                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                  Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="13" />
           <Button x:Name="BtnCloseShift"
                   Content="F2 - Tutup Shift"
                   Width="220" Height="44"
-                  Background="#440000" Foreground="#ff5050"
-                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                  Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="13" />
         </StackPanel>
       </StackPanel>
