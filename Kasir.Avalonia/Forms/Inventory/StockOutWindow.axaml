@@ -45,7 +45,8 @@
               HeadersVisibility="Column"
               IsReadOnly="True"
               FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
-              FontSize="13">
+              FontSize="13"
+              x:CompileBindings="False">
       <DataGrid.Columns>
         <DataGridTextColumn Header="Kode"
                             Binding="{Binding Code}"

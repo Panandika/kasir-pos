@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.Admin.PrinterConfigWindow"
+        WindowState="FullScreen"
+        WindowDecorations="None"
+        Background="#000000">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Panel>
+      <StackPanel HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Spacing="16"
+                  Width="500">
+        <TextBlock Text="KONFIGURASI PRINTER"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Foreground="#00dc00"
+                   HorizontalAlignment="Center"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+        <TextBlock Text="Nama Printer (dari Devices and Printers):"
+                   Foreground="#00dc00"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                   FontSize="13" />
+        <TextBox x:Name="TxtPrinterName"
+                 Width="460"
+                 Height="34"
+                 Background="#001400"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="13" />
+        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+          <Button x:Name="BtnTestPrint"
+                  Content="Test Print"
+                  Width="150" Height="34"
+                  Background="#004400" Foreground="#00dc00"
+                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                  FontSize="13" />
+          <Button x:Name="BtnTestDrawer"
+                  Content="Test Drawer"
+                  Width="150" Height="34"
+                  Background="#004400" Foreground="#00dc00"
+                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                  FontSize="13" />
+          <Button x:Name="BtnSave"
+                  Content="Simpan"
+                  Width="150" Height="34"
+                  Background="#004400" Foreground="#00dc00"
+                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                  FontSize="13" />
+        </StackPanel>
+      </StackPanel>
+    </Panel>
+  </DockPanel>
+</Window>

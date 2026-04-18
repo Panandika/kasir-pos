@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.POS.PaymentWindow"
+        Width="480" Height="380"
+        WindowStartupLocation="CenterOwner" CanResize="False"
+        WindowDecorations="None" Background="#000000">
+  <DockPanel Margin="16">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                HorizontalAlignment="Right" Spacing="10" Margin="0,12,0,0">
+      <Button x:Name="BtnOk" Content="Konfirmasi (Enter)"
+              Width="160" Height="34"
+              Background="#004400" Foreground="#00dc00"
+              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontSize="13"/>
+      <Button x:Name="BtnCancel" Content="Batal (Esc)"
+              Width="100" Height="34"
+              Background="#440000" Foreground="#ff5050"
+              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+              FontSize="13"/>
+    </StackPanel>
+    <StackPanel Spacing="8">
+      <TextBlock x:Name="LblTotal" FontSize="18" FontWeight="Bold" Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"/>
+      <Grid ColumnDefinitions="140,*">
+        <TextBlock Grid.Column="0" Text="Tunai (Rp):" Foreground="#008800" VerticalAlignment="Center"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13"/>
+        <TextBox Grid.Column="1" x:Name="TxtCash" Background="#001400" Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13" Height="30"/>
+      </Grid>
+      <Grid ColumnDefinitions="140,*,110,*">
+        <TextBlock Grid.Column="0" Text="Kartu (Rp):" Foreground="#008800" VerticalAlignment="Center"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13"/>
+        <TextBox Grid.Column="1" x:Name="TxtCard" Background="#001400" Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13" Height="30"/>
+        <TextBlock Grid.Column="2" Text="Jenis Kartu:" Foreground="#008800" VerticalAlignment="Center"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13" Margin="6,0,4,0"/>
+        <ComboBox Grid.Column="3" x:Name="CboCardType" Background="#001400" Foreground="#00dc00"
+                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13" Height="30"/>
+      </Grid>
+      <Grid ColumnDefinitions="140,*">
+        <TextBlock Grid.Column="0" Text="Voucher (Rp):" Foreground="#008800" VerticalAlignment="Center"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13"/>
+        <TextBox Grid.Column="1" x:Name="TxtVoucher" Background="#001400" Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" FontSize="13" Height="30"/>
+      </Grid>
+      <TextBlock x:Name="LblChange" FontSize="16" FontWeight="Bold" Foreground="#ff9900"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"/>
+    </StackPanel>
+  </DockPanel>
+</Window>

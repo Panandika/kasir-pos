@@ -17,6 +17,7 @@
               AutoGenerateColumns="False"
               SelectionMode="Single"
               Foreground="#00dc00"
+              x:CompileBindings="False"
               Background="#001400"
               GridLinesVisibility="Horizontal"
               HeadersVisibility="Column"

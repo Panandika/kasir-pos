@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Kasir.Avalonia.Forms.Master.DepartmentWindow"
+        x:Class="Kasir.Avalonia.Forms.Admin.UserWindow"
         WindowState="FullScreen"
         WindowDecorations="None"
         Background="#000000">
@@ -13,8 +13,7 @@
                  VerticalAlignment="Center"
                  Margin="8,0" />
     </Panel>
-    <DataGrid x:Name="DgvDepts"
-              x:CompileBindings="False"
+    <DataGrid x:Name="DgvUsers"
               AutoGenerateColumns="False"
               SelectionMode="Single"
               Foreground="#00dc00"
@@ -25,14 +24,14 @@
               FontSize="13"
               CanUserReorderColumns="False"
               CanUserResizeColumns="True"
-              IsReadOnly="True">
+              IsReadOnly="True"
+              x:CompileBindings="False">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Kode" Binding="{Binding DeptCode}"
-                            Width="1.2*" CanUserSort="False" />
-        <DataGridTextColumn Header="Nama" Binding="{Binding Name}"
-                            Width="4*" CanUserSort="False" />
-        <DataGridTextColumn Header="Diubah" Binding="{Binding ChangedAt}"
-                            Width="2*" CanUserSort="False" />
+        <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="2*" CanUserSort="False" />
+        <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" Width="3*" CanUserSort="False" />
+        <DataGridTextColumn Header="Alias" Binding="{Binding Alias}" Width="1*" CanUserSort="False" />
+        <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="1.5*" CanUserSort="False" />
+        <DataGridTextColumn Header="Aktif" Binding="{Binding Active}" Width="1*" CanUserSort="False" />
       </DataGrid.Columns>
     </DataGrid>
   </DockPanel>

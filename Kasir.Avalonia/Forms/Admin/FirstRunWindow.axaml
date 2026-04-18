@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.Admin.FirstRunWindow"
+        Width="560"
+        Height="380"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        WindowDecorations="None"
+        Background="#000000">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Height="50" Background="#001400">
+      <TextBlock x:Name="LblStatus"
+                 Foreground="#ff5050"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 TextWrapping="Wrap"
+                 Margin="16,4" />
+    </Panel>
+    <StackPanel Margin="24,20" Spacing="16">
+      <TextBlock Text="Database belum ditemukan."
+                 FontSize="16"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+      <TextBlock Text="Pilih cara memulai:"
+                 Foreground="#008800"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="13" />
+      <Button x:Name="BtnSeed"
+              Content="1. Gunakan data contoh (Seed)"
+              Height="44"
+              Background="#004400"
+              Foreground="#00dc00"
+              HorizontalAlignment="Stretch"
+              FontSize="13"
+              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+      <Button x:Name="BtnImport"
+              Content="2. Impor database yang sudah ada..."
+              Height="44"
+              Background="#002800"
+              Foreground="#00dc00"
+              HorizontalAlignment="Stretch"
+              FontSize="13"
+              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+      <Button x:Name="BtnCancel"
+              Content="3. Batal (keluar)"
+              Height="44"
+              Background="#440000"
+              Foreground="#ff5050"
+              HorizontalAlignment="Stretch"
+              FontSize="13"
+              FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+    </StackPanel>
+  </DockPanel>
+</Window>

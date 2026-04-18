@@ -1,0 +1,87 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.LoginWindow"
+        WindowState="FullScreen"
+        WindowDecorations="None"
+        Background="#000000">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="#002800" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="#00dc00"
+                 FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <Panel>
+      <Border Background="#0a1a0a"
+              CornerRadius="4"
+              Padding="30"
+              Width="440"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock x:Name="LblStoreName"
+                     Text="TOKO SINAR MAKMUR"
+                     Foreground="#008800"
+                     HorizontalAlignment="Center"
+                     FontSize="14"
+                     FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+          <TextBlock Text="KASIR POS"
+                     Foreground="#00dc00"
+                     FontSize="28"
+                     HorizontalAlignment="Center"
+                     FontWeight="Bold"
+                     FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+          <TextBlock x:Name="LblVersion"
+                     Foreground="#004400"
+                     FontSize="12"
+                     HorizontalAlignment="Center"
+                     FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+          <TextBlock Text="Username:"
+                     Foreground="#008800"
+                     FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                     FontSize="13" />
+          <TextBox x:Name="TxtUsername"
+                   Background="#001400"
+                   Foreground="#00dc00"
+                   FontSize="15"
+                   Height="34"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+          <TextBlock Text="Password:"
+                     Foreground="#008800"
+                     FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                     FontSize="13" />
+          <TextBox x:Name="TxtPassword"
+                   Background="#001400"
+                   Foreground="#00dc00"
+                   FontSize="15"
+                   Height="34"
+                   PasswordChar="*"
+                   FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+          <TextBlock x:Name="LblCapsLock"
+                     Text="&#x26A0; CAPS LOCK AKTIF"
+                     Foreground="#ff9900"
+                     IsVisible="False"
+                     FontSize="12"
+                     FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+          <TextBlock x:Name="LblMessage"
+                     Foreground="#ff5050"
+                     FontSize="13"
+                     TextWrapping="Wrap"
+                     HorizontalAlignment="Center"
+                     FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace" />
+          <Button x:Name="BtnLogin"
+                  Content="LOGIN"
+                  Background="#004400"
+                  Foreground="#00dc00"
+                  Height="40"
+                  HorizontalAlignment="Stretch"
+                  FontFamily="Consolas,Cascadia Mono,Liberation Mono,DejaVu Sans Mono,monospace"
+                  FontSize="15"
+                  FontWeight="Bold" />
+        </StackPanel>
+      </Border>
+    </Panel>
+  </DockPanel>
+</Window>
