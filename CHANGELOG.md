@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.3](https://github.com/Panandika/kasir-pos/compare/v2.2.2...v2.2.3) (2026-04-18)
+
+
+### Bug Fixes
+
+* **release:** use PAT so release events trigger downstream workflows ([65eaa18](https://github.com/Panandika/kasir-pos/commit/65eaa180792c617d066453aefa603d8e3a3a17d1))
+
 ## [2.2.2](https://github.com/Panandika/kasir-pos/compare/v2.2.1...v2.2.2) (2026-04-18)
 
 
