@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS subsidiaries (
     discount1       BIGINT      NOT NULL DEFAULT 0,
     disc1_pct       INTEGER     NOT NULL DEFAULT 0,
     disc2_pct       INTEGER     NOT NULL DEFAULT 0,
+    bank_name       TEXT,
+    bank_holder     TEXT,
+    bank_account_no TEXT,
+    bank_branch     TEXT,
     changed_at      TIMESTAMPTZ,
     changed_by      INTEGER
 );
