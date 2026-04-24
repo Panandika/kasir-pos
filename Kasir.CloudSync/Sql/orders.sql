@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS orders (
+    journal_no      TEXT        PRIMARY KEY,
+    id              INTEGER     NOT NULL,
+    doc_type        TEXT        NOT NULL,
+    doc_date        TEXT        NOT NULL,
+    account_code    TEXT,
+    sub_code        TEXT        NOT NULL,
+    group1          TEXT,
+    remark          TEXT,
+    total_value     BIGINT      NOT NULL DEFAULT 0,
+    disc_pct        INTEGER     NOT NULL DEFAULT 0,
+    due_date        TIMESTAMPTZ,
+    is_posted       TEXT,
+    vat_flag        TEXT,
+    luxury_tax_pct  INTEGER     NOT NULL DEFAULT 0,
+    pph_pct         INTEGER     NOT NULL DEFAULT 0,
+    val1            BIGINT      NOT NULL DEFAULT 0,
+    sales_code      TEXT,
+    order_seq       INTEGER     NOT NULL DEFAULT 0,
+    control         INTEGER     NOT NULL DEFAULT 1,
+    print_count     INTEGER     NOT NULL DEFAULT 0,
+    approved_by     INTEGER,
+    period_code     TEXT        NOT NULL,
+    register_id     TEXT,
+    legacy_source   TEXT,
+    changed_by      INTEGER,
+    changed_at      TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_orders_doc_date ON orders (doc_date);
+CREATE INDEX IF NOT EXISTS idx_orders_sub ON orders (sub_code);

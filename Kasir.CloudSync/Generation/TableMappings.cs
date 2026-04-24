@@ -140,14 +140,222 @@ namespace Kasir.CloudSync.Generation
                 Ts("created_at")
             });
 
+        public static readonly TableMapping ProductBarcodes = new TableMapping(
+            "product_barcodes",
+            new[]
+            {
+                new ColumnMapping("barcode", ColumnKind.Text, isPrimaryKey: true),
+                T("product_code"), T("product_name"),
+                Q("qty_per_scan"),
+                M("price_override"),
+                T("customer_code")
+            });
+
+        public static readonly TableMapping Locations = new TableMapping(
+            "locations",
+            new[]
+            {
+                Pk("location_code"),
+                T("name"), T("remark"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping CreditCards = new TableMapping(
+            "credit_cards",
+            new[]
+            {
+                Pk("card_code"),
+                T("name"), T("account_code"),
+                I("fee_pct"), M("min_value"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping Accounts = new TableMapping(
+            "accounts",
+            new[]
+            {
+                Pk("account_code"),
+                T("account_name"), T("parent_code"),
+                I("is_detail"), I("level"), I("account_group"),
+                T("normal_balance"), T("verify_flag"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping Members = new TableMapping(
+            "members",
+            new[]
+            {
+                Pk("member_code"),
+                T("name"),
+                Ts("join_date"), Ts("birthday"),
+                T("status"),
+                M("opening_balance"),
+                T("address"), T("city"),
+                T("phone"), T("fax"), T("remark"), T("religion"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping Discounts = new TableMapping(
+            "discounts",
+            new[]
+            {
+                IntPk("id"),
+                T("product_code"), T("dept_code"), T("sub_code"),
+                Ts("date_start"), Ts("date_end"),
+                T("time_start"), T("time_end"),
+                I("disc_pct"), I("disc1_pct"), I("disc2_pct"), I("disc3_pct"),
+                M("disc_amount"),
+                M("value"), M("value1"), M("value2"), M("value3"),
+                Q("min_qty"), Q("max_qty"),
+                M("price_override"),
+                T("description"),
+                I("priority"), I("is_active"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping DiscountPartners = new TableMapping(
+            "discount_partners",
+            new[]
+            {
+                IntPk("id"),
+                T("account_code"), T("sub_code"),
+                I("disc_pct"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping Purchases = new TableMapping(
+            "purchases",
+            new[]
+            {
+                new ColumnMapping("journal_no", ColumnKind.Text, isPrimaryKey: true),
+                I("id"),
+                T("doc_type"), T("doc_date"),
+                T("account_code"), T("sub_code"), T("group1"),
+                T("tax_invoice1"), T("tax_invoice"), Ts("tax_inv_date"),
+                T("ref_no"), T("remark"),
+                T("sales_code"), Ts("due_date"),
+                I("disc_pct"), M("disc2"),
+                T("warehouse"),
+                I("commission_pct"),
+                T("vat_flag"),
+                M("total_value"), M("vat_amount"),
+                T("delivery_note"), T("ref2"), T("alt_sub"),
+                M("total_disc"),
+                T("expedition"), T("packaging"), T("doc_subtype"),
+                M("gross_amount"),
+                T("is_posted"), T("is_paid"), T("group_code"),
+                I("pph_pct"), M("val1"),
+                I("control"), I("print_count"), I("is_printed"),
+                I("approved_by"),
+                T("period_code"), T("register_id"), T("legacy_source"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping CashTransactions = new TableMapping(
+            "cash_transactions",
+            new[]
+            {
+                new ColumnMapping("journal_no", ColumnKind.Text, isPrimaryKey: true),
+                I("id"),
+                T("doc_type"), T("doc_date"),
+                T("sub_code"), T("ref"), T("remark"),
+                M("total_value"),
+                T("is_posted"),
+                T("group_code"), T("description"),
+                I("control"), I("print_count"),
+                I("approved_by"),
+                T("period_code"), T("register_id"), T("legacy_source"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping MemorialJournals = new TableMapping(
+            "memorial_journals",
+            new[]
+            {
+                new ColumnMapping("journal_no", ColumnKind.Text, isPrimaryKey: true),
+                I("id"),
+                T("doc_type"), T("doc_date"),
+                T("ref"), T("ref_no"), T("remark"), T("group_code"),
+                I("control"), I("print_count"),
+                I("approved_by"),
+                T("period_code"), T("register_id"), T("legacy_source"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping Orders = new TableMapping(
+            "orders",
+            new[]
+            {
+                new ColumnMapping("journal_no", ColumnKind.Text, isPrimaryKey: true),
+                I("id"),
+                T("doc_type"), T("doc_date"),
+                T("account_code"), T("sub_code"), T("group1"),
+                T("remark"),
+                M("total_value"),
+                I("disc_pct"),
+                Ts("due_date"),
+                T("is_posted"), T("vat_flag"),
+                I("luxury_tax_pct"), I("pph_pct"),
+                M("val1"),
+                T("sales_code"), I("order_seq"),
+                I("control"), I("print_count"),
+                I("approved_by"),
+                T("period_code"), T("register_id"), T("legacy_source"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping StockTransfers = new TableMapping(
+            "stock_transfers",
+            new[]
+            {
+                new ColumnMapping("journal_no", ColumnKind.Text, isPrimaryKey: true),
+                I("id"),
+                T("doc_type"), T("doc_date"),
+                T("dest_account"), T("dest_sub"),
+                T("src_account"), T("src_sub"),
+                T("ref"), T("remark"),
+                I("control"), I("print_count"),
+                T("period_code"), T("register_id"), T("legacy_source"),
+                I("changed_by"), Ts("changed_at")
+            });
+
+        public static readonly TableMapping StockAdjustments = new TableMapping(
+            "stock_adjustments",
+            new[]
+            {
+                new ColumnMapping("journal_no", ColumnKind.Text, isPrimaryKey: true),
+                I("id"),
+                T("doc_type"), T("doc_date"),
+                T("location_code"), T("remark"),
+                M("total_value"),
+                T("is_posted"),
+                I("control"), I("print_count"),
+                I("approved_by"),
+                T("period_code"), T("register_id"), T("legacy_source"),
+                I("changed_by"), Ts("changed_at")
+            });
+
         public static IReadOnlyDictionary<string, TableMapping> All { get; } =
             new Dictionary<string, TableMapping>
             {
                 { "products", Products },
+                { "product_barcodes", ProductBarcodes },
                 { "departments", Departments },
                 { "subsidiaries", Subsidiaries },
+                { "members", Members },
+                { "discounts", Discounts },
+                { "discount_partners", DiscountPartners },
+                { "accounts", Accounts },
+                { "locations", Locations },
+                { "credit_cards", CreditCards },
                 { "sales", Sales },
                 { "sale_items", SaleItems },
+                { "purchases", Purchases },
+                { "cash_transactions", CashTransactions },
+                { "memorial_journals", MemorialJournals },
+                { "orders", Orders },
+                { "stock_transfers", StockTransfers },
+                { "stock_adjustments", StockAdjustments },
                 { "stock_movements", StockMovements }
             };
 

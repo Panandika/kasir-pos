@@ -64,7 +64,12 @@ extract_columns_from_create_block() {
     ' "$file" | sort -u
 }
 
-declare -a TABLES=(products departments subsidiaries sales sale_items stock_movements)
+declare -a TABLES=(
+    products product_barcodes departments subsidiaries members
+    discounts discount_partners accounts locations credit_cards
+    sales sale_items purchases cash_transactions memorial_journals
+    orders stock_transfers stock_adjustments stock_movements
+)
 declare -i DRIFT=0
 
 # Allow-list of columns intentionally excluded from the Postgres mirror.
@@ -74,12 +79,29 @@ declare -i DRIFT=0
 # TableMapping for sales / sale_items / stock_movements explicitly maps
 # their `id` if it is the PK on the Postgres side; for those the column
 # IS present in the Postgres DDL and so the diff stays empty.
+# `id` (SQLite rowid) is excluded for tables whose Postgres mirror uses
+# the natural business key as PK. Tables where `id` IS the PK (sale_items,
+# stock_movements, discounts, discount_partners) keep `id` visible to the
+# diff and have it declared in their DDL.
 EXCLUDED_PER_TABLE_products="id"
+EXCLUDED_PER_TABLE_product_barcodes="id"
 EXCLUDED_PER_TABLE_departments="id"
 EXCLUDED_PER_TABLE_subsidiaries="id"
+EXCLUDED_PER_TABLE_members="id"
+EXCLUDED_PER_TABLE_accounts="id"
+EXCLUDED_PER_TABLE_locations="id"
+EXCLUDED_PER_TABLE_credit_cards="id"
 EXCLUDED_PER_TABLE_sales=""
 EXCLUDED_PER_TABLE_sale_items=""
+EXCLUDED_PER_TABLE_purchases=""
+EXCLUDED_PER_TABLE_cash_transactions=""
+EXCLUDED_PER_TABLE_memorial_journals=""
+EXCLUDED_PER_TABLE_orders=""
+EXCLUDED_PER_TABLE_stock_transfers=""
+EXCLUDED_PER_TABLE_stock_adjustments=""
 EXCLUDED_PER_TABLE_stock_movements=""
+EXCLUDED_PER_TABLE_discounts=""
+EXCLUDED_PER_TABLE_discount_partners=""
 
 filter_excluded() {
     local table="$1"
