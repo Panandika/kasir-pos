@@ -35,6 +35,20 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@limit", limit));
         }
 
+        // Phase 6 cloud-sync reader: LAN must already be synced (status='synced')
+        // AND cloud must not yet be synced (cloud_synced=0). Preserves the plan's
+        // "LAN sync is authoritative" principle — the cloud worker never sees a
+        // row before its LAN peers have.
+        public List<SyncQueueEntry> GetPendingCloud(int limit)
+        {
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM sync_queue
+                  WHERE cloud_synced = 0 AND status = 'synced'
+                  ORDER BY id ASC LIMIT @limit",
+                MapEntry,
+                SqlHelper.Param("@limit", limit));
+        }
+
         public void MarkSynced(int id)
         {
             SqlHelper.ExecuteNonQuery(_db,
@@ -53,6 +67,17 @@ namespace Kasir.Data.Repositories
                   WHERE id = @id",
                 SqlHelper.Param("@id", id),
                 SqlHelper.Param("@error", error));
+        }
+
+        // Phase 6 cloud-sync writer: invoked only after PostgresSink confirms the row
+        // landed in Supabase. Independent of MarkSynced; the two flags never conflict.
+        public void MarkCloudSynced(long id)
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"UPDATE sync_queue SET cloud_synced = 1,
+                  cloud_synced_at = datetime('now','localtime')
+                  WHERE id = @id",
+                SqlHelper.Param("@id", id));
         }
 
         public long GetMaxId()
@@ -82,7 +107,12 @@ namespace Kasir.Data.Repositories
                 SyncedAt = SqlHelper.GetString(reader, "synced_at"),
                 Status = SqlHelper.GetString(reader, "status"),
                 RetryCount = SqlHelper.GetInt(reader, "retry_count"),
-                LastError = SqlHelper.GetString(reader, "last_error")
+                LastError = SqlHelper.GetString(reader, "last_error"),
+                // Cloud sync bookkeeping — SqlHelper.GetInt/GetString return 0/null when
+                // the column is missing (e.g. a pre-migration register running new code),
+                // so this is backward-compatible.
+                CloudSynced = SqlHelper.GetInt(reader, "cloud_synced"),
+                CloudSyncedAt = SqlHelper.GetString(reader, "cloud_synced_at")
             };
         }
     }
