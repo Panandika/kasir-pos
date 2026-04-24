@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS products (
     dept_code       TEXT,
     account_code    TEXT,
     category_code   TEXT,
+    type_sub        TEXT,
+    product_type    TEXT,
 
     unit            TEXT,
     unit1           TEXT,
@@ -21,9 +23,13 @@ CREATE TABLE IF NOT EXISTS products (
     status          TEXT        NOT NULL DEFAULT 'A'
                                 CHECK (status IN ('A','I','D')),
     vendor_code     TEXT,
+    alt_vendor      TEXT,
     location        TEXT,
+    shelf_location  TEXT,
     is_consignment  TEXT        DEFAULT 'N' CHECK (is_consignment IN ('Y','N')),
     open_price      TEXT        DEFAULT 'N' CHECK (open_price IN ('Y','N')),
+    luxury_tax_flag TEXT        DEFAULT 'N',
+    vat_flag        TEXT        DEFAULT 'N',
 
     price           BIGINT      NOT NULL DEFAULT 0,
     price1          BIGINT      NOT NULL DEFAULT 0,
@@ -31,6 +37,11 @@ CREATE TABLE IF NOT EXISTS products (
     price3          BIGINT      NOT NULL DEFAULT 0,
     price4          BIGINT      NOT NULL DEFAULT 0,
     buying_price    BIGINT      NOT NULL DEFAULT 0,
+    cost_price      BIGINT      NOT NULL DEFAULT 0,
+    lowest_cost     BIGINT      NOT NULL DEFAULT 0,
+    profit          BIGINT      NOT NULL DEFAULT 0,
+    disc_pct        INTEGER     NOT NULL DEFAULT 0,
+    margin_pct      INTEGER     NOT NULL DEFAULT 0,
 
     qty_min         BIGINT      NOT NULL DEFAULT 0,
     qty_max         BIGINT      NOT NULL DEFAULT 0,

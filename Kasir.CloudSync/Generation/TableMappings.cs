@@ -29,11 +29,15 @@ namespace Kasir.CloudSync.Generation
             {
                 Pk("product_code"),
                 T("name"), T("barcode"), T("dept_code"), T("account_code"),
-                T("category_code"), T("unit"), T("unit1"), T("unit2"),
-                T("status"), T("vendor_code"), T("location"),
+                T("category_code"), T("type_sub"), T("product_type"),
+                T("unit"), T("unit1"), T("unit2"),
+                T("status"), T("vendor_code"), T("alt_vendor"), T("location"), T("shelf_location"),
                 T("is_consignment"), T("open_price"),
+                T("luxury_tax_flag"), T("vat_flag"),
                 M("price"), M("price1"), M("price2"), M("price3"),
                 M("price4"), M("buying_price"),
+                M("cost_price"), M("lowest_cost"), M("profit"),
+                I("disc_pct"), I("margin_pct"),
                 Q("qty_min"), Q("qty_max"), Q("qty_order"),
                 Q("factor"), Q("conversion1"), Q("conversion2"),
                 Q("qty_break2"), Q("qty_break3"),
@@ -67,6 +71,7 @@ namespace Kasir.CloudSync.Generation
                 I("disc_pct"), T("cash_account"), T("alt_account"),
                 T("status"),
                 M("discount1"), I("disc1_pct"), I("disc2_pct"),
+                T("bank_name"), T("bank_holder"), T("bank_account_no"), T("bank_branch"),
                 Ts("changed_at"), I("changed_by")
             });
 
