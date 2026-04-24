@@ -26,4 +26,8 @@
   <ItemGroup>
     <None Include="Sql\**\*.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kasir.CloudSync.Tests" />
+  </ItemGroup>
 </Project>
