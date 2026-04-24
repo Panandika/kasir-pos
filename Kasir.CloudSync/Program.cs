@@ -16,6 +16,16 @@ namespace Kasir.CloudSync
     {
         public static async Task<int> Main(string[] args)
         {
+            // --initial-load runs the Phase C bulk loader and exits.
+            // The hosted-service run loop is for steady-state operation.
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "--initial-load")
+                {
+                    return await RunInitialLoadAsync(args).ConfigureAwait(false);
+                }
+            }
+
             using var host = Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((ctx, cfg) =>
                 {
@@ -49,6 +59,36 @@ namespace Kasir.CloudSync
                 Console.Error.WriteLine($"FATAL: {ex}");
                 return 1;
             }
+        }
+
+        internal static async Task<int> RunInitialLoadAsync(string[] args)
+        {
+        var cfgBuilder = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+            .AddEnvironmentVariables(prefix: "KASIR_CLOUDSYNC_")
+            .AddCommandLine(args);
+        var configuration = cfgBuilder.Build();
+        var conn = configuration["CloudSync:SupabaseConnectionString"]
+                   ?? Environment.GetEnvironmentVariable("KASIR_CLOUDSYNC_SUPABASE");
+        var dbPath = configuration["CloudSync:KasirDbPath"]
+                   ?? Environment.GetEnvironmentVariable("KASIR_CLOUDSYNC_DBPATH");
+        if (string.IsNullOrWhiteSpace(conn) || string.IsNullOrWhiteSpace(dbPath))
+        {
+            await Console.Error.WriteLineAsync(
+                "--initial-load requires CloudSync:SupabaseConnectionString and CloudSync:KasirDbPath (or KASIR_CLOUDSYNC_SUPABASE / KASIR_CLOUDSYNC_DBPATH env vars)");
+            return 64; // EX_USAGE
+        }
+
+        using var loggerFactory = LoggerFactory.Create(b =>
+            b.AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat = "HH:mm:ss "; }));
+        var log = loggerFactory.CreateLogger<Loader.InitialLoader>();
+
+        await using var sqlite = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Mode=ReadOnly");
+        await sqlite.OpenAsync().ConfigureAwait(false);
+
+            var loader = new Loader.InitialLoader(sqlite, conn, log);
+            var result = await loader.RunAsync(CancellationToken.None).ConfigureAwait(false);
+            return result.Mismatches == 0 ? 0 : 1;
         }
     }
 
