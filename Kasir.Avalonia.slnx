@@ -2,4 +2,6 @@
   <Project Path="Kasir.Core/Kasir.Core.csproj" />
   <Project Path="Kasir.Avalonia/Kasir.Avalonia.csproj" />
   <Project Path="Kasir.Core.Tests/Kasir.Core.Tests.csproj" />
+  <Project Path="Kasir.CloudSync/Kasir.CloudSync.csproj" />
+  <Project Path="Kasir.CloudSync.Tests/Kasir.CloudSync.Tests.csproj" />
 </Solution>
