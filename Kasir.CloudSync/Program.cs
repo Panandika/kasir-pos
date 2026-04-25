@@ -86,9 +86,20 @@ namespace Kasir.CloudSync
         await using var sqlite = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Mode=ReadOnly");
         await sqlite.OpenAsync().ConfigureAwait(false);
 
-            var loader = new Loader.InitialLoader(sqlite, conn, log);
+            var loader = new Loader.InitialLoader(sqlite, conn, log)
+            {
+                SkipOrphans = HasFlag(args, "--skip-orphans"),
+                SkipConstraints = HasFlag(args, "--skip-constraints")
+            };
             var result = await loader.RunAsync(CancellationToken.None).ConfigureAwait(false);
             return result.Mismatches == 0 ? 0 : 1;
+        }
+
+        private static bool HasFlag(string[] args, string flag)
+        {
+            foreach (var a in args)
+                if (string.Equals(a, flag, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
         }
     }
 
@@ -98,6 +109,11 @@ namespace Kasir.CloudSync
     internal sealed class CloudSyncWorker : BackgroundService
     {
         private readonly ILogger<CloudSyncWorker> _logger;
+        // Worker tracks consecutive sink failures across ticks for the
+        // BackoffPolicy. The OutboxRouter could expose this directly when it
+        // is wired in (currently the skeleton path); the worker holds it for
+        // forward-compat with the Phase A OutboxRouter integration.
+        private int _consecutiveFailures;
 
         public CloudSyncWorker(ILogger<CloudSyncWorker> logger)
         {
@@ -106,15 +122,23 @@ namespace Kasir.CloudSync
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("CloudSync worker started (skeleton; Phase A US-A1)");
+            _logger.LogInformation("CloudSync worker started");
             try
             {
-                // Idle heartbeat until cancellation. US-A2 replaces this with the
-                // OutboxReader + PostgresSink dispatch loop.
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    _logger.LogDebug("CloudSync tick (no-op in skeleton)");
-                    await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
+                    bool tickOk = await TickAsync(stoppingToken).ConfigureAwait(false);
+                    if (tickOk)
+                        _consecutiveFailures = 0;
+                    else
+                        _consecutiveFailures++;
+
+                    var delay = Outbox.BackoffPolicy.Delay(_consecutiveFailures);
+                    if (_consecutiveFailures > 0)
+                        _logger.LogWarning(
+                            "Tick failed ({N} consecutive); backing off {Delay}",
+                            _consecutiveFailures, delay);
+                    await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -122,6 +146,15 @@ namespace Kasir.CloudSync
                 // Expected on shutdown
             }
             _logger.LogInformation("CloudSync worker stopped cleanly");
+        }
+
+        private Task<bool> TickAsync(CancellationToken ct)
+        {
+            // Wired up to the real OutboxRouter once SqliteConnection +
+            // GenericSink + ILogger<OutboxRouter> are registered with DI.
+            // Skeleton returns true so backoff stays at the base interval.
+            _logger.LogDebug("CloudSync tick (skeleton no-op)");
+            return Task.FromResult(true);
         }
     }
 }

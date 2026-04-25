@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Kasir.CloudSync.DataQuality;
 using Kasir.CloudSync.Generation;
 using Kasir.CloudSync.Sinks;
 
@@ -50,6 +52,10 @@ namespace Kasir.CloudSync.Loader
             "stock_movements"
         };
 
+        public bool SkipOrphans { get; set; }
+        public bool SkipConstraints { get; set; }
+        public string ConstraintsSqlPath { get; set; }
+
         public InitialLoader(SqliteConnection sqlite, string pgConnectionString, ILogger<InitialLoader> logger)
         {
             _sqlite = sqlite;
@@ -61,6 +67,37 @@ namespace Kasir.CloudSync.Loader
         {
             _logger.LogInformation("Initial load starting against {Connection}",
                 MaskCredentials(_pgConnectionString));
+
+            // 1) Pre-load orphan scan. Aborts the load when orphans are found
+            //    unless --skip-orphans was passed.
+            if (!SkipOrphans)
+            {
+                var scan = new OrphanScanner(_sqlite).Scan();
+                foreach (var c in scan.PerCheck)
+                {
+                    if (c.OrphanCount <= 0)
+                    {
+                        _logger.LogInformation("orphan check {Check}: clean", c.Check);
+                        continue;
+                    }
+                    _logger.LogWarning(
+                        "orphan check {Check}: {Count} orphans (sample: {Sample})",
+                        c.Check, c.OrphanCount, string.Join(", ", c.SampleKeys));
+                }
+                if (scan.HasAnyOrphans)
+                {
+                    _logger.LogError(
+                        "Orphan scan found {Total} orphan rows. Re-run with --skip-orphans to load anyway " +
+                        "(orphan rows will go to Postgres but their FK constraint will fail at constraints.sql " +
+                        "step), or clean the SQLite source first.",
+                        scan.TotalOrphans);
+                    return new InitialLoadResult { Mismatches = -1 };
+                }
+            }
+            else
+            {
+                _logger.LogWarning("--skip-orphans is set; skipping pre-load orphan scan");
+            }
 
             await using var pg = new NpgsqlConnection(_pgConnectionString);
             await pg.OpenAsync(ct).ConfigureAwait(false);
@@ -107,11 +144,72 @@ namespace Kasir.CloudSync.Loader
                 }
             }
 
+            // 3) After parity check passes, apply strict FK constraints unless
+            //    explicitly skipped. Done in the same Postgres session so it
+            //    runs while session_replication_role is 'origin' (FK enforced).
+            if (mismatches == 0 && !SkipConstraints)
+            {
+                await ApplyConstraintsAsync(pg, ct).ConfigureAwait(false);
+            }
+            else if (SkipConstraints)
+            {
+                _logger.LogWarning("--skip-constraints is set; FK constraints NOT applied");
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "{Mismatches} parity mismatches; FK constraints NOT applied (would fail anyway)",
+                    mismatches);
+            }
+
             return new InitialLoadResult
             {
                 PerTableCounts = perTable,
                 Mismatches = mismatches
             };
+        }
+
+        private async Task ApplyConstraintsAsync(NpgsqlConnection pg, CancellationToken ct)
+        {
+            string path = ConstraintsSqlPath ?? FindConstraintsSql();
+            if (path == null || !File.Exists(path))
+            {
+                _logger.LogWarning(
+                    "constraints.sql not found (looked for {Path}); skipping FK constraint application",
+                    path ?? "Sql/constraints.sql relative to executable");
+                return;
+            }
+            string ddl = File.ReadAllText(path);
+            try
+            {
+                await using var cmd = pg.CreateCommand();
+                cmd.CommandText = ddl;
+                await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                _logger.LogInformation("FK constraints applied from {Path}", path);
+            }
+            catch (PostgresException ex)
+            {
+                _logger.LogError(ex,
+                    "FK constraints failed to apply — likely an orphan row escaped the scan. " +
+                    "Investigate the offending child row and either clean the source or " +
+                    "skip the offending constraint. Mirror remains usable but FK-less.");
+                throw;
+            }
+        }
+
+        private static string FindConstraintsSql()
+        {
+            // Beside the running executable (CopyToOutputDirectory) or under the
+            // repo's Kasir.CloudSync/Sql/ when running via `dotnet run`.
+            var candidates = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, "Sql", "constraints.sql"),
+                Path.Combine(AppContext.BaseDirectory, "constraints.sql"),
+                Path.Combine(Directory.GetCurrentDirectory(), "Kasir.CloudSync", "Sql", "constraints.sql")
+            };
+            foreach (var c in candidates)
+                if (File.Exists(c)) return c;
+            return null;
         }
 
         private async Task<(long sqlite, long postgres)> LoadTableAsync(
