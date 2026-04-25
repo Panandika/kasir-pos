@@ -12,15 +12,17 @@ using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Services;
 
 namespace Kasir.Avalonia.Forms.Master;
 
 public partial class ProductView : UserControl
 {
-    private record ProductRow(string Code, string Name, string Barcode, string Price, string Status, Product Tag);
+    private record ProductRow(string Code, string Name, string Barcode, string Price, string StockStore, string StockWarehouse, string Status, Product Tag);
     private readonly ObservableCollection<ProductRow> _rows = new();
     private ProductRepository _productRepo;
     private DepartmentRepository _deptRepo;
+    private InventoryService _inventoryService;
     private Product? _currentProduct;
     private bool _isEditing;
     private int _userId;
@@ -32,6 +34,7 @@ public partial class ProductView : UserControl
         var conn = DbConnection.GetConnection();
         _productRepo = new ProductRepository(conn);
         _deptRepo = new DepartmentRepository(conn);
+        _inventoryService = new InventoryService(conn);
         DgvProducts.ItemsSource = _rows;
         LoadDepts();
         LoadGrid();
@@ -67,7 +70,7 @@ public partial class ProductView : UserControl
     {
         _rows.Clear();
         foreach (var p in _productRepo.GetAll(500, 0))
-            _rows.Add(new ProductRow(p.ProductCode, p.Name, p.Barcode ?? "", Formatting.FormatCurrencyShort(p.Price), p.Status, p));
+            _rows.Add(MakeRow(p));
     }
 
     private void SearchProducts()
@@ -76,8 +79,23 @@ public partial class ProductView : UserControl
         if (string.IsNullOrEmpty(q)) { LoadGrid(); return; }
         _rows.Clear();
         foreach (var p in _productRepo.SearchByText(q, 100))
-            _rows.Add(new ProductRow(p.ProductCode, p.Name, p.Barcode ?? "", Formatting.FormatCurrencyShort(p.Price), p.Status, p));
+            _rows.Add(MakeRow(p));
         SetStatus($"Found {_rows.Count} products");
+    }
+
+    private ProductRow MakeRow(Product p)
+    {
+        int stockStore = _inventoryService.GetStockOnHandByLocation(p.ProductCode, "TOKO");
+        int stockWarehouse = _inventoryService.GetStockOnHandByLocation(p.ProductCode, "GUDANG");
+        return new ProductRow(
+            p.ProductCode,
+            p.Name,
+            p.Barcode ?? "",
+            Formatting.FormatCurrencyShort(p.Price),
+            stockStore.ToString(),
+            stockWarehouse.ToString(),
+            p.Status,
+            p);
     }
 
     private void OnSearchKeyDown(object? sender, KeyEventArgs e)

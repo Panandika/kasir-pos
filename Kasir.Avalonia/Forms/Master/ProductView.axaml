@@ -33,11 +33,13 @@
                 HorizontalAlignment="Stretch"
                 x:CompileBindings="False">
         <DataGrid.Columns>
-          <DataGridTextColumn Header="Kode"       Binding="{Binding Code}"    Width="1.5*" CanUserSort="False"/>
-          <DataGridTextColumn Header="Nama Barang" Binding="{Binding Name}"   Width="4*"   CanUserSort="False"/>
-          <DataGridTextColumn Header="Barcode"    Binding="{Binding Barcode}" Width="2*"   CanUserSort="False"/>
-          <DataGridTextColumn Header="Harga"      Binding="{Binding Price}"   Width="1.5*" CanUserSort="False"/>
-          <DataGridTextColumn Header="Status"     Binding="{Binding Status}"  Width="0.8*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Kode"        Binding="{Binding Code}"         Width="1.2*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Nama Barang" Binding="{Binding Name}"         Width="3.5*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Barcode"     Binding="{Binding Barcode}"      Width="1.8*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Harga"       Binding="{Binding Price}"        Width="1.3*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Stok Toko"   Binding="{Binding StockStore}"   Width="1.0*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Stok Gd"     Binding="{Binding StockWarehouse}" Width="1.0*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Status"      Binding="{Binding Status}"       Width="0.7*" CanUserSort="False"/>
         </DataGrid.Columns>
       </DataGrid>
       <TabControl Grid.Row="1" x:Name="TabDetail" Background="{DynamicResource Bg0Brush}"
