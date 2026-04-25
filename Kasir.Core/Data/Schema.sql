@@ -1203,7 +1203,8 @@ CREATE TABLE sync_queue (
                         'stock_adjustments',
                         'members', 'subsidiaries',
                         'departments', 'discounts',
-                        'accounts', 'locations'
+                        'accounts', 'locations',
+                        'discount_partners', 'credit_cards'
                     )),
     record_key      TEXT    NOT NULL,     -- business key (product_code or journal_no)
     operation       TEXT    NOT NULL CHECK(operation IN ('I','U','D')),
@@ -1213,12 +1214,20 @@ CREATE TABLE sync_queue (
     status          TEXT    NOT NULL DEFAULT 'pending'
                            CHECK(status IN ('pending','synced','failed')),
     retry_count     INTEGER NOT NULL DEFAULT 0,
-    last_error      TEXT
+    last_error      TEXT,
+    -- Cloud sync bookkeeping (Phase 6 cloud-sync; orthogonal to LAN status/synced_at above)
+    cloud_synced    INTEGER NOT NULL DEFAULT 0,
+    cloud_synced_at TEXT
 );
 
--- Covering index for the drain query: WHERE status='pending' ORDER BY id
+-- Covering index for the LAN drain query: WHERE status='pending' ORDER BY id
 CREATE INDEX idx_sync_queue_drain ON sync_queue(status, id)
     WHERE status = 'pending';
+
+-- Partial index for the cloud-sync worker: WHERE cloud_synced=0 AND status='synced' ORDER BY id
+-- LAN sync must complete (status='synced') before the cloud worker ships a row.
+CREATE INDEX idx_sync_queue_cloud_drain ON sync_queue(cloud_synced, id)
+    WHERE cloud_synced = 0;
 
 -- ============================================================
 -- Section 7c: Sync Triggers
