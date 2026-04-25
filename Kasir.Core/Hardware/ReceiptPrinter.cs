@@ -14,16 +14,19 @@ namespace Kasir.Hardware
         }
 
         public ReceiptPrinter(string printerName)
+            : this(RawPrinterFactory.Create("", printerName))
         {
-            _raw = string.IsNullOrEmpty(printerName)
-                ? (IRawPrinter)new NullRawPrinter()
-                : new UsbReceiptPrinter(printerName);
         }
 
         public ReceiptPrinter(ConfigRepository config)
-            : this(config.Get("printer_name") ?? "")
+            : this(RawPrinterFactory.Create(
+                config.Get("printer_kind") ?? "",
+                config.Get("printer_name") ?? "",
+                ParseBaud(config.Get("printer_baud"))))
         {
         }
+
+        public string LastError => _raw.LastError;
 
         public bool Print(byte[] escPosData)
         {
@@ -52,6 +55,11 @@ namespace Kasir.Hardware
 
             byte[] allBytes = receipt.SelectMany(b => b).ToArray();
             return Print(allBytes);
+        }
+
+        private static int ParseBaud(string s)
+        {
+            return int.TryParse(s, out var b) && b > 0 ? b : RawPrinterFactory.DefaultBaud;
         }
     }
 }
