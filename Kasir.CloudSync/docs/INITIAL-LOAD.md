@@ -37,26 +37,47 @@ dotnet run --project Kasir.CloudSync -- --initial-load
 ```
 
 Exit codes:
-- `0` — every table loaded with row-count parity
-- `1` — at least one parity mismatch (see logs)
+- `0` — every table loaded with row-count parity, FK constraints applied
+- `1` — at least one parity mismatch OR FK constraint failed (see logs)
 - `64` — missing `KASIR_CLOUDSYNC_SUPABASE` or `KASIR_CLOUDSYNC_DBPATH`
+
+Optional flags:
+- `--skip-orphans` — bypass the pre-load orphan scan. Use when you've
+  already verified the source manually and want to ship anyway.
+  Orphan rows that point at missing parents will still fail at the
+  FK constraint step at the end of the load.
+- `--skip-constraints` — load data but do NOT apply `Sql/constraints.sql`
+  at the end. Use when you want a FK-less mirror for analytics-only
+  scenarios. Strongly recommend running constraints.sql separately
+  later.
 
 ## What the loader does
 
-1. **`SET session_replication_role = replica`** — disables FK enforcement
+1. **Orphan scan** (skipped with `--skip-orphans`) — `OrphanScanner`
+   queries SQLite for rows whose FK parents are missing (e.g.
+   `sale_items.product_code` pointing at a `products` row that does not
+   exist). If any orphans are found, the loader logs the count and
+   sample keys and aborts with exit 1. Re-run with `--skip-orphans` to
+   load anyway.
+2. **`SET session_replication_role = replica`** — disables FK enforcement
    on the Postgres session so child rows can land before parents on the
    wire.
-2. **For each table in `InitialLoader.LoadOrder`:**
+3. **For each table in `InitialLoader.LoadOrder`:**
    - Read all rows from local SQLite via `RowMapper.FromReader` (applies
      the same type conversions as the steady-state worker)
    - `TRUNCATE {table} CASCADE` on Postgres (idempotent re-runs)
    - Ship in batches of 1,000 via parameterised `INSERT ... ON CONFLICT
      DO UPDATE` (same `UpsertSqlBuilder` used by `GenericSink`)
    - Record SQLite row count vs Postgres row count
-3. **`SET session_replication_role = origin`** — re-enables FK
+4. **`SET session_replication_role = origin`** — re-enables FK
    enforcement.
-4. **Parity report** — log per-table SQLite vs Postgres row counts; exit
+5. **Parity report** — log per-table SQLite vs Postgres row counts; exit
    1 if any mismatch.
+6. **Apply `Sql/constraints.sql`** (skipped with `--skip-constraints`,
+   or when parity step 5 has any mismatch). Adds the strict FK
+   constraints documented in that file. If a FK fails to apply, an
+   orphan escaped step 1 — investigate the offending row and either
+   clean the source or skip the offending constraint.
 
 ## Scale notes
 
