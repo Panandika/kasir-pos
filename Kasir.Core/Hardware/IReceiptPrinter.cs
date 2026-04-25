@@ -4,5 +4,6 @@ namespace Kasir.Hardware
     {
         bool Print(byte[] escPosData);
         bool IsAvailable();
+        string LastError { get; }
     }
 }

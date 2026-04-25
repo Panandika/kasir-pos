@@ -1,3 +1,5 @@
+using Kasir.Data.Repositories;
+
 namespace Kasir.Hardware
 {
     public class CashDrawer : ICashDrawer
@@ -10,11 +12,19 @@ namespace Kasir.Hardware
         }
 
         public CashDrawer(string printerName)
+            : this(RawPrinterFactory.Create("", printerName))
         {
-            _raw = string.IsNullOrEmpty(printerName)
-                ? (IRawPrinter)new NullRawPrinter()
-                : new UsbReceiptPrinter(printerName);
         }
+
+        public CashDrawer(ConfigRepository config)
+            : this(RawPrinterFactory.Create(
+                config.Get("printer_kind") ?? "",
+                config.Get("printer_name") ?? "",
+                int.TryParse(config.Get("printer_baud"), out var b) && b > 0 ? b : RawPrinterFactory.DefaultBaud))
+        {
+        }
+
+        public string LastError => _raw.LastError;
 
         public bool Open()
         {
