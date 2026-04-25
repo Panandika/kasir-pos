@@ -43,6 +43,7 @@ public partial class SaleView : UserControl, INavigationAware
     private enum InputMode { Normal, AwaitingMiscPrice }
     private InputMode _inputMode = InputMode.Normal;
     private int _pendingMiscQty = 1;
+    private bool _printerHealthChecked;
 
     public SaleView(AuthService auth)
     {
@@ -82,6 +83,54 @@ public partial class SaleView : UserControl, INavigationAware
         _clockTimer.Start();
 
         ViewShortcuts.AutoFocusOnAttach(this, TxtBarcode);
+
+        _ = CheckPrinterHealthAsync();
+    }
+
+    private async Task CheckPrinterHealthAsync()
+    {
+        if (_printerHealthChecked) return;
+        _printerHealthChecked = true;
+
+        string kind = _configRepo.Get("printer_kind") ?? "";
+        string name = _configRepo.Get("printer_name") ?? "";
+
+        if (string.IsNullOrEmpty(name))
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+                StatusLabel.Text = "⚠ Printer belum diset — buka Admin → Printer Config.  " + StatusLabel.Text);
+            return;
+        }
+
+        var (warning, _) = await Task.Run(() =>
+        {
+            // For Windows queues, prefer the WMI status check — it's instant and
+            // doesn't open a print job. Fall back to a real Init send for other kinds.
+            if (kind == "windows" || (string.IsNullOrEmpty(kind) && !name.StartsWith("COM", StringComparison.OrdinalIgnoreCase)
+                                                                  && !name.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)
+                                                                  && !name.StartsWith("/dev/", StringComparison.OrdinalIgnoreCase)))
+            {
+                string status = PrinterDiscovery.GetWindowsPrinterStatus(name);
+                return status switch
+                {
+                    null or "ready" or "printing" or "warmup" or "other" or "unknown" => ((string?)null, true),
+                    "paused"     => ($"Printer '{name}' di-pause di Windows", false),
+                    "offline"    => ($"Printer '{name}' offline", false),
+                    "not_found"  => ($"Printer '{name}' tidak ditemukan", false),
+                    _            => ($"Printer '{name}' status: {status}", false),
+                };
+            }
+
+            var printer = new ReceiptPrinter(_configRepo);
+            if (printer.IsAvailable()) return ((string?)null, true);
+            return (printer.LastError ?? "tidak tersedia", false);
+        });
+
+        if (warning != null)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+                StatusLabel.Text = "⚠ " + warning + "  " + StatusLabel.Text);
+        }
     }
 
     public void OnNavigatedTo()
@@ -280,9 +329,9 @@ public partial class SaleView : UserControl, INavigationAware
             if (string.IsNullOrEmpty(printerName)) return;
             var items = _saleRepo.GetItemsByJournalNo(sale.JournalNo);
             byte[] data = BuildReceiptBytes(sale, items);
-            var printer = new ReceiptPrinter(printerName);
+            var printer = new ReceiptPrinter(_configRepo);
             bool ok = await Task.Run(() => printer.Print(data));
-            if (!ok) await MsgBox.Show(NavigationService.Owner, "Struk tidak tercetak.");
+            if (!ok) await MsgBox.Show(NavigationService.Owner, "Struk tidak tercetak.\n" + (printer.LastError ?? "(tidak ada detail error)"));
         }
         catch (Exception ex) { await MsgBox.Show(NavigationService.Owner, "Print error: " + ex.Message); }
     }
@@ -328,9 +377,12 @@ public partial class SaleView : UserControl, INavigationAware
         try
         {
             string? p = _configRepo.Get("printer_name");
-            if (!string.IsNullOrEmpty(p)) new CashDrawer(p).Open();
+            if (string.IsNullOrEmpty(p)) return;
+            var drawer = new CashDrawer(_configRepo);
+            if (!drawer.Open() && !string.IsNullOrEmpty(drawer.LastError))
+                StatusLabel.Text = "⚠ Laci: " + drawer.LastError;
         }
-        catch { }
+        catch (Exception ex) { StatusLabel.Text = "⚠ Laci error: " + ex.Message; }
     }
 
     // ── Inline product search ──────────────────────────────────────
