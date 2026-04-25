@@ -28,10 +28,13 @@ SELECT
      WHERE EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_products_search_trgm')) AS gin_index_size;
 
 -- Smoke query for the runbook: a partial-match search hitting the GIN index.
--- Document: pg_trgm partial-match similarity threshold defaults to 0.3.
+-- Use the WORD-SIMILARITY operator `<%>` rather than full-string `%`.
+-- Long product names (e.g. 'NIVEA WHT CAR FACIAL FOAM 10') have low
+-- full-string similarity to a single search word, but `<%>` matches
+-- against any word in the field — what a clerk actually wants.
 -- For exact prefix on SKU codes, ILIKE 'KLR-01%' is faster.
--- Example:  SELECT product_code, name, similarity(search_text, 'sampo')
+-- Example:  SELECT product_code, name, word_similarity('NIVEA', search_text) AS ws
 --           FROM products
---           WHERE search_text % 'sampo'
---           ORDER BY similarity(search_text, 'sampo') DESC
+--           WHERE 'NIVEA' <% search_text
+--           ORDER BY ws DESC
 --           LIMIT 20;

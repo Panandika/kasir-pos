@@ -1,5 +1,13 @@
 # NEXT STEPS — Cloud Sync + Local API
 
+> **Update 2026-04-25:** Steps 1, 2, and 6 are DONE on real Supabase
+> (project `mnatezzsysmadvrosnad`, ap-southeast-1). 89,608 rows
+> mirrored. 4 of 6 FK constraints applied; the remaining 2
+> (`fk_purchases_sub`, `fk_stock_movements_product`) are deferred
+> behind legacy-data cleanup. Remaining steps (3, 4, 5, 7, 8, 9, 10)
+> still need Win10 hardware. See `LIVE-LOAD-RESULTS.md` next to this
+> file for the run summary.
+
 What's done in the repo (PR #15) vs what you need to do **on actual
 hardware / cloud accounts** to take the pipeline to production.
 
@@ -16,18 +24,18 @@ laptop. Everything in the repo is ready and waiting.
 
 ### 1. Provision the Supabase project [~10 min]
 
-- [ ] Sign up / log in at https://supabase.com
-- [ ] Create a new project:
+- [X] Sign up / log in at https://supabase.com
+- [X] Create a new project:
   - **Region:** Singapore (`ap-southeast-1`) — closest to Indonesia
   - **DB password:** generate a strong one; **save it in your password
     manager** (DPAPI on the gateway is machine-bound — losing the
     password is recoverable only via this copy)
   - Plan: **Free tier** (500 MB cap is fine for 1–2 years per the
     capacity projection in `Kasir.CloudSync/docs/CAPACITY.md`)
-- [ ] From `Project Settings → Database → Connection string → .NET`,
+- [X] From `Project Settings → Database → Connection string → .NET`,
       copy the connection string. It looks like:
-      `Host=db.PROJECT.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=...;SslMode=Require`
-- [ ] Save the **service-role key** (not the anon key) from
+      `Host=db.PROJECT.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=...;SslMode=Require` > check the kasir-pos/.env
+- [X] Save the **service-role key** (not the anon key) from
       `Project Settings → API → service_role` — you'll DPAPI-encrypt this
       on the gateway later.
 

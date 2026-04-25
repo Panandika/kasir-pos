@@ -77,15 +77,23 @@ the index — re-run the relevant block.
 
 ## Smoke search
 
-Document this for the runbook so anyone can verify search works:
+Use the **word-similarity operator `<%>`** rather than the full-string
+`%` operator. Long product names (e.g. `NIVEA WHT CAR FACIAL FOAM 10`)
+have low full-string similarity to a single search word; word-similarity
+matches against any word in the field and is the right operator for
+typing-as-you-search.
 
 ```sql
+-- Word-similarity match: finds 'NIVEA' anywhere in the search_text
 SELECT product_code, name,
-       similarity(search_text, 'sampo') AS sim
+       word_similarity('NIVEA', search_text) AS ws
 FROM products
-WHERE search_text % 'sampo'
-ORDER BY sim DESC
+WHERE 'NIVEA' <% search_text       -- uses idx_products_search_trgm
+ORDER BY ws DESC
 LIMIT 20;
 ```
 
 Should return matching products in <50 ms even at 24K rows.
+
+**Verified on real data 2026-04-25:** 5 NIVEA-prefixed products returned
+with `word_similarity = 1` against the production-cloned dataset.
