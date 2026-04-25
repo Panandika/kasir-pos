@@ -24,6 +24,122 @@ bottom of `docs/LIVE-LOAD-RESULTS.md`. Better to leave them alone.
 
 ---
 
+## Prerequisites on the Windows 10 gateway
+
+Run through this list once before doing anything below. It's mostly
+already true on a typical store register, but verify.
+
+### Hardware / OS
+
+- [ ] **Windows 10, build 1903 or later** (released April 2019). Run
+      `winver` from the Run dialog. 1903 is the cutoff because earlier
+      builds don't support TLS 1.3 by default in SChannel — Step 1
+      will fail. Anything from late 2019 onwards is fine; 22H2 is
+      best.
+- [ ] **Local administrator rights** for the operator account. Needed
+      for `sc create`, `icacls`, machine-scope env vars, and NSSM
+      install.
+- [ ] **At least 2 GB free disk** on `C:\`. Litestream + Kasir.CloudSync
+      + WAL working space adds up to ~250 MB; the rest is breathing
+      room for log files and Windows updates.
+- [ ] **System time synced** (`w32tm /query /status` shows a recent
+      sync). Postgres TLS handshake is forgiving but Cloudflare R2
+      signature checks can reject requests with >15 min clock skew.
+
+### Network
+
+- [ ] **Outbound HTTPS (port 443)** to `*.supabase.co`,
+      `*.cloudflarestorage.com`, `github.com`. Used for Supabase
+      REST/Studio, Cloudflare R2, and the Litestream binary download.
+- [ ] **Outbound TCP 5432 + 6543** to
+      `aws-1-ap-southeast-1.pooler.supabase.com`. The Supabase pooler.
+      Verify with:
+      ```cmd
+      Test-NetConnection -ComputerName aws-1-ap-southeast-1.pooler.supabase.com -Port 6543
+      ```
+      Expect `TcpTestSucceeded : True`. If a corporate firewall blocks
+      either port, work with IT before proceeding.
+- [ ] **IPv4 connectivity is sufficient.** The Supabase free-tier
+      direct DB host (`db.<ref>.supabase.co`) is IPv6-only — we
+      deliberately use the pooler to avoid that. You do NOT need IPv6
+      on the gateway.
+
+### Software to install (one-time)
+
+These are NOT bundled with the Kasir.CloudSync publish. Install them
+once before running Step 2.
+
+- [ ] **`sqlite3` CLI** — needed for Step 2 (the `sync_queue`
+      migration uses `sqlite3 kasir.db < script.sql`).
+      Easiest install via winget:
+      ```cmd
+      winget install --id SQLite.SQLite --accept-package-agreements --accept-source-agreements
+      ```
+      Or download `sqlite-tools-win-x64-*.zip` from
+      https://www.sqlite.org/download.html and put `sqlite3.exe` on
+      `PATH`. Verify: `sqlite3 -version` (expect `3.40.x` or newer).
+- [ ] **NSSM (Non-Sucking Service Manager)** — recommended for
+      registering Litestream as a Windows service in Step 3 (Litestream
+      is a console app, not a native Windows service binary).
+      ```cmd
+      choco install nssm
+      ```
+      Or download from https://nssm.cc/download (5 MB, no installer —
+      drop `nssm.exe` on `PATH`). Verify: `nssm version` (expect
+      `2.24` or newer).
+
+### Software that's already there or auto-bundled
+
+These are built into Windows 10 or shipped with the Kasir.CloudSync
+publish. You shouldn't need to install them, but verify:
+
+- [ ] **PowerShell 5.1** (built-in on Win10). `$PSVersionTable.PSVersion`
+      shows `5.1.x`. Step 3 uses `Invoke-WebRequest`, `Get-FileHash`,
+      and `Expand-Archive` — all standard cmdlets.
+- [ ] **`cmd.exe`** with `setx`, `sc`, `icacls`, `copy`, `Test-NetConnection`,
+      `winver`, `w32tm` — all built into Windows 10.
+- [ ] **`.NET 10 runtime`** — NOT needed as a separate install. The
+      `dotnet publish ... --self-contained true` step on the dev
+      laptop bundles the runtime into the published folder. The two
+      executables you'll run on the gateway (`TlsSmokeTest.exe` and
+      `Kasir.CloudSync.exe`) are self-contained and >50 MB each
+      because they include the runtime.
+- [ ] **Litestream binary** — downloaded fresh in Step 3. Don't
+      pre-install.
+- [ ] **`gh` CLI / `git`** — only needed if you want to interact with
+      PR #15 from the gateway. Not strictly required; everything
+      below uses files copied from the dev laptop.
+
+### Files you need on the gateway before starting
+
+The dev laptop produces these via `dotnet publish` and you copy them
+across (USB stick, network share, whatever). They are **not** built
+on the gateway directly.
+
+| What | Source on dev laptop | Used in step |
+|---|---|---|
+| `TlsSmokeTest/` folder (self-contained publish) | `kasir-pos/Tools/TlsSmokeTest/publish/` after `dotnet publish -c Release -r win-x64 --self-contained true -o ./publish` | Step 1 |
+| `001_sync_queue_recreate.sql` | `kasir-pos/Kasir.CloudSync/Sql/001_sync_queue_recreate.sql` | Step 2 |
+| `Kasir.Core.dll` (new build) — only if you choose to deploy it | output of `dotnet build Kasir.Core` | Step 2 (optional) |
+| `Kasir.CloudSync/` folder (self-contained publish) | `kasir-pos/publish-cloudsync/` after `dotnet publish Kasir.CloudSync -c Release -r win-x64 --self-contained true -o ./publish-cloudsync` | Step 4 |
+| `Tools/LitestreamDrill/restore-and-verify.ps1` | `kasir-pos/Tools/LitestreamDrill/restore-and-verify.ps1` | Step 3 verification + Step 7 monthly drill |
+| This `NEXT-STEPS.md` (or print a copy) | `kasir-pos/docs/NEXT-STEPS.md` | Reference |
+
+A clean "scp this folder" recipe from the dev laptop:
+
+```bash
+# On the dev laptop
+cd kasir-pos
+dotnet publish Tools/TlsSmokeTest -c Release -r win-x64 --self-contained true -o ./gateway-handoff/TlsSmokeTest
+dotnet publish Kasir.CloudSync     -c Release -r win-x64 --self-contained true -o ./gateway-handoff/Kasir.CloudSync
+cp Kasir.CloudSync/Sql/001_sync_queue_recreate.sql                         ./gateway-handoff/
+cp -r Tools/LitestreamDrill                                                 ./gateway-handoff/
+cp docs/NEXT-STEPS.md docs/LIVE-LOAD-RESULTS.md                            ./gateway-handoff/
+# Then zip ./gateway-handoff/ and copy via USB / SMB / etc.
+```
+
+---
+
 ## Credentials (handle with care)
 
 > **⚠️ Rotate these immediately if this file leaks publicly.**
