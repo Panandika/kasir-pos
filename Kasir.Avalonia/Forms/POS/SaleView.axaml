@@ -78,14 +78,18 @@
         </Grid>
       </Grid>
     </Panel>
-    <!-- Row 3: Shortcuts + Footer info merged (was 2 separate bars: 24+24=48px → 24px) -->
-    <Panel Grid.Row="3" Background="{DynamicResource Bg1Brush}">
-      <TextBlock x:Name="StatusLabel" Foreground="{DynamicResource FgSecondaryBrush}"
+    <!-- Row 3: Footer bar — shortcuts left, info + printer status right -->
+    <Grid Grid.Row="3" Background="{DynamicResource Bg1Brush}" ColumnDefinitions="*,Auto">
+      <TextBlock Grid.Column="0" x:Name="StatusLabel" Foreground="{DynamicResource FgSecondaryBrush}"
                  FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="11" VerticalAlignment="Center" Margin="8,0"/>
-      <TextBlock x:Name="LblFooter" Foreground="{DynamicResource FgDimBrush}"
-                 FontFamily="{DynamicResource JetBrainsMonoFont}"
-                 FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0"/>
-    </Panel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+        <TextBlock x:Name="LblPrinterStatus" FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <TextBlock x:Name="LblFooter" Foreground="{DynamicResource FgDimBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="11" VerticalAlignment="Center"/>
+      </StackPanel>
+    </Grid>
   </Grid>
 </UserControl>

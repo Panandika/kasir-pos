@@ -133,14 +133,20 @@
     <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
   </Style>
 
-  <!-- Specificity smoke test: DataGrid Background override.
-       This Setter wins because App.axaml includes BaseTheme AFTER FluentTheme. -->
+  <!-- ============================================================ -->
+  <!-- DATAGRID — Terminal-style density overrides                   -->
+  <!-- Specificity: BaseTheme included AFTER FluentTheme in App.axaml -->
+  <!-- ============================================================ -->
+
   <Style Selector="DataGrid">
     <Setter Property="Background" Value="{DynamicResource Bg0Brush}"/>
     <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
-    <Setter Property="GridLinesVisibility" Value="All"/>
-    <Setter Property="RowHeight" Value="{DynamicResource RowHeight}"/>
+    <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+    <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="RowHeight" Value="22"/>
     <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
   </Style>
 
   <Style Selector="DataGridRow">
@@ -150,11 +156,93 @@
     <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
   </Style>
 
+  <!-- Selected row: dark green background, bright green text -->
+  <Style Selector="DataGridRow:selected /template/ Border#BackgroundBorder">
+    <Setter Property="Background" Value="{DynamicResource BgSelectedBrush}"/>
+  </Style>
+
+  <!-- Hover row: slightly lighter dark green -->
+  <Style Selector="DataGridRow:pointerover /template/ Border#BackgroundBorder">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+
+  <!-- Selected+hover: keep selected color (selected wins) -->
+  <Style Selector="DataGridRow:pointerover:selected /template/ Border#BackgroundBorder">
+    <Setter Property="Background" Value="{DynamicResource BgSelectedBrush}"/>
+  </Style>
+
+  <!-- Cell: minimal terminal-style padding -->
+  <Style Selector="DataGridCell">
+    <Setter Property="Padding" Value="6,2"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+  </Style>
+
+  <!-- Selected cell: inherit row selection color, no extra border -->
+  <Style Selector="DataGridCell:selected">
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+  </Style>
+
+  <!-- Column header: dark green background, dim green text -->
   <Style Selector="DataGridColumnHeader">
     <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
     <Setter Property="Foreground" Value="{DynamicResource FgSecondaryBrush}"/>
     <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
     <Setter Property="FontSize" Value="{DynamicResource FontSizeLabel}"/>
+    <Setter Property="Padding" Value="6,3"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+  </Style>
+
+  <!-- Column header hover -->
+  <Style Selector="DataGridColumnHeader:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Bg2Brush}"/>
+  </Style>
+
+  <!-- ============================================================ -->
+  <!-- DATAGRID SCROLLBAR — Thin, dark, terminal-matching           -->
+  <!-- ============================================================ -->
+
+  <!-- Vertical scrollbar track -->
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:vertical">
+    <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
+    <Setter Property="Width" Value="10"/>
+  </Style>
+
+  <!-- Vertical scrollbar thumb -->
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:vertical /template/ Thumb">
+    <Setter Property="Background" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+
+  <!-- Vertical scrollbar thumb hover -->
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:vertical /template/ Thumb:pointerover">
+    <Setter Property="Background" Value="{DynamicResource FgSecondaryBrush}"/>
+  </Style>
+
+  <!-- Horizontal scrollbar track -->
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:horizontal">
+    <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
+    <Setter Property="Height" Value="10"/>
+  </Style>
+
+  <!-- Horizontal scrollbar thumb -->
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:horizontal /template/ Thumb">
+    <Setter Property="Background" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+
+  <!-- Horizontal scrollbar thumb hover -->
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:horizontal /template/ Thumb:pointerover">
+    <Setter Property="Background" Value="{DynamicResource FgSecondaryBrush}"/>
+  </Style>
+
+  <!-- Scrollbar repeat buttons (line up/down/left/right) — hide for minimal look -->
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar Button">
+    <Setter Property="Width" Value="0"/>
+    <Setter Property="Height" Value="0"/>
   </Style>
 
 </Styles>
