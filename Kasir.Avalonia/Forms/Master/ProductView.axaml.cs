@@ -12,6 +12,7 @@ using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Avalonia.Utils;
 using Kasir.Services;
 
 namespace Kasir.Avalonia.Forms.Master;
@@ -52,7 +53,7 @@ public partial class ProductView : UserControl
                 SetStatus("Edit: " + _currentProduct.ProductCode);
             }
         });
-        SetStatus("F2=Cari  Ins=Tambah  Enter=Edit  F9=Simpan  Del=Nonaktifkan  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "F2=Cari  Ins=Tambah  Enter=Edit  F9=Simpan  Del=Nonaktifkan  Esc=Keluar");
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -250,5 +251,5 @@ public partial class ProductView : UserControl
         SetStatus("Produk dinonaktifkan.");
     }
 
-    private void SetStatus(string t) => StatusLabel.Text = t;
+    private void SetStatus(string t) => FooterStatus.Show(StatusLabel, t);
 }

@@ -9,6 +9,7 @@ using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Accounting;
 
@@ -35,7 +36,7 @@ public partial class PayablesView : UserControl
         };
         TxtVendor.TextChanged += (_, _) => LoadVendorPayables();
 
-        SetStatus("Pembayaran Hutang — F2: Cari Supplier, F5: Bayar, Esc: Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Pembayaran Hutang — F2: Cari Supplier, F5: Bayar, Esc: Keluar");
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -148,8 +149,5 @@ public partial class PayablesView : UserControl
         }
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

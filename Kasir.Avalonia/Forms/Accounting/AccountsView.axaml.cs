@@ -8,6 +8,7 @@ using Kasir.Models;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Accounting;
 
@@ -47,7 +48,7 @@ public partial class AccountsView : UserControl
                 ShowEditDialog(row.Tag);
         });
 
-        SetStatus(_readOnly ? "Daftar Akun — Esc: Keluar" : "Daftar Akun — Ins: Tambah, Enter: Edit, Esc: Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, _readOnly ? "Daftar Akun — Esc: Keluar" : "Daftar Akun — Ins: Tambah, Enter: Edit, Esc: Keluar");
         LoadData();
     }
 
@@ -198,8 +199,5 @@ public partial class AccountsView : UserControl
         }
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

@@ -10,6 +10,7 @@ using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using ClosedXML.Excel;
 
 namespace Kasir.Avalonia.Forms.Reports;
@@ -29,7 +30,7 @@ public partial class SalesReportView : UserControl
         DgvReport.ItemsSource = _rows;
         TxtDateFrom.Text = DateTime.Now.ToString("yyyy-MM-dd");
         TxtDateTo.Text = DateTime.Now.ToString("yyyy-MM-dd");
-        StatusLabel.Text = "Laporan Penjualan — F5=Generate  F7=Export Excel  Esc=Keluar";
+        FooterStatus.RegisterDefault(StatusLabel, "Laporan Penjualan — F5=Generate  F7=Export Excel  Esc=Keluar");
         BtnGenerate.Click += (_, _) => GenerateReport();
         BtnExport.Click += (_, _) => ExportReport();
     }

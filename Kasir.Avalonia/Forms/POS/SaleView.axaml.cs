@@ -19,6 +19,7 @@ using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Diagnostics;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.POS;
 
@@ -88,7 +89,7 @@ public partial class SaleView : UserControl, INavigationAware
         UpdateTotals();
         UpdateFooter();
 
-        StatusLabel.Text = "F1=Kode  F2=Nama  F3=Qty  F5=Bayar  F8=Void  F9=Kalkulator  F10=Batal  F11=Laci  +=Pas  Esc=Keluar";
+        FooterStatus.RegisterDefault(StatusLabel, "F1=Kode  F2=Nama  F3=Qty  F5=Bayar  F8=Void  F9=Kalkulator  F10=Batal  F11=Laci  +=Pas  Esc=Keluar");
 
         _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _clockTimer.Tick += (_, _) => UpdateFooter();
@@ -145,7 +146,7 @@ public partial class SaleView : UserControl, INavigationAware
         {
             UpdateFooter();
             if (warning != null)
-                StatusLabel.Text = "⚠ " + warning + "  " + StatusLabel.Text;
+                FooterStatus.Show(StatusLabel, "⚠ " + warning + "  " + StatusLabel.Text);
         });
     }
 
@@ -174,7 +175,7 @@ public partial class SaleView : UserControl, INavigationAware
             e.Handled = true;
             TxtBarcode.Text = "";
             ExitPricePromptMode();
-            StatusLabel.Text = "Input Barang Tanpa Kode dibatalkan.";
+            FooterStatus.Show(StatusLabel, "Input Barang Tanpa Kode dibatalkan.");
             return;
         }
 
@@ -216,7 +217,7 @@ public partial class SaleView : UserControl, INavigationAware
             string qtyStr = raw.Substring(star + 1).Trim();
             if (!int.TryParse(qtyStr, out qty) || qty < 1)
             {
-                StatusLabel.Text = "Qty tidak valid.";
+                FooterStatus.Show(StatusLabel, "Qty tidak valid.");
                 return;
             }
         }
@@ -241,7 +242,7 @@ public partial class SaleView : UserControl, INavigationAware
         {
             bool openNow = await MsgBox.Confirm(NavigationService.Owner,
                 "Tidak ada shift terbuka. Buka shift sekarang?");
-            if (!openNow) { StatusLabel.Text = "Shift belum dibuka."; return; }
+            if (!openNow) { FooterStatus.Show(StatusLabel, "Shift belum dibuka."); return; }
             NavigationService.Navigate(new ShiftView(_cashier.Id));
             return;
         }
@@ -250,19 +251,19 @@ public partial class SaleView : UserControl, INavigationAware
         {
             if (long.TryParse(code, out long numVal))
                 LblSubtotal.Text = numVal.ToString("N0");
-            StatusLabel.Text = "Barang tidak ditemukan: " + code;
+            FooterStatus.Show(StatusLabel, "Barang tidak ditemukan: " + code);
             return;
         }
         RefreshGrid();
         UpdateTotals();
-        StatusLabel.Text = $"Ditambahkan: {item.ProductCode} — {item.ProductName}" + (qty > 1 ? $" x{qty}" : "");
+        FooterStatus.Show(StatusLabel, $"Ditambahkan: {item.ProductCode} — {item.ProductName}" + (qty > 1 ? $" x{qty}" : ""));
     }
 
     private void EnterPricePromptMode(int qty)
     {
         _pendingMiscQty = qty;
         _inputMode = InputMode.AwaitingMiscPrice;
-        StatusLabel.Text = $"Barang Tanpa Kode (qty={qty}) — ketik harga (Rp), Enter utk simpan, Esc utk batal.";
+        FooterStatus.Show(StatusLabel, $"Barang Tanpa Kode (qty={qty}) — ketik harga (Rp), Enter utk simpan, Esc utk batal.");
     }
 
     private void ExitPricePromptMode()
@@ -275,7 +276,7 @@ public partial class SaleView : UserControl, INavigationAware
     {
         if (!long.TryParse(text, out long rupiah) || rupiah <= 0)
         {
-            StatusLabel.Text = "Harga tidak valid. Ketik angka > 0 atau Esc utk batal.";
+            FooterStatus.Show(StatusLabel, "Harga tidak valid. Ketik angka > 0 atau Esc utk batal.");
             return;
         }
         try
@@ -284,11 +285,11 @@ public partial class SaleView : UserControl, INavigationAware
             var item = _salesService.AddMiscItem(_pendingMiscQty, unitPriceCents);
             RefreshGrid();
             UpdateTotals();
-            StatusLabel.Text = $"Ditambahkan: {SalesService.MiscProductName} — {_pendingMiscQty} x {Formatting.FormatCurrency(unitPriceCents)}";
+            FooterStatus.Show(StatusLabel, $"Ditambahkan: {SalesService.MiscProductName} — {_pendingMiscQty} x {Formatting.FormatCurrency(unitPriceCents)}");
         }
         catch (Exception ex)
         {
-            StatusLabel.Text = "Gagal: " + ex.Message;
+            FooterStatus.Show(StatusLabel, "Gagal: " + ex.Message);
         }
         ExitPricePromptMode();
     }
@@ -331,7 +332,7 @@ public partial class SaleView : UserControl, INavigationAware
 
     private async void OpenPayment()
     {
-        if (_salesService.CurrentItems.Count == 0) { StatusLabel.Text = "Tidak ada item."; return; }
+        if (_salesService.CurrentItems.Count == 0) { FooterStatus.Show(StatusLabel, "Tidak ada item."); return; }
         var totals = _salesService.GetTotals();
         var result = await PaymentWindow.Show(NavigationService.Owner, totals.NetAmount);
         if (result == null) { TxtBarcode.Focus(); return; }
@@ -340,7 +341,7 @@ public partial class SaleView : UserControl, INavigationAware
             Sale sale;
             using (var _ = PerfMetrics.Measure(PerfMetrics.SaleCommit))
                 sale = _salesService.CompleteSale(result.CashAmount, result.CardAmount, result.VoucherAmount, result.CardCode, result.CardType, "");
-            StatusLabel.Text = $"LUNAS: {sale.JournalNo} — Kembali: {Formatting.FormatCurrency(sale.ChangeAmount)}";
+            FooterStatus.Show(StatusLabel, $"LUNAS: {sale.JournalNo} — Kembali: {Formatting.FormatCurrency(sale.ChangeAmount)}");
             _ = PrintReceiptAsync(sale);
             if (result.CashAmount > 0) OpenCashDrawer();
             _salesService.ClearCurrentSale();
@@ -390,19 +391,19 @@ public partial class SaleView : UserControl, INavigationAware
     {
         if (_salesService.CurrentItems.Count == 0)
         {
-            StatusLabel.Text = "Tidak ada item.";
+            FooterStatus.Show(StatusLabel, "Tidak ada item.");
             return;
         }
         if (!long.TryParse(digits, out long rupiah) || rupiah <= 0)
         {
-            StatusLabel.Text = "Jumlah tunai tidak valid.";
+            FooterStatus.Show(StatusLabel, "Jumlah tunai tidak valid.");
             return;
         }
         long cashCents = rupiah * 100;
         var totals = _salesService.GetTotals();
         if (cashCents < totals.NetAmount)
         {
-            StatusLabel.Text = "Tunai kurang.";
+            FooterStatus.Show(StatusLabel, "Tunai kurang", 3);
             return;
         }
         try
@@ -411,7 +412,7 @@ public partial class SaleView : UserControl, INavigationAware
             Sale sale;
             using (var _ = PerfMetrics.Measure(PerfMetrics.SaleCommit))
                 sale = _salesService.CompleteSale(cashCents, 0, 0, "", "", "");
-            StatusLabel.Text = $"LUNAS: {sale.JournalNo} — Kembali: {Formatting.FormatCurrency(sale.ChangeAmount)}";
+            FooterStatus.Show(StatusLabel, $"LUNAS: {sale.JournalNo} — Kembali: {Formatting.FormatCurrency(sale.ChangeAmount)}");
             _ = PrintReceiptAsync(sale);
             OpenCashDrawer();
             _salesService.ClearCurrentSale();
@@ -442,7 +443,7 @@ public partial class SaleView : UserControl, INavigationAware
             Sale sale;
             using (var _ = PerfMetrics.Measure(PerfMetrics.SaleCommit))
                 sale = _salesService.CompleteSale(t.NetAmount, 0, 0, "", "", "");
-            StatusLabel.Text = $"LUNAS (PAS): {sale.JournalNo}";
+            FooterStatus.Show(StatusLabel, $"LUNAS (PAS): {sale.JournalNo}");
             _ = PrintReceiptAsync(sale);
             OpenCashDrawer();
             _salesService.ClearCurrentSale();
@@ -511,9 +512,9 @@ public partial class SaleView : UserControl, INavigationAware
             if (string.IsNullOrEmpty(p)) return;
             var drawer = new CashDrawer(_configRepo);
             if (!drawer.Open() && !string.IsNullOrEmpty(drawer.LastError))
-                StatusLabel.Text = "⚠ Laci: " + drawer.LastError;
+                FooterStatus.Show(StatusLabel, "⚠ Laci: " + drawer.LastError);
         }
-        catch (Exception ex) { StatusLabel.Text = "⚠ Laci error: " + ex.Message; }
+        catch (Exception ex) { FooterStatus.Show(StatusLabel, "⚠ Laci error: " + ex.Message); }
     }
 
     // ── Inline product search ──────────────────────────────────────
@@ -615,10 +616,10 @@ public partial class SaleView : UserControl, INavigationAware
             if (_salesService.CurrentItems.Count > 0)
             {
                 bool ok = await MsgBox.Confirm(NavigationService.Owner, "Batalkan seluruh transaksi?");
-                if (ok) { _salesService.ClearCurrentSale(); RefreshGrid(); UpdateTotals(); StatusLabel.Text = "Transaksi dibatalkan."; }
+                if (ok) { _salesService.ClearCurrentSale(); RefreshGrid(); UpdateTotals(); FooterStatus.Show(StatusLabel, "Transaksi dibatalkan."); }
             }
         }
-        else if (KeyboardRouter.IsF11(e)) { e.Handled = true; OpenCashDrawer(); StatusLabel.Text = "Laci dibuka."; }
+        else if (KeyboardRouter.IsF11(e)) { e.Handled = true; OpenCashDrawer(); FooterStatus.Show(StatusLabel, "Laci dibuka."); }
         else if (e.Key == Key.Add || e.Key == Key.OemPlus) { e.Handled = true; DoExactPayment(); }
         else if (KeyboardRouter.IsEscape(e))
         {
