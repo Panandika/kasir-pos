@@ -15,7 +15,7 @@ namespace Kasir.Avalonia.Forms.Purchasing;
 
 public partial class PurchaseInvoiceView : UserControl
 {
-    private record InvoiceItemRow(string No, string Code, string Name, string Qty, string Price, string Total, PurchaseItem Tag);
+    private record InvoiceItemRow(string No, string Code, string Name, string Qty, string Unit, string Price, string Total, PurchaseItem Tag);
 
     private readonly ObservableCollection<InvoiceItemRow> _rows = new();
     private readonly List<PurchaseItem> _items = new();
@@ -33,12 +33,16 @@ public partial class PurchaseInvoiceView : UserControl
         _productRepo = new ProductRepository(conn);
         DgvItems.ItemsSource = _rows;
         TxtDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
+        TxtReceivedDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
         SetStatus("Nota Pembelian — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan (buat AP), Esc: Keluar");
 
         // Auto-compute due date when terms changes
         TxtTerms.TextChanged += (_, _) => UpdateDueDate();
         TxtDate.TextChanged += (_, _) => UpdateDueDate();
+        TxtDiscPct.TextChanged += (_, _) => UpdateTotals();
+        TxtVatFlag.TextChanged += (_, _) => UpdateTotals();
         UpdateDueDate();
+        UpdateTotals();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -95,7 +99,7 @@ public partial class PurchaseInvoiceView : UserControl
             ProductCode = product.ProductCode,
             ProductName = product.Name,
             Quantity = qty,
-            UnitPrice = (int)(price * 100m),
+            UnitPrice = (long)(price * 100m),
             Value = (long)(price * 100m) * qty
         };
         _items.Add(item);
@@ -113,7 +117,6 @@ public partial class PurchaseInvoiceView : UserControl
     private void RefreshGrid()
     {
         _rows.Clear();
-        long total = 0;
         int no = 1;
         foreach (var item in _items)
         {
@@ -122,12 +125,41 @@ public partial class PurchaseInvoiceView : UserControl
                 item.ProductCode,
                 item.ProductName,
                 item.Quantity.ToString(),
+                item.Unit ?? "",
                 Formatting.FormatCurrencyShort(item.UnitPrice),
                 Formatting.FormatCurrencyShort(item.Value),
                 item));
-            total += item.Value;
         }
-        LblTotal.Text = $"TOTAL: {Formatting.FormatCurrency(total)}";
+        UpdateTotals();
+    }
+
+    private (long gross, long disc, long vat, long netto) ComputeTotals()
+    {
+        long gross = 0;
+        foreach (var item in _items) gross += item.Value;
+
+        int discPct = 0;
+        int.TryParse(TxtDiscPct.Text, out discPct);
+        if (discPct < 0) discPct = 0;
+        if (discPct > 100) discPct = 100;
+        long disc = gross * discPct / 100;
+        long afterDisc = gross - disc;
+
+        // Indonesian PPN 11% applies when VatFlag == "Y"
+        string vatFlag = (TxtVatFlag.Text ?? "N").Trim().ToUpper();
+        long vat = vatFlag == "Y" ? afterDisc * 11 / 100 : 0;
+
+        long netto = afterDisc + vat;
+        return (gross, disc, vat, netto);
+    }
+
+    private void UpdateTotals()
+    {
+        var (gross, disc, vat, netto) = ComputeTotals();
+        LblGross.Text = $"TOTAL BELI: {Formatting.FormatCurrency(gross)}";
+        LblDisc.Text  = $"TOTAL DISC: {Formatting.FormatCurrency(disc)}";
+        LblVat.Text   = $"TOTAL PPN: {Formatting.FormatCurrency(vat)}";
+        LblNetto.Text = $"TOTAL NETTO: {Formatting.FormatCurrency(netto)}";
     }
 
     private async void Save()
@@ -136,13 +168,31 @@ public partial class PurchaseInvoiceView : UserControl
         if (_items.Count == 0) { await MsgBox.Show(NavigationService.Owner, "Tambah item dulu."); return; }
 
         if (!int.TryParse(TxtTerms.Text, out int terms)) terms = 30;
+        if (!int.TryParse(TxtDiscPct.Text, out int discPct)) discPct = 0;
+        if (discPct < 0) discPct = 0;
+        if (discPct > 100) discPct = 100;
+
+        var (grossAmount, disc, vat, _) = ComputeTotals();
+        string vatFlag = (TxtVatFlag.Text ?? "N").Trim().ToUpper();
+        if (vatFlag != "Y") vatFlag = "N";
 
         var invoice = new Purchase
         {
             SubCode = _vendorCode,
             DocDate = TxtDate.Text?.Trim() ?? "",
             DueDate = TxtDueDate.Text?.Trim() ?? "",
-            Terms = terms
+            ReceivedDate = TxtReceivedDate.Text?.Trim() ?? "",
+            Terms = terms,
+            TaxInvoice = TxtTaxInvoice.Text?.Trim() ?? "",
+            DeliveryNote = TxtDeliveryNote.Text?.Trim() ?? "",
+            RefNo = TxtRefNo.Text?.Trim() ?? "",
+            TaxInvDate = TxtTaxInvDate.Text?.Trim() ?? "",
+            Warehouse = TxtWarehouse.Text?.Trim() ?? "",
+            DiscPct = discPct,
+            VatFlag = vatFlag,
+            GrossAmount = grossAmount,
+            TotalDisc = disc,
+            VatAmount = vat
         };
         string jnl = _service.CreatePurchaseInvoice(invoice, _items, 1);
         await MsgBox.Show(NavigationService.Owner, $"Invoice disimpan: {jnl}\nAP entry dibuat.");
@@ -150,6 +200,14 @@ public partial class PurchaseInvoiceView : UserControl
         RefreshGrid();
         _vendorCode = "";
         TxtVendor.Text = "";
+        TxtTaxInvoice.Text = "";
+        TxtDeliveryNote.Text = "";
+        TxtRefNo.Text = "";
+        TxtTaxInvDate.Text = "";
+        TxtReceivedDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
+        TxtWarehouse.Text = "";
+        TxtDiscPct.Text = "0";
+        TxtVatFlag.Text = "N";
         SetStatus("Nota Pembelian — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan (buat AP), Esc: Keluar");
     }
 

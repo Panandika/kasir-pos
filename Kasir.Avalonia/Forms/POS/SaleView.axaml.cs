@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Kasir.Auth;
 using Kasir.Data;
@@ -44,6 +45,8 @@ public partial class SaleView : UserControl, INavigationAware
     private InputMode _inputMode = InputMode.Normal;
     private int _pendingMiscQty = 1;
     private bool _printerHealthChecked;
+    private string _printerStatusText = "";
+    private bool _printerStatusOk;
 
     public SaleView(AuthService auth)
     {
@@ -97,12 +100,13 @@ public partial class SaleView : UserControl, INavigationAware
 
         if (string.IsNullOrEmpty(name))
         {
-            await Dispatcher.UIThread.InvokeAsync(() =>
-                StatusLabel.Text = "⚠ Printer belum diset — buka Admin → Printer Config.  " + StatusLabel.Text);
+            _printerStatusText = "OFF";
+            _printerStatusOk = false;
+            await Dispatcher.UIThread.InvokeAsync(UpdateFooter);
             return;
         }
 
-        var (warning, _) = await Task.Run(() =>
+        var (warning, ok) = await Task.Run(() =>
         {
             // For Windows queues, prefer the WMI status check — it's instant and
             // doesn't open a print job. Fall back to a real Init send for other kinds.
@@ -126,11 +130,14 @@ public partial class SaleView : UserControl, INavigationAware
             return (printer.LastError ?? "tidak tersedia", false);
         });
 
-        if (warning != null)
+        _printerStatusOk = ok;
+        _printerStatusText = ok ? "ON" : "OFF";
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            await Dispatcher.UIThread.InvokeAsync(() =>
-                StatusLabel.Text = "⚠ " + warning + "  " + StatusLabel.Text);
-        }
+            UpdateFooter();
+            if (warning != null)
+                StatusLabel.Text = "⚠ " + warning + "  " + StatusLabel.Text;
+        });
     }
 
     public void OnNavigatedTo()
@@ -281,6 +288,13 @@ public partial class SaleView : UserControl, INavigationAware
         string today = _clock.Now.ToString("yyyy-MM-dd");
         int cnt = _saleRepo.GetDailyCount(today);
         LblFooter.Text = $"JAM\u2192 {_clock.Now:HH:mm:ss}  MESIN#{regId}  ID#{_cashier.Id}  JRNL#{cnt:D5}";
+        if (!string.IsNullOrEmpty(_printerStatusText))
+        {
+            LblPrinterStatus.Text = $"🖨 {_printerStatusText}";
+            LblPrinterStatus.Foreground = _printerStatusOk
+                ? new SolidColorBrush(Colors.LimeGreen)
+                : new SolidColorBrush(Colors.OrangeRed);
+        }
     }
 
     private async void OpenPayment()

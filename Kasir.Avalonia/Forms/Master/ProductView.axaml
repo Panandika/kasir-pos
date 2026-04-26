@@ -1,7 +1,11 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:Kasir.Avalonia.Converters"
         x:Class="Kasir.Avalonia.Forms.Master.ProductView"
         x:DataType="x:Object"
         Background="{DynamicResource Bg0Brush}">
+  <UserControl.Resources>
+    <conv:StockColorConverter x:Key="StockColorConverter"/>
+  </UserControl.Resources>
   <DockPanel>
     <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
       <TextBlock x:Name="StatusLabel" Foreground="{DynamicResource FgPrimaryBrush}"
@@ -33,11 +37,25 @@
                 HorizontalAlignment="Stretch"
                 x:CompileBindings="False">
         <DataGrid.Columns>
-          <DataGridTextColumn Header="Kode"       Binding="{Binding Code}"    Width="1.5*" CanUserSort="False"/>
-          <DataGridTextColumn Header="Nama Barang" Binding="{Binding Name}"   Width="4*"   CanUserSort="False"/>
-          <DataGridTextColumn Header="Barcode"    Binding="{Binding Barcode}" Width="2*"   CanUserSort="False"/>
-          <DataGridTextColumn Header="Harga"      Binding="{Binding Price}"   Width="1.5*" CanUserSort="False"/>
-          <DataGridTextColumn Header="Status"     Binding="{Binding Status}"  Width="0.8*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Kode"        Binding="{Binding Code}"         Width="1.2*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Nama Barang" Binding="{Binding Name}"         Width="3.5*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Barcode"     Binding="{Binding Barcode}"      Width="1.8*" CanUserSort="False"/>
+          <DataGridTextColumn Header="Harga"       Binding="{Binding Price}"        Width="1.3*" CanUserSort="False"/>
+          <DataGridTemplateColumn Header="Stok Toko" Width="1.0*" CanUserSort="False">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding StockStore}" Foreground="{Binding StockStore, Converter={StaticResource StockColorConverter}}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" VerticalAlignment="Center"/>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Stok Gd" Width="1.0*" CanUserSort="False">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding StockWarehouse}" Foreground="{Binding StockWarehouse, Converter={StaticResource StockColorConverter}}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" VerticalAlignment="Center"/>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="Status"      Binding="{Binding Status}"       Width="0.7*" CanUserSort="False"/>
         </DataGrid.Columns>
       </DataGrid>
       <TabControl Grid.Row="1" x:Name="TabDetail" Background="{DynamicResource Bg0Brush}"
