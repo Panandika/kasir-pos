@@ -11,6 +11,7 @@ using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using ClosedXML.Excel;
 
 namespace Kasir.Avalonia.Forms.Reports;
@@ -27,7 +28,7 @@ public partial class ProductReportView : UserControl
     {
         InitializeComponent();
         DgvReport.ItemsSource = _rows;
-        StatusLabel.Text = "Cetak Master Barang — F5=Refresh  F7=Export Excel  Esc=Keluar";
+        FooterStatus.RegisterDefault(StatusLabel, "Cetak Master Barang — F5=Refresh  F7=Export Excel  Esc=Keluar");
         LblSummary.Text = "Memuat…";
         TxtSearch.TextChanged += (_, _) => FilterGrid();
         // Defer the 24k-row load to background priority so navigation paints

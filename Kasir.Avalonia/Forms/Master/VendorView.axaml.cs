@@ -6,6 +6,7 @@ using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
+using Kasir.Avalonia.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
@@ -30,7 +31,7 @@ public partial class VendorView : UserControl
         TxtSearch.KeyDown += OnSearchKeyDown;
         TxtSearch.TextChanged += (_, _) => SearchVendors();
         ViewShortcuts.WireGridEnter(DgvVendors, EditVendor);
-        SetStatus("F2=Cari  Ins=Tambah  Enter=Ubah  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "F2=Cari  Ins=Tambah  Enter=Ubah  Esc=Keluar");
         LoadData();
     }
 
@@ -134,5 +135,5 @@ public partial class VendorView : UserControl
         SetStatus($"Vendor '{vendor.Name}' diperbarui.");
     }
 
-    private void SetStatus(string t) => StatusLabel.Text = t;
+    private void SetStatus(string t) => FooterStatus.Show(StatusLabel, t);
 }

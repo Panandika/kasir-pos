@@ -12,6 +12,7 @@ using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using Kasir.Auth;
 using Kasir.Avalonia.Forms.Master;
 using Kasir.Avalonia.Forms.Admin;
@@ -48,6 +49,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         LblStoreName.Text = _configRepo.Get("store_name") ?? "KASIR POS";
         LblGreeting.Text = $"Selamat datang — {DateTime.Now:dddd, dd MMMM yyyy}";
 
+        FooterStatus.RegisterDefault(StatusLabel, "F12=Sync  Esc=Kembali  F10=Menu");
         ShowMainTiles();
         RefreshStatus();
     }
@@ -334,7 +336,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         if (KeyboardRouter.IsF12(e))
         {
             e.Handled = true;
-            SetStatus("Sync tidak tersedia.");
+            FooterStatus.Show(StatusLabel, "Sync tidak tersedia.");
             return;
         }
 
@@ -390,8 +392,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         int count = _saleRepo.GetDailyCount(today);
         LblDailyCount.Text = $"Transaksi hari ini: {count}";
 
-        SetStatus("F12=Sync  Esc=Kembali  F10=Menu");
+        FooterStatus.Reset(StatusLabel);
     }
 
-    private void SetStatus(string t) => StatusLabel.Text = t;
 }

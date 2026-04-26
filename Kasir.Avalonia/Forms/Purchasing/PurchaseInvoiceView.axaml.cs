@@ -10,6 +10,7 @@ using Kasir.Services;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Purchasing;
 
@@ -34,7 +35,7 @@ public partial class PurchaseInvoiceView : UserControl
         DgvItems.ItemsSource = _rows;
         TxtDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
         TxtReceivedDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
-        SetStatus("Nota Pembelian — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan (buat AP), Esc: Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Nota Pembelian — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan (buat AP), Esc: Keluar");
 
         // Auto-compute due date when terms changes
         TxtTerms.TextChanged += (_, _) => UpdateDueDate();
@@ -208,8 +209,8 @@ public partial class PurchaseInvoiceView : UserControl
         TxtWarehouse.Text = "";
         TxtDiscPct.Text = "0";
         TxtVatFlag.Text = "N";
-        SetStatus("Nota Pembelian — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan (buat AP), Esc: Keluar");
+        FooterStatus.Reset(StatusLabel);
     }
 
-    private void SetStatus(string text) => StatusLabel.Text = text;
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

@@ -6,6 +6,7 @@ using Kasir.Data;
 using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Forms.Shared;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms;
 
@@ -25,7 +26,7 @@ public partial class LoginView : UserControl
             if (e.Key == Key.Return)
                 AttemptLogin();
         };
-        SetStatus("Login — masukkan username dan password");
+        FooterStatus.RegisterDefault(StatusLabel, "Login — masukkan username dan password");
         TxtUsername.Focus();
     }
 
@@ -70,5 +71,5 @@ public partial class LoginView : UserControl
         }
     }
 
-    private void SetStatus(string text) => StatusLabel.Text = text;
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

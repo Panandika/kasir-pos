@@ -9,6 +9,7 @@ using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Accounting;
 
@@ -39,7 +40,7 @@ public partial class CashDisbursementView : UserControl
         TxtDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
 
         string title = _isBankMode ? "Pengeluaran Bank" : "Pengeluaran Kas";
-        SetStatus(title + " — F5: Simpan, Ins: Tambah Baris, Esc: Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, title + " — F5: Simpan, Ins: Tambah Baris, Esc: Keluar");
         UpdateTotal();
     }
 
@@ -175,8 +176,5 @@ public partial class CashDisbursementView : UserControl
         }
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }
