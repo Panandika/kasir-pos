@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.5.0](https://github.com/Panandika/kasir-pos/compare/v2.4.0...v2.5.0) (2026-04-26)
+
+
+### Features
+
+* legacy gap closure (sisyphus plan) — POS density, purchase invoice fields, theme polish ([da73d1c](https://github.com/Panandika/kasir-pos/commit/da73d1c9bdabd5368ffe69a48d6129020e8c1140))
+* **migration:** add Migration_004 for purchases.terms and received_date ([43bf2dd](https://github.com/Panandika/kasir-pos/commit/43bf2dd492c4f62c9e38572418446cfb0dfc8447))
+* **pos:** add kembalian banner, + quick-cash, numeric input behavior ([499e365](https://github.com/Panandika/kasir-pos/commit/499e365d5a9c2a8544401b573dab61c3adbf0817))
+* **pos:** improve SaleView density, add Bank tile, add stock columns ([033d389](https://github.com/Panandika/kasir-pos/commit/033d389610e58159c7970b574a73ca6c41c11709))
+* **purchase:** add missing invoice fields, negative stock colors, search density ([1d91cb0](https://github.com/Panandika/kasir-pos/commit/1d91cb08dbff8bdebc508bfb9d45b659a8c262cb))
+* **schema,master:** drop barcode, single-screen ProductView, F8 wholesale tiers ([360c5bd](https://github.com/Panandika/kasir-pos/commit/360c5bdd48123e212102759bfb0a19156ef4be2b))
+* **theme:** improve DataGrid terminal density and POS footer ([839df4b](https://github.com/Panandika/kasir-pos/commit/839df4b3c008e52792831aa340948b32a00b1f89))
+* **ui:** global footer status helper with auto-revert ([60bbd60](https://github.com/Panandika/kasir-pos/commit/60bbd6000fc68c128ad6ecf1eef82d4c02a85309))
+* **ui:** show update badge and footer toast on main menu ([36fd68f](https://github.com/Panandika/kasir-pos/commit/36fd68f77c61e7391932aad718f9d4e94180db74))
+* user_review[#1](https://github.com/Panandika/kasir-pos/issues/1) — POS payment flow, footer hints, ProductView redesign ([9c7b74e](https://github.com/Panandika/kasir-pos/commit/9c7b74eefd373210bf96ee48267abc2b654ad164))
+
+
+### Bug Fixes
+
+* **master:** use location codes T/G not display names in ProductView stok grid ([6ccfee0](https://github.com/Panandika/kasir-pos/commit/6ccfee0db5e19533a1e62563b7a263dd781328f6))
+* **pos:** address Slice 1 review findings ([2609388](https://github.com/Panandika/kasir-pos/commit/26093886780148b697bc9f8701a49b73e6d5dbbc))
+* **purchase:** widen UnitPrice cast to long, set GrossAmount in Save() ([f7dad82](https://github.com/Panandika/kasir-pos/commit/f7dad82041c430feabcd67fba4f0c7bde9036801))
+* **purchasing:** auto-size header borders to prevent DataGrid overlap ([614ca0f](https://github.com/Panandika/kasir-pos/commit/614ca0f395c16c0bb22494e02c81b824b2f5197e))
+* **ui:** use registered default in SaleView warning, remove dead field ([1d5c0c7](https://github.com/Panandika/kasir-pos/commit/1d5c0c789a7f89eb88c0b3a78dcef6016013c860))
+
 ## [2.4.0](https://github.com/Panandika/kasir-pos/compare/v2.3.0...v2.4.0) (2026-04-25)
 
 
