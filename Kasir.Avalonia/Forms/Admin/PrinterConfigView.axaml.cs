@@ -7,6 +7,7 @@ using Kasir.Data.Repositories;
 using Kasir.Hardware;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -39,7 +40,7 @@ public partial class PrinterConfigView : UserControl
         BtnTestDrawer.Click += async (_, _) => await OnTestDrawer();
         BtnSave.Click += async (_, _) => await OnSave();
 
-        SetStatus("Printer Config — Test Print, Test Drawer, Simpan — Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Printer Config — Test Print, Test Drawer, Simpan — Esc=Keluar");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -156,5 +157,5 @@ public partial class PrinterConfigView : UserControl
         await MsgBox.Show(NavigationService.Owner, "Konfigurasi printer tersimpan.");
     }
 
-    private void SetStatus(string t) => StatusLabel.Text = t;
+    private void SetStatus(string t) => FooterStatus.Show(StatusLabel, t);
 }

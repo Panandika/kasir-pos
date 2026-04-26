@@ -45,6 +45,9 @@ jobs:
 
   build-winforms-legacy:
     runs-on: windows-latest
+    # Legacy WinForms project is unmaintained per CLAUDE.md — Avalonia is the
+    # active build. Keep job for visibility but don't block merges on it.
+    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v4

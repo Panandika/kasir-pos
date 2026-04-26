@@ -11,6 +11,7 @@ using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -33,7 +34,7 @@ public partial class UserView : UserControl
         DgvUsers.ItemsSource = _rows;
         TxtSearch.TextChanged += (_, _) => FilterGrid(TxtSearch.Text ?? "");
         ViewShortcuts.WireGridEnter(DgvUsers, EditUser);
-        SetStatus("Ins=Tambah  Enter=Edit  Del=Hapus  P=Ganti Password  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Ins=Tambah  Enter=Edit  Del=Hapus  P=Ganti Password  Esc=Keluar");
         LoadData();
     }
 
@@ -183,5 +184,5 @@ public partial class UserView : UserControl
         await MsgBox.Show(NavigationService.Owner, "Password diubah.");
     }
 
-    private void SetStatus(string t) => StatusLabel.Text = t;
+    private void SetStatus(string t) => FooterStatus.Show(StatusLabel, t);
 }

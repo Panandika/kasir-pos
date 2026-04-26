@@ -10,6 +10,7 @@ using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using ClosedXML.Excel;
 
 namespace Kasir.Avalonia.Forms.Reports;
@@ -25,7 +26,7 @@ public partial class SupplierReportView : UserControl
     {
         InitializeComponent();
         DgvReport.ItemsSource = _rows;
-        StatusLabel.Text = "Cetak Master Supplier — F5=Refresh  F7=Export Excel  Esc=Keluar";
+        FooterStatus.RegisterDefault(StatusLabel, "Cetak Master Supplier — F5=Refresh  F7=Export Excel  Esc=Keluar");
         TxtSearch.TextChanged += (_, _) => FilterGrid();
         GenerateReport();
     }

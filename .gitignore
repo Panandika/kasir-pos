@@ -19,3 +19,4 @@ data/*
 .omc/project-memory.json
 graphify-out/*
 .env
+appsettings.json

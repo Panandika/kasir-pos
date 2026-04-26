@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
@@ -21,7 +22,7 @@ public partial class BankView : UserControl
         InitializeComponent();
         _bankRepo = new SubsidiaryRepository(DbConnection.GetConnection());
         DgvBanks.ItemsSource = _rows;
-        SetStatus("Data Bank — Ins: Tambah, Enter: Ubah, Esc: Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Data Bank — Ins: Tambah, Enter: Ubah, Esc: Keluar");
         LoadData();
     }
 
@@ -95,8 +96,5 @@ public partial class BankView : UserControl
         LoadData();
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

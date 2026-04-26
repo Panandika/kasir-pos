@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
@@ -32,7 +33,7 @@ public partial class TransferView : UserControl
         TxtTo.Text = "GUDANG";
 
         DgvItems.ItemsSource = _rows;
-        SetStatus("Transfer Barang — Ins: Add Item, F10: Save, Esc: Close");
+        FooterStatus.RegisterDefault(StatusLabel, "Transfer Barang — Ins: Add Item, F10: Save, Esc: Close");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -115,8 +116,5 @@ public partial class TransferView : UserControl
         RefreshGrid();
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

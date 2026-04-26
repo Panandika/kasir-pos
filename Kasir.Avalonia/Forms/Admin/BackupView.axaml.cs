@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -14,7 +15,7 @@ public partial class BackupView : UserControl
     {
         InitializeComponent();
         BtnBackup.Click += async (_, _) => await OnBackup();
-        SetStatus("Backup Database — Klik tombol untuk backup — Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Backup Database — Klik tombol untuk backup — Esc=Keluar");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -53,5 +54,5 @@ public partial class BackupView : UserControl
         }
     }
 
-    private void SetStatus(string t) => StatusLabel.Text = t;
+    private void SetStatus(string t) => FooterStatus.Show(StatusLabel, t);
 }

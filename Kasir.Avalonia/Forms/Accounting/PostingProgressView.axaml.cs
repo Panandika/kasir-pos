@@ -6,6 +6,7 @@ using Kasir.Services;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Accounting;
 
@@ -19,7 +20,7 @@ public partial class PostingProgressView : UserControl
         _periodCode = DateTime.Now.ToString("yyyyMM");
         InitializeComponent();
         _postingService = new PostingService(DbConnection.GetConnection());
-        SetStatus("F1=Post POS  F2=Post Pembelian  F3=Post Kas  F5=Tutup Periode  F10=Cek Saldo  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "F1=Post POS  F2=Post Pembelian  F3=Post Kas  F5=Tutup Periode  F10=Cek Saldo  Esc=Keluar");
     }
 
     private void Log(string msg)
@@ -159,8 +160,5 @@ public partial class PostingProgressView : UserControl
         await System.Threading.Tasks.Task.CompletedTask;
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

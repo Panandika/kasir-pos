@@ -93,19 +93,6 @@ namespace Kasir.Tests.Services
             _engine.GetUnitPrice(_product, 1, overridePrice: 0).Should().Be(500000);
         }
 
-        // Barcode price override
-        [Test]
-        public void GetUnitPrice_BarcodeOverride_OverridesAllTiers()
-        {
-            _engine.GetUnitPrice(_product, 1, barcodeOverride: 290000).Should().Be(290000);
-        }
-
-        [Test]
-        public void GetUnitPrice_BarcodeOverrideZero_IgnoresOverride()
-        {
-            _engine.GetUnitPrice(_product, 1, barcodeOverride: 0).Should().Be(500000);
-        }
-
         // Promotional price
         [Test]
         public void GetUnitPrice_PromoPrice_OverridesAllTiers()
@@ -114,26 +101,18 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
-        public void GetUnitPrice_PromoPrice_OverridesBarcodePrice()
-        {
-            _engine.GetUnitPrice(_product, 1, promoPrice: 250000, barcodeOverride: 290000)
-                .Should().Be(250000);
-        }
-
-        [Test]
         public void GetUnitPrice_PromoZero_IgnoresPromo()
         {
             _engine.GetUnitPrice(_product, 1, promoPrice: 0).Should().Be(500000);
         }
 
-        // Priority: promo > barcode > qty break > base
+        // Priority: promo > open price > qty break > base
         [Test]
         public void GetUnitPrice_AllOverridesPresent_PromoWins()
         {
             _product.OpenPrice = "Y";
             long result = _engine.GetUnitPrice(_product, 24,
                 overridePrice: 100000,
-                barcodeOverride: 200000,
                 promoPrice: 150000);
 
             result.Should().Be(150000, "promo has highest priority");
