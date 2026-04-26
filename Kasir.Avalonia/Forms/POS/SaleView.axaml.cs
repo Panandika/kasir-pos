@@ -146,7 +146,10 @@ public partial class SaleView : UserControl, INavigationAware
         {
             UpdateFooter();
             if (warning != null)
-                FooterStatus.Show(StatusLabel, "⚠ " + warning + "  " + StatusLabel.Text);
+            {
+                var hint = FooterStatus.GetDefault(StatusLabel) ?? "";
+                FooterStatus.Show(StatusLabel, "⚠ " + warning + (string.IsNullOrEmpty(hint) ? "" : "  " + hint));
+            }
         });
     }
 
