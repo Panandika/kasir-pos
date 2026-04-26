@@ -31,7 +31,7 @@
         </DataGrid.Columns>
       </DataGrid>
       <!-- Inline search panel (overlay on top of DataGrid, hidden by default) -->
-      <Border x:Name="SearchPanel" Background="{DynamicResource Bg2Brush}" IsVisible="False">
+      <Border x:Name="SearchPanel" Background="{DynamicResource Bg2Brush}" IsVisible="False" MaxHeight="160" VerticalAlignment="Top">
         <DockPanel>
           <Panel DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="32">
             <TextBlock x:Name="LblSearchMode" Text="Cari Kode:" Foreground="{DynamicResource WarningBrush}"
