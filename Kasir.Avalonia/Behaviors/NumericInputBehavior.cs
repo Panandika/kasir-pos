@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -58,20 +59,24 @@ public static class NumericInputBehavior
     }
 
     // Re-entry guard: setting Text from inside TextChanged would otherwise
-    // fire the handler again and cause an infinite loop.
-    private static bool _suppress;
+    // fire the handler again and cause an infinite loop. Per-TextBox so that
+    // formatting one box never blocks formatting on another, and entries are
+    // collected automatically when the TextBox is GC'd.
+    private static readonly ConditionalWeakTable<TextBox, StrongBox<bool>> _suppressMap = new();
 
     private static void OnTextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (_suppress) return;
         if (sender is not TextBox tb) return;
+        var flag = _suppressMap.GetValue(tb, _ => new StrongBox<bool>(false));
+        if (flag.Value) return;
+
         string original = tb.Text ?? "";
         int caret = tb.CaretIndex;
 
         var (formatted, newCaret) = IndonesianMoneyFormatter.ReformatPreserveCaret(original, caret);
         if (formatted == original) return;
 
-        _suppress = true;
+        flag.Value = true;
         try
         {
             tb.Text = formatted;
@@ -86,7 +91,7 @@ public static class NumericInputBehavior
         }
         finally
         {
-            _suppress = false;
+            flag.Value = false;
         }
     }
 }
