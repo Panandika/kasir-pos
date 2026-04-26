@@ -138,3 +138,4 @@
 ### Performance
 
 * **reports:** defer ProductReport initial load off navigation path ([6647202](https://github.com/Panandika/kasir-pos/commit/66472021406d02f9fa17212053023893d29cbb41))
+<!-- trigger -->

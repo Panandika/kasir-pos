@@ -640,8 +640,10 @@ CREATE TABLE purchases (
     remark          TEXT,
     sales_code      TEXT    DEFAULT '',         -- SALES C(15) — MSK only
     due_date        TEXT,
+    received_date   TEXT,                       -- TGL.TERIMA — physical receipt date
+    terms           INTEGER DEFAULT 0,         -- payment terms in days
     disc_pct        INTEGER DEFAULT 0,
-    disc2           INTEGER DEFAULT 0,         -- DISC2 N(15,0) × 100 — MSK only
+    disc2_pct       INTEGER DEFAULT 0,         -- DISC2 N(15,0) × 100 — MSK only
     warehouse       TEXT    DEFAULT '',         -- KMS C(15)
     commission_pct  INTEGER DEFAULT 0,         -- KOMISI N(5,2) × 100
     vat_flag        TEXT    DEFAULT 'N',

@@ -27,8 +27,8 @@
                  Margin="0,0,20,0" />
     </Border>
 
-    <!-- Header -->
-    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="60"
+    <!-- Header (auto-sized to content) -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}"
             BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,300,Auto,120" RowDefinitions="Auto,Auto" Margin="10,4">
         <TextBlock Grid.Row="0" Grid.Column="0" Text="Supplier:"

@@ -81,6 +81,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         new TileSpec { Label = "Transaksi", UnderlineIndex = 0, Hotkey = Key.T, Activate = () => DrillInto("Transaksi") },
         new TileSpec { Label = "Akuntansi", UnderlineIndex = 1, Hotkey = Key.K, Activate = () => DrillInto("Akuntansi") },
         new TileSpec { Label = "Laporan",   UnderlineIndex = 0, Hotkey = Key.L, Activate = () => DrillInto("Laporan") },
+        new TileSpec { Label = "Bank",      UnderlineIndex = 0, Hotkey = Key.B, Activate = () => DrillInto("Bank") },
         new TileSpec { Label = "Utility",   UnderlineIndex = 0, Hotkey = Key.U, Activate = () => DrillInto("Utility") },
         new TileSpec { Label = "Keluar",    UnderlineIndex = 1, Hotkey = Key.E, IsDanger = true,
                        Activate = () => NavigationService.ReplaceRoot(new LoginView()) },
@@ -123,6 +124,11 @@ public partial class MainMenuView : UserControl, INavigationAware
             new TileSpec { Label = "Penjualan",             UnderlineIndex = 3,  Hotkey = Key.J, Activate = () => NavigationService.Navigate(new SalesReportView()) },
             new TileSpec { Label = "Stok Barang",           UnderlineIndex = 2,  Hotkey = Key.O, Activate = () => NavigationService.Navigate(new InventoryReportView()) },
             new TileSpec { Label = "Laporan Keuangan",      UnderlineIndex = 0,  Hotkey = Key.L, Activate = () => NavigationService.Navigate(new FinancialReportView()) },
+        },
+        "Bank" => new[]
+        {
+            new TileSpec { Label = "Input Tabel Bank",        UnderlineIndex = 12, Hotkey = Key.B, Activate = () => NavigationService.Navigate(new BankView()) },
+            new TileSpec { Label = "Input Giro Tolakan/Cair", UnderlineIndex = 6,  Hotkey = Key.G, Activate = () => NavigationService.Navigate(new BankGiroView()) },
         },
         "Utility" => new[]
         {
