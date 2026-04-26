@@ -22,7 +22,6 @@ public static class FooterStatus
     {
         public string DefaultHint = "";
         public DispatcherTimer? Timer;
-        public IBrush? OriginalForeground;
         public bool DefaultRegistered;
     }
 
@@ -39,8 +38,6 @@ public static class FooterStatus
         var state = GetOrCreate(label);
         state.DefaultHint = defaultHint ?? "";
         state.DefaultRegistered = true;
-        if (state.OriginalForeground == null)
-            state.OriginalForeground = label.Foreground;
         label.Text = state.DefaultHint;
     }
 
@@ -91,10 +88,19 @@ public static class FooterStatus
             label.Text = state.DefaultHint;
     }
 
+    /// <summary>
+    /// Returns the registered default hint for <paramref name="label"/>, or
+    /// <c>null</c> if no default has been registered yet.
+    /// </summary>
+    public static string? GetDefault(TextBlock label)
+    {
+        return _states.TryGetValue(label, out var state) ? state.DefaultHint : null;
+    }
+
     private static FooterState GetOrCreate(TextBlock label)
     {
         if (_states.TryGetValue(label, out var existing)) return existing;
-        var fresh = new FooterState { OriginalForeground = label.Foreground };
+        var fresh = new FooterState();
         _states.Add(label, fresh);
         return fresh;
     }
