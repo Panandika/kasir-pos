@@ -47,8 +47,8 @@
       </Grid>
     </Border>
 
-    <!-- Header: four rows -->
-    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}" Height="120"
+    <!-- Header: four rows (auto-sized to content) -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}"
             BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,140,Auto,140,Auto,140,Auto,140" RowDefinitions="Auto,Auto,Auto,Auto" Margin="10,4">
         <!-- Row 0: Faktur + BPB + No.PO + Tgl.PO -->
