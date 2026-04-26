@@ -47,7 +47,6 @@
               x:CompileBindings="False">
       <DataGrid.Columns>
         <DataGridTextColumn Header="Kode"       Binding="{Binding Code}"    Width="1.5*" />
-        <DataGridTextColumn Header="Barcode"    Binding="{Binding Barcode}" Width="1.5*" />
         <DataGridTextColumn Header="Nama"       Binding="{Binding Name}"    Width="3*"   />
         <DataGridTextColumn Header="Satuan"     Binding="{Binding Unit}"    Width="0.8*" />
         <DataGridTextColumn Header="Dept"       Binding="{Binding Dept}"    Width="0.8*" />

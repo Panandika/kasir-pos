@@ -12,6 +12,7 @@ using Kasir.Services;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using ClosedXML.Excel;
 
 namespace Kasir.Avalonia.Forms.Reports;
@@ -45,7 +46,7 @@ public partial class FinancialReportView : UserControl
         };
         CboReportType.SelectedIndex = 0;
         TxtPeriod.Text = DateTime.Now.ToString("yyyyMM");
-        StatusLabel.Text = "Laporan Keuangan — F5=Cetak  F10=Export Excel  Esc=Keluar";
+        FooterStatus.RegisterDefault(StatusLabel, "Laporan Keuangan — F5=Cetak  F10=Export Excel  Esc=Keluar");
         BtnGenerate.Click += (_, _) => GenerateReport();
         BtnExport.Click += (_, _) => ExportReport();
     }

@@ -196,7 +196,6 @@ CREATE TABLE products (
     type_sub        TEXT,                       -- JNSUB C(5)
     category_code   TEXT,                       -- CATEGORY C(5)
     dept_code       TEXT,                       -- DEPT C(2)
-    barcode         TEXT,                       -- BARCODE C(15)
     name            TEXT    NOT NULL,           -- NAME C(75)
     status          TEXT    DEFAULT 'A' CHECK(status IN ('A','I','D')),
     unit1           TEXT,                       -- UNIT1 C(6) — purchase unit
@@ -232,18 +231,6 @@ CREATE TABLE products (
     shelf_location  TEXT,                       -- RAK C(15)
     changed_by      INTEGER,
     changed_at      TEXT
-);
-
--- Source: SM CREATE.BAK d_bcd()
--- One product can have multiple barcodes with qty multiplier and price override
-CREATE TABLE product_barcodes (
-    id              INTEGER PRIMARY KEY,
-    product_code    TEXT    NOT NULL,           -- INV C(8) — links to products
-    barcode         TEXT    NOT NULL UNIQUE,    -- derived from INV8+QBARCODE
-    product_name    TEXT,                       -- NAME C(36) — denormalized for fast scan
-    qty_per_scan    INTEGER NOT NULL DEFAULT 1, -- QBARCODE N(6,0) — e.g. box=12
-    price_override  INTEGER,                    -- HARGA — if set, overrides product price
-    customer_code   TEXT                        -- INVCUST C(15) — customer-specific code
 );
 
 -- Source: SM CREATE.BAK d_jns()
@@ -1158,7 +1145,6 @@ CREATE TABLE sync_log (
 
 CREATE VIRTUAL TABLE products_fts USING fts5(
     product_code,
-    barcode,
     name,
     content='products',
     content_rowid='id',
@@ -1167,20 +1153,20 @@ CREATE VIRTUAL TABLE products_fts USING fts5(
 
 -- Keep FTS in sync with products table
 CREATE TRIGGER products_fts_ai AFTER INSERT ON products BEGIN
-    INSERT INTO products_fts(rowid, product_code, barcode, name)
-    VALUES (new.id, new.product_code, new.barcode, new.name);
+    INSERT INTO products_fts(rowid, product_code, name)
+    VALUES (new.id, new.product_code, new.name);
 END;
 
 CREATE TRIGGER products_fts_ad AFTER DELETE ON products BEGIN
-    INSERT INTO products_fts(products_fts, rowid, product_code, barcode, name)
-    VALUES ('delete', old.id, old.product_code, old.barcode, old.name);
+    INSERT INTO products_fts(products_fts, rowid, product_code, name)
+    VALUES ('delete', old.id, old.product_code, old.name);
 END;
 
 CREATE TRIGGER products_fts_au AFTER UPDATE ON products BEGIN
-    INSERT INTO products_fts(products_fts, rowid, product_code, barcode, name)
-    VALUES ('delete', old.id, old.product_code, old.barcode, old.name);
-    INSERT INTO products_fts(rowid, product_code, barcode, name)
-    VALUES (new.id, new.product_code, new.barcode, new.name);
+    INSERT INTO products_fts(products_fts, rowid, product_code, name)
+    VALUES ('delete', old.id, old.product_code, old.name);
+    INSERT INTO products_fts(rowid, product_code, name)
+    VALUES (new.id, new.product_code, new.name);
 END;
 
 -- ============================================================
@@ -1196,7 +1182,7 @@ CREATE TABLE sync_queue (
     id              INTEGER PRIMARY KEY,  -- monotonic, local per-register (hub tracks per source)
     register_id     TEXT    NOT NULL,
     table_name      TEXT    NOT NULL CHECK(table_name IN (
-                        'products', 'product_barcodes',
+                        'products',
                         'sales', 'purchases',
                         'cash_transactions',
                         'memorial_journals',
@@ -1256,7 +1242,6 @@ WHEN OLD.name != NEW.name
   OR OLD.price4 != NEW.price4
   OR OLD.buying_price != NEW.buying_price
   OR OLD.cost_price != NEW.cost_price
-  OR OLD.barcode != NEW.barcode
   OR OLD.dept_code != NEW.dept_code
   OR OLD.vendor_code != NEW.vendor_code
   OR OLD.status != NEW.status
@@ -1516,14 +1501,9 @@ INSERT INTO config(key, value, description) VALUES
 
 -- Product lookups (POS hot path — must be sub-50ms)
 CREATE UNIQUE INDEX idx_products_code ON products(product_code);
-CREATE INDEX idx_products_barcode ON products(barcode) WHERE barcode IS NOT NULL AND barcode != '';
 CREATE INDEX idx_products_vendor ON products(vendor_code);
 CREATE INDEX idx_products_category ON products(category_code);
 CREATE INDEX idx_products_type ON products(product_type);
-
--- Product barcodes — first lookup for POS barcode scan
-CREATE UNIQUE INDEX idx_product_barcodes_barcode ON product_barcodes(barcode);
-CREATE INDEX idx_product_barcodes_product ON product_barcodes(product_code);
 
 -- Subsidiaries
 CREATE UNIQUE INDEX idx_subs_code ON subsidiaries(sub_code);
@@ -1697,12 +1677,11 @@ SELECT
 FROM accounts a
 JOIN account_balances ab ON ab.account_code = a.account_code;
 
--- Product lookup with barcode search (POS hot path)
+-- Product lookup (POS hot path)
 CREATE VIEW v_product_lookup AS
 SELECT
     p.id,
     p.product_code,
-    p.barcode,
     p.name,
     p.price,
     p.price1,

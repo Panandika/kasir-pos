@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
@@ -32,7 +33,7 @@ public partial class StockOutView : UserControl
         CboType.SelectedIndex = 0;
 
         DgvItems.ItemsSource = _rows;
-        SetStatus("Mutasi Barang Keluar — Ins: Add Item, F10: Save, Esc: Close");
+        FooterStatus.RegisterDefault(StatusLabel, "Mutasi Barang Keluar — Ins: Add Item, F10: Save, Esc: Close");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -109,8 +110,5 @@ public partial class StockOutView : UserControl
         RefreshGrid();
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

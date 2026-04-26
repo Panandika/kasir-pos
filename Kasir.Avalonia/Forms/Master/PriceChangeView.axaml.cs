@@ -7,6 +7,7 @@ using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Services;
+using Kasir.Avalonia.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
@@ -35,7 +36,7 @@ public partial class PriceChangeView : UserControl
         DgvPrices.ItemsSource = _rows;
         TxtSearch.TextChanged += (_, _) => ApplyFilter();
         ViewShortcuts.WireGridEnter(DgvPrices, EditSelectedPrice);
-        SetStatus("Ganti Harga Jual — F5: Muat Produk, Enter: Edit Harga, F10: Simpan, Esc: Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Ganti Harga Jual — F5: Muat Produk, Enter: Edit Harga, F10: Simpan, Esc: Keluar");
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -144,5 +145,5 @@ public partial class PriceChangeView : UserControl
         LoadProducts();
     }
 
-    private void SetStatus(string text) => StatusLabel.Text = text;
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

@@ -179,7 +179,6 @@ namespace Kasir.Sync
             switch (tableName)
             {
                 case "products": return "product_code";
-                case "product_barcodes": return "barcode";
                 case "departments": return "dept_code";
                 case "subsidiaries": return "sub_code";
                 case "members": return "member_code";

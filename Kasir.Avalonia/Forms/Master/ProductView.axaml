@@ -39,7 +39,6 @@
         <DataGrid.Columns>
           <DataGridTextColumn Header="Kode"        Binding="{Binding Code}"         Width="1.2*" CanUserSort="False"/>
           <DataGridTextColumn Header="Nama Barang" Binding="{Binding Name}"         Width="3.5*" CanUserSort="False"/>
-          <DataGridTextColumn Header="Barcode"     Binding="{Binding Barcode}"      Width="1.8*" CanUserSort="False"/>
           <DataGridTextColumn Header="Harga"       Binding="{Binding Price}"        Width="1.3*" CanUserSort="False"/>
           <DataGridTemplateColumn Header="Stok Toko" Width="1.0*" CanUserSort="False">
             <DataGridTemplateColumn.CellTemplate>
@@ -58,104 +57,91 @@
           <DataGridTextColumn Header="Status"      Binding="{Binding Status}"       Width="0.7*" CanUserSort="False"/>
         </DataGrid.Columns>
       </DataGrid>
-      <TabControl Grid.Row="1" x:Name="TabDetail" Background="{DynamicResource Bg0Brush}"
-                  FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12">
-        <TabItem Header="Umum" Foreground="{DynamicResource FgPrimaryBrush}">
-          <ScrollViewer>
-            <StackPanel Margin="12,8" Spacing="6">
-              <Grid ColumnDefinitions="160,*">
-                <TextBlock Grid.Column="0" Text="Kode Barang:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtCode" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,*">
-                <TextBlock Grid.Column="0" Text="Nama:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtName" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,*">
-                <TextBlock Grid.Column="0" Text="Barcode:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtBarcode" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,*">
-                <TextBlock Grid.Column="0" Text="Satuan:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtUnit" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,*">
-                <TextBlock Grid.Column="0" Text="Departemen:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <ComboBox x:Name="CboDept" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" HorizontalAlignment="Stretch"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,*">
-                <TextBlock Grid.Column="0" Text="Status:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <ComboBox x:Name="CboStatus" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Width="150">
-                  <ComboBoxItem Content="A - Active"/>
-                  <ComboBoxItem Content="I - Inactive"/>
-                </ComboBox>
-              </Grid>
-            </StackPanel>
-          </ScrollViewer>
-        </TabItem>
-        <TabItem Header="Harga" Foreground="{DynamicResource FgPrimaryBrush}">
-          <ScrollViewer>
-            <StackPanel Margin="12,8" Spacing="6">
-              <Grid ColumnDefinitions="160,200,120,80">
-                <TextBlock Grid.Column="0" Text="Harga Jual:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtPrice" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,200,120,80">
-                <TextBlock Grid.Column="0" Text="Harga 1 (Grosir):" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtPrice1" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,200,120,80">
-                <TextBlock Grid.Column="0" Text="Harga 2:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtPrice2" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-                <TextBlock Grid.Column="2" Text="Batas Qty 2:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                <TextBox Grid.Column="3" x:Name="TxtQtyBreak2" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,200,120,80">
-                <TextBlock Grid.Column="0" Text="Harga 3:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtPrice3" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-                <TextBlock Grid.Column="2" Text="Batas Qty 3:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                <TextBox Grid.Column="3" x:Name="TxtQtyBreak3" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,200">
-                <TextBlock Grid.Column="0" Text="Harga 4:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtPrice4" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,200">
-                <TextBlock Grid.Column="0" Text="Harga Beli:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtBuyingPrice" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,200">
-                <TextBlock Grid.Column="0" Text="Harga Pokok:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="TxtCostPrice" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-              </Grid>
-              <Grid ColumnDefinitions="160,150">
-                <TextBlock Grid.Column="0" Text="Open Price:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-                <ComboBox x:Name="CboOpenPrice" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13">
-                  <ComboBoxItem Content="N"/><ComboBoxItem Content="Y"/>
-                </ComboBox>
-              </Grid>
-            </StackPanel>
-          </ScrollViewer>
-        </TabItem>
-        <TabItem Header="Lain-lain" Foreground="{DynamicResource FgPrimaryBrush}">
-          <StackPanel Margin="12,8" Spacing="6">
-            <Grid ColumnDefinitions="160,200">
-              <TextBlock Grid.Column="0" Text="Disc %:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-              <TextBox Grid.Column="1" x:Name="TxtDiscPct" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
+      <ScrollViewer Grid.Row="1" Background="{DynamicResource Bg0Brush}">
+        <Grid Margin="12,8" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,*">
+          <!-- Row 1: Kode | Departemen | Satuan | Supplier -->
+          <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnDefinitions="110,1.4*,110,1.6*,90,0.8*,90,1.4*" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Text="Kode Barang:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="1" x:Name="TxtCode" Height="28" Margin="0,0,8,0"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+            <TextBlock Grid.Column="2" Text="Departemen:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+            <ComboBox  Grid.Column="3" x:Name="CboDept" Height="28" Margin="0,0,8,0"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" HorizontalAlignment="Stretch"/>
+            <TextBlock Grid.Column="4" Text="Satuan:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="5" x:Name="TxtUnit" Height="28" Margin="0,0,8,0"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+            <TextBlock Grid.Column="6" Text="Supplier:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="7" x:Name="TxtVendorCode" Height="28"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+          </Grid>
+          <!-- Row 2: Nama Barang (full width) -->
+          <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="110,*" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Text="Nama Barang:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="1" x:Name="TxtName" Height="28"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+          </Grid>
+          <!-- Row 3: Disc.Max % | Profit % (read-only) -->
+          <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="110,160,32,110,160,*" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Text="Disc.Max %:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="1" x:Name="TxtDiscMax" Height="28" TextAlignment="Right"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+            <TextBlock Grid.Column="3" Text="Profit %:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="4" x:Name="LblMargin" Text="0.00" Height="28" TextAlignment="Right" Padding="6,5"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgNumericBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+          </Grid>
+          <!-- Row 4 + Row 5: prices on left | stok grid on right -->
+          <Grid Grid.Row="3" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,12,0"
+                RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="110,*">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Harga Beli:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,6"/>
+            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtBuyingPrice" Height="28" TextAlignment="Right" Margin="0,0,0,6"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Harga Pokok:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,6"/>
+            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtCostPrice" Height="28" TextAlignment="Right" Margin="0,0,0,6"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Harga Jual:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtSellingPrice" Height="28" TextAlignment="Right"
+                       Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+          </Grid>
+          <!-- Stok grid: header row + 5 data rows -->
+          <Border Grid.Row="3" Grid.Column="1" Grid.RowSpan="2" BorderBrush="{DynamicResource Bg2Brush}" BorderThickness="1" Padding="6">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="100,*,*">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="" />
+              <TextBlock Grid.Row="0" Grid.Column="1" Text="Gudang"   Foreground="{DynamicResource FgSecondaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="Toko"     Foreground="{DynamicResource FgSecondaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Maximum"  Foreground="{DynamicResource FgSecondaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12"/>
+              <TextBlock Grid.Row="1" Grid.Column="1" x:Name="LblStokMaxG"   Foreground="{DynamicResource FgPrimaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="1" Grid.Column="2" x:Name="LblStokMaxT"   Foreground="{DynamicResource FgPrimaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="Ideal"    Foreground="{DynamicResource FgSecondaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12"/>
+              <TextBlock Grid.Row="2" Grid.Column="1" x:Name="LblStokIdealG" Foreground="{DynamicResource FgPrimaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="2" Grid.Column="2" x:Name="LblStokIdealT" Foreground="{DynamicResource FgPrimaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="3" Grid.Column="0" Text="Minimum"  Foreground="{DynamicResource FgSecondaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12"/>
+              <TextBlock Grid.Row="3" Grid.Column="1" x:Name="LblStokMinG"   Foreground="{DynamicResource FgPrimaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="3" Grid.Column="2" x:Name="LblStokMinT"   Foreground="{DynamicResource FgPrimaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="4" Grid.Column="0" Text="Awal"     Foreground="{DynamicResource FgSecondaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12"/>
+              <TextBlock Grid.Row="4" Grid.Column="1" x:Name="LblStokAwalG"  Foreground="{DynamicResource FgPrimaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="4" Grid.Column="2" x:Name="LblStokAwalT"  Foreground="{DynamicResource FgPrimaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="5" Grid.Column="0" Text="Sekarang" Foreground="{DynamicResource FgSecondaryBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12"/>
+              <TextBlock Grid.Row="5" Grid.Column="1" x:Name="LblStokNowG"   Foreground="{DynamicResource FgNumericBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
+              <TextBlock Grid.Row="5" Grid.Column="2" x:Name="LblStokNowT"   Foreground="{DynamicResource FgNumericBrush}" FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" TextAlignment="Right" Padding="0,0,8,0"/>
             </Grid>
-            <Grid ColumnDefinitions="160,200">
-              <TextBlock Grid.Column="0" Text="Kode Vendor:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-              <TextBox Grid.Column="1" x:Name="TxtVendorCode" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13" Height="28"/>
-            </Grid>
-            <Grid ColumnDefinitions="160,150">
-              <TextBlock Grid.Column="0" Text="PPN:" Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
-              <ComboBox x:Name="CboVatFlag" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}" FontSize="13">
-                <ComboBoxItem Content="N"/><ComboBoxItem Content="Y"/>
-              </ComboBox>
-            </Grid>
-          </StackPanel>
-        </TabItem>
-      </TabControl>
+          </Border>
+          <!-- Row 5 (status hidden control kept for backwards-compatibility with code-behind) -->
+          <ComboBox Grid.Row="5" Grid.ColumnSpan="2" x:Name="CboStatus" IsVisible="False">
+            <ComboBoxItem Content="A - Active"/>
+            <ComboBoxItem Content="I - Inactive"/>
+          </ComboBox>
+        </Grid>
+      </ScrollViewer>
     </Grid>
   </DockPanel>
 </UserControl>

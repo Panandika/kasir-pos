@@ -10,6 +10,7 @@ using Kasir.Services;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Purchasing;
 
@@ -33,7 +34,7 @@ public partial class GoodsReceiptView : UserControl
         _productRepo = new ProductRepository(conn);
         DgvItems.ItemsSource = _rows;
         TxtDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
-        SetStatus("Goods Receipt — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan, Esc: Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Goods Receipt — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan, Esc: Keluar");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -134,8 +135,8 @@ public partial class GoodsReceiptView : UserControl
         _vendorCode = "";
         TxtVendor.Text = "";
         TxtInvoiceNo.Text = "";
-        SetStatus("Goods Receipt — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan, Esc: Keluar");
+        FooterStatus.Reset(StatusLabel);
     }
 
-    private void SetStatus(string text) => StatusLabel.Text = text;
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

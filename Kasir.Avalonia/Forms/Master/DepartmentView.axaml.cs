@@ -7,6 +7,7 @@ using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
+using Kasir.Avalonia.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
@@ -30,7 +31,7 @@ public partial class DepartmentView : UserControl
         DgvDepts.ItemsSource = _rows;
         TxtSearch.TextChanged += (_, _) => FilterGrid(TxtSearch.Text ?? "");
         ViewShortcuts.WireGridEnter(DgvDepts, EditDept);
-        SetStatus("Ins=Tambah  Enter=Edit  Del=Hapus  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Ins=Tambah  Enter=Edit  Del=Hapus  Esc=Keluar");
         LoadData();
     }
 
@@ -169,8 +170,5 @@ public partial class DepartmentView : UserControl
         SetStatus($"Departemen '{row.Name}' dihapus.");
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

@@ -1,0 +1,34 @@
+=== sqlite_version ===
+3.46.1
+=== product_count ===
+24560
+=== products.barcode column (should be empty) ===
+=== product_barcodes table (should be empty) ===
+=== FTS5 'aqua' search ===
+8992832594241 | CASABLANCA AQUA 308 125 ML ***
+44 | AQUA GALON
+44.1 | GALON AQUA
+=== schema_version (expect 5) ===
+5
+=== fts triggers ===
+products_fts_ai
+products_fts_ad
+products_fts_au
+=== idx_products_barcode (should be empty) ===
+=== sqlite_version ===
+3.46.1
+=== product_count ===
+24560
+=== products.barcode column (should be empty) ===
+=== product_barcodes table (should be empty) ===
+=== FTS5 'aqua' search ===
+8992832594241 | CASABLANCA AQUA 308 125 ML ***
+44 | AQUA GALON
+44.1 | GALON AQUA
+=== schema_version (expect 5) ===
+5
+=== fts triggers ===
+products_fts_ai
+products_fts_ad
+products_fts_au
+=== idx_products_barcode (should be empty) ===
