@@ -99,7 +99,7 @@ public partial class PurchaseInvoiceView : UserControl
             ProductCode = product.ProductCode,
             ProductName = product.Name,
             Quantity = qty,
-            UnitPrice = (int)(price * 100m),
+            UnitPrice = (long)(price * 100m),
             Value = (long)(price * 100m) * qty
         };
         _items.Add(item);
@@ -172,7 +172,7 @@ public partial class PurchaseInvoiceView : UserControl
         if (discPct < 0) discPct = 0;
         if (discPct > 100) discPct = 100;
 
-        var (gross, disc, vat, _) = ComputeTotals();
+        var (grossAmount, disc, vat, _) = ComputeTotals();
         string vatFlag = (TxtVatFlag.Text ?? "N").Trim().ToUpper();
         if (vatFlag != "Y") vatFlag = "N";
 
@@ -190,6 +190,7 @@ public partial class PurchaseInvoiceView : UserControl
             Warehouse = TxtWarehouse.Text?.Trim() ?? "",
             DiscPct = discPct,
             VatFlag = vatFlag,
+            GrossAmount = grossAmount,
             TotalDisc = disc,
             VatAmount = vat
         };
