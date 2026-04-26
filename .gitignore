@@ -16,3 +16,4 @@ TestResults/
 .omc/sessions/
 .omc/project-memory.json
 graphify-out/*
+.env
