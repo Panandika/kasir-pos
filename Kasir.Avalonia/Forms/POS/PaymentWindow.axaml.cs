@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
+using Kasir.Avalonia.Behaviors;
 using Kasir.Services;
 using Kasir.Utils;
 
@@ -33,9 +34,13 @@ public partial class PaymentWindow : Window
         _cards = new CreditCardRepository(DbConnection.GetConnection()).GetAll();
 
         LblTotal.Text = $"TOTAL: {Formatting.FormatCurrency(_totalDue)}";
-        TxtCash.Text = (_totalDue / 100).ToString();
+        TxtCash.Text = IndonesianMoneyFormatter.Format(_totalDue / 100);
         TxtCard.Text = "0";
         TxtVoucher.Text = "0";
+
+        NumericInputBehavior.AttachLiveFormatting(TxtCash);
+        NumericInputBehavior.AttachLiveFormatting(TxtCard);
+        NumericInputBehavior.AttachLiveFormatting(TxtVoucher);
 
         var cardItems = new List<string> { "(none)" };
         foreach (var c in _cards)

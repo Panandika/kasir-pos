@@ -14,6 +14,7 @@ using Kasir.Hardware;
 using Kasir.Models;
 using Kasir.Services;
 using Kasir.Utils;
+using Kasir.Avalonia.Behaviors;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Diagnostics;
@@ -48,6 +49,12 @@ public partial class SaleView : UserControl, INavigationAware
     private string _printerStatusText = "";
     private bool _printerStatusOk;
 
+    // ── Kembalian / TUNAI banner state ──
+    private enum BannerState { Subtotal, Tunai, Kembalian }
+    private BannerState _bannerState = BannerState.Subtotal;
+    private DispatcherTimer? _bannerTimer;
+    private IBrush? _subtotalDefaultBrush;
+
     public SaleView(AuthService auth)
     {
         InitializeComponent();
@@ -70,7 +77,9 @@ public partial class SaleView : UserControl, INavigationAware
         DgvItems.ItemsSource = _rows;
         DgvSearch.ItemsSource = _searchRows;
 
+        _subtotalDefaultBrush = LblSubtotal.Foreground;
         TxtBarcode.KeyDown += OnBarcodeKeyDown;
+        TxtBarcode.TextChanged += (_, _) => { if (_bannerState != BannerState.Subtotal) ResetBanner(); };
         TxtSearchInput.TextChanged += (_, _) => OnSearchTextChanged();
         TxtSearchInput.KeyDown += OnSearchInputKeyDown;
         DgvSearch.KeyDown += OnSearchGridKeyDown;
@@ -155,6 +164,10 @@ public partial class SaleView : UserControl, INavigationAware
 
     private void OnBarcodeKeyDown(object? sender, KeyEventArgs e)
     {
+        // Banner dismiss on any keypress while kembalian/tunai is showing.
+        // Pass-through (no e.Handled) so the keystroke still types into the box.
+        if (_bannerState != BannerState.Subtotal) ResetBanner();
+
         // Esc during misc-price prompt cancels the prompt without exiting the sale.
         if (_inputMode == InputMode.AwaitingMiscPrice && e.Key == Key.Escape)
         {
@@ -162,6 +175,23 @@ public partial class SaleView : UserControl, INavigationAware
             TxtBarcode.Text = "";
             ExitPricePromptMode();
             StatusLabel.Text = "Input Barang Tanpa Kode dibatalkan.";
+            return;
+        }
+
+        // `+` quick-cash: digits-only contents in TxtBarcode treated as cash
+        // amount. If contents are not digits-only (e.g. user typed product
+        // code), or no sale exists, fall through to global Key.Add handler
+        // which does DoExactPayment().
+        if (e.Key == Key.Add || e.Key == Key.OemPlus)
+        {
+            string cashRaw = (TxtBarcode.Text ?? "").Trim();
+            if (cashRaw.Length > 0 && IndonesianMoneyFormatter.IsDigitsOnly(cashRaw))
+            {
+                e.Handled = true;
+                HandleQuickCash(cashRaw);
+                return;
+            }
+            // Otherwise let SaleView.OnKeyDown's Key.Add path run — DoExactPayment.
             return;
         }
 
@@ -277,7 +307,9 @@ public partial class SaleView : UserControl, INavigationAware
     private void UpdateTotals()
     {
         var t = _salesService.GetTotals();
-        LblSubtotal.Text = (t.NetAmount / 100).ToString("N0");
+        // Don't overwrite the banner while it's showing TUNAI/KEMBALIAN.
+        if (_bannerState == BannerState.Subtotal)
+            LblSubtotal.Text = (t.NetAmount / 100).ToString("N0");
         LblTotalRow.Text = $"TOTAL\u2192  {Formatting.FormatCurrency(t.NetAmount)}";
         LblItemCount.Text = _salesService.CurrentItems.Count.ToString();
     }
@@ -302,7 +334,7 @@ public partial class SaleView : UserControl, INavigationAware
         if (_salesService.CurrentItems.Count == 0) { StatusLabel.Text = "Tidak ada item."; return; }
         var totals = _salesService.GetTotals();
         var result = await PaymentWindow.Show(NavigationService.Owner, totals.NetAmount);
-        if (result == null) return;
+        if (result == null) { TxtBarcode.Focus(); return; }
         try
         {
             Sale sale;
@@ -312,9 +344,89 @@ public partial class SaleView : UserControl, INavigationAware
             _ = PrintReceiptAsync(sale);
             if (result.CashAmount > 0) OpenCashDrawer();
             _salesService.ClearCurrentSale();
-            RefreshGrid(); UpdateTotals(); UpdateFooter();
+            RefreshGrid();
+            if (sale.ChangeAmount > 0) ShowKembalianBanner(sale.ChangeAmount);
+            else UpdateTotals();
+            UpdateFooter();
+            TxtBarcode.Focus();
         }
         catch (Exception ex) { await MsgBox.Show(NavigationService.Owner, "Gagal bayar: " + ex.Message); }
+    }
+
+    // ── Banner state machine (Q2) ────────────────────────────────────
+    private void ShowTunaiBanner(long cashCents)
+    {
+        _bannerState = BannerState.Tunai;
+        LblSubtotal.Text = $"TUNAI: {Formatting.FormatCurrency(cashCents)}";
+    }
+
+    private void ShowKembalianBanner(long changeCents)
+    {
+        _bannerState = BannerState.Kembalian;
+        LblSubtotal.Text = $"KEMBALIAN: {Formatting.FormatCurrency(changeCents)}";
+        LblSubtotal.Foreground = new SolidColorBrush(Colors.LimeGreen);
+        StartBannerTimer();
+    }
+
+    private void StartBannerTimer()
+    {
+        _bannerTimer?.Stop();
+        _bannerTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        _bannerTimer.Tick += (_, _) => { _bannerTimer?.Stop(); ResetBanner(); };
+        _bannerTimer.Start();
+    }
+
+    private void ResetBanner()
+    {
+        _bannerTimer?.Stop();
+        _bannerTimer = null;
+        _bannerState = BannerState.Subtotal;
+        if (_subtotalDefaultBrush != null) LblSubtotal.Foreground = _subtotalDefaultBrush;
+        UpdateTotals();
+    }
+
+    private async void HandleQuickCash(string digits)
+    {
+        if (_salesService.CurrentItems.Count == 0)
+        {
+            StatusLabel.Text = "Tidak ada item.";
+            return;
+        }
+        if (!long.TryParse(digits, out long rupiah) || rupiah <= 0)
+        {
+            StatusLabel.Text = "Jumlah tunai tidak valid.";
+            return;
+        }
+        long cashCents = rupiah * 100;
+        var totals = _salesService.GetTotals();
+        if (cashCents < totals.NetAmount)
+        {
+            StatusLabel.Text = "Tunai kurang.";
+            return;
+        }
+        try
+        {
+            ShowTunaiBanner(cashCents);
+            Sale sale;
+            using (var _ = PerfMetrics.Measure(PerfMetrics.SaleCommit))
+                sale = _salesService.CompleteSale(cashCents, 0, 0, "", "", "");
+            StatusLabel.Text = $"LUNAS: {sale.JournalNo} — Kembali: {Formatting.FormatCurrency(sale.ChangeAmount)}";
+            _ = PrintReceiptAsync(sale);
+            OpenCashDrawer();
+            _salesService.ClearCurrentSale();
+            TxtBarcode.Text = "";
+            RefreshGrid(); UpdateFooter();
+            // Show kembalian (overrides the brief Tunai banner). UpdateTotals
+            // is intentionally NOT called here — ShowKembalianBanner sets the
+            // banner text directly, and ResetBanner() will refresh totals.
+            ShowKembalianBanner(sale.ChangeAmount);
+            TxtBarcode.Focus();
+        }
+        catch (Exception ex)
+        {
+            ResetBanner();
+            await MsgBox.Show(NavigationService.Owner, "Gagal bayar: " + ex.Message);
+        }
     }
 
     private void DoExactPayment()
@@ -331,6 +443,7 @@ public partial class SaleView : UserControl, INavigationAware
             OpenCashDrawer();
             _salesService.ClearCurrentSale();
             RefreshGrid(); UpdateTotals(); UpdateFooter();
+            TxtBarcode.Focus();
         }
         catch (Exception ex) { _ = MsgBox.Show(NavigationService.Owner, "Gagal: " + ex.Message); }
     }
