@@ -9,6 +9,9 @@ namespace Kasir.Models
         public string AccountCode { get; set; }
         public string SubCode { get; set; }
         public string RefNo { get; set; }
+        public string TaxInvoice { get; set; }
+        public string DeliveryNote { get; set; }
+        public string TaxInvDate { get; set; }
         public string Remark { get; set; }
         public string Warehouse { get; set; }
         public int DiscPct { get; set; }
@@ -19,6 +22,7 @@ namespace Kasir.Models
         public long VatAmount { get; set; }
         public long TotalValue { get; set; }
         public string DueDate { get; set; }
+        public string ReceivedDate { get; set; }
         public int Terms { get; set; }
         public int Control { get; set; }
         public string PeriodCode { get; set; }
