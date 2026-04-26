@@ -95,8 +95,8 @@ public partial class ProductView : UserControl
 
     private ProductRow MakeRow(Product p)
     {
-        int stockStore = _inventoryService.GetStockOnHandByLocation(p.ProductCode, "TOKO");
-        int stockWarehouse = _inventoryService.GetStockOnHandByLocation(p.ProductCode, "GUDANG");
+        int stockStore = _inventoryService.GetStockOnHandByLocation(p.ProductCode, "T");
+        int stockWarehouse = _inventoryService.GetStockOnHandByLocation(p.ProductCode, "G");
         return new ProductRow(
             p.ProductCode,
             p.Name,
@@ -156,8 +156,8 @@ public partial class ProductView : UserControl
         LblStokAwalT.Text = "0";
 
         // Sekarang = current on-hand from stock_movements aggregate (matches grid)
-        int nowT = _inventoryService.GetStockOnHandByLocation(p.ProductCode ?? "", "TOKO");
-        int nowG = _inventoryService.GetStockOnHandByLocation(p.ProductCode ?? "", "GUDANG");
+        int nowT = _inventoryService.GetStockOnHandByLocation(p.ProductCode ?? "", "T");
+        int nowG = _inventoryService.GetStockOnHandByLocation(p.ProductCode ?? "", "G");
         LblStokNowT.Text = nowT.ToString();
         LblStokNowG.Text = nowG.ToString();
     }

@@ -39,10 +39,10 @@ namespace Kasir.Data.Migrations
                 // 6. Drop the barcode column on products (SQLite 3.43.2 supports DROP COLUMN)
                 "ALTER TABLE products DROP COLUMN barcode",
 
-                // 5. Drop the FTS5 virtual table (cannot be ALTERed)
+                // 7. Drop the FTS5 virtual table (cannot be ALTERed)
                 "DROP TABLE IF EXISTS products_fts",
 
-                // 6. Recreate products_fts without barcode
+                // 8. Recreate products_fts without barcode
                 @"CREATE VIRTUAL TABLE products_fts USING fts5(
                     product_code,
                     name,
@@ -51,7 +51,7 @@ namespace Kasir.Data.Migrations
                     tokenize='unicode61 remove_diacritics 2'
                 )",
 
-                // 7. Recreate the 3 sync triggers without barcode
+                // 9. Recreate the 3 FTS sync triggers without barcode
                 @"CREATE TRIGGER products_fts_ai AFTER INSERT ON products BEGIN
                     INSERT INTO products_fts(rowid, product_code, name)
                     VALUES (new.id, new.product_code, new.name);
@@ -69,10 +69,10 @@ namespace Kasir.Data.Migrations
                     VALUES (new.id, new.product_code, new.name);
                 END",
 
-                // 8. Repopulate FTS index from products
+                // 10. Repopulate FTS index from products
                 "INSERT INTO products_fts(products_fts) VALUES('rebuild')",
 
-                // 9. Recreate trg_products_sync_u without OLD.barcode/NEW.barcode comparison
+                // 11. Recreate trg_products_sync_u without OLD.barcode/NEW.barcode comparison
                 @"CREATE TRIGGER trg_products_sync_u AFTER UPDATE ON products
                 WHEN OLD.name != NEW.name
                   OR OLD.price != NEW.price
@@ -97,7 +97,7 @@ namespace Kasir.Data.Migrations
                             'products', NEW.product_code, 'U');
                 END",
 
-                // 10. Recreate v_product_lookup without barcode column
+                // 12. Recreate v_product_lookup without barcode column
                 @"CREATE VIEW v_product_lookup AS
                 SELECT
                     p.id,
