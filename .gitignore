@@ -8,8 +8,10 @@ packages/
 TestResults/
 *.cache
 *.nupkg
-**/data/kasir.db
-**/data/*.db
+# data/ holds live business data (DB backups, CSV exports, Excel reports);
+# only Python tooling scripts are tracked.
+data/*
+!data/*.py
 .DS_Store
 **/.DS_Store
 .omc/state/
