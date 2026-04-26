@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -9,6 +10,7 @@ using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Utils;
+using Kasir.Avalonia.Behaviors;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
@@ -19,7 +21,7 @@ namespace Kasir.Avalonia.Forms.Master;
 
 public partial class ProductView : UserControl
 {
-    private record ProductRow(string Code, string Name, string Barcode, string Price, string StockStore, string StockWarehouse, string Status, Product Tag);
+    private record ProductRow(string Code, string Name, string Price, string StockStore, string StockWarehouse, string Status, Product Tag);
     private readonly ObservableCollection<ProductRow> _rows = new();
     private ProductRepository _productRepo;
     private DepartmentRepository _deptRepo;
@@ -44,6 +46,13 @@ public partial class ProductView : UserControl
         TxtSearch.KeyDown += OnSearchKeyDown;
         TxtSearch.TextChanged += (_, _) => SearchProducts();
         BtnSearch.Click += (_, _) => SearchProducts();
+
+        // Numeric input behavior on numeric TextBoxes
+        NumericInputBehavior.Attach(TxtDiscMax);
+        NumericInputBehavior.AttachLiveFormatting(TxtBuyingPrice);
+        NumericInputBehavior.AttachLiveFormatting(TxtCostPrice);
+        NumericInputBehavior.AttachLiveFormatting(TxtSellingPrice);
+
         ViewShortcuts.WireGridEnter(DgvProducts, () =>
         {
             if (!_isEditing && _currentProduct != null)
@@ -53,7 +62,7 @@ public partial class ProductView : UserControl
                 SetStatus("Edit: " + _currentProduct.ProductCode);
             }
         });
-        FooterStatus.RegisterDefault(StatusLabel, "F2=Cari  Ins=Tambah  Enter=Edit  F9=Simpan  Del=Nonaktifkan  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "F2=Cari  F8=Harga Grosir  F10=Simpan  Esc=Batal");
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -91,7 +100,6 @@ public partial class ProductView : UserControl
         return new ProductRow(
             p.ProductCode,
             p.Name,
-            p.Barcode ?? "",
             Formatting.FormatCurrencyShort(p.Price),
             stockStore.ToString(),
             stockWarehouse.ToString(),
@@ -118,21 +126,13 @@ public partial class ProductView : UserControl
     {
         TxtCode.Text = p.ProductCode ?? "";
         TxtName.Text = p.Name ?? "";
-        TxtBarcode.Text = p.Barcode ?? "";
         TxtUnit.Text = p.Unit ?? "";
-        TxtPrice.Text = (p.Price / 100.0).ToString("F0");
-        TxtPrice1.Text = (p.Price1 / 100.0).ToString("F0");
-        TxtPrice2.Text = (p.Price2 / 100.0).ToString("F0");
-        TxtPrice3.Text = (p.Price3 / 100.0).ToString("F0");
-        TxtPrice4.Text = (p.Price4 / 100.0).ToString("F0");
-        TxtBuyingPrice.Text = (p.BuyingPrice / 100.0).ToString("F0");
-        TxtCostPrice.Text = (p.CostPrice / 100.0).ToString("F0");
-        TxtQtyBreak2.Text = p.QtyBreak2.ToString();
-        TxtQtyBreak3.Text = p.QtyBreak3.ToString();
-        TxtDiscPct.Text = (p.DiscPct / 100.0).ToString("F2");
         TxtVendorCode.Text = p.VendorCode ?? "";
-        CboOpenPrice.SelectedIndex = p.OpenPrice == "Y" ? 1 : 0;
-        CboVatFlag.SelectedIndex = p.VatFlag == "Y" ? 1 : 0;
+        TxtBuyingPrice.Text = FormatMoney(p.BuyingPrice);
+        TxtCostPrice.Text = FormatMoney(p.CostPrice);
+        TxtSellingPrice.Text = FormatMoney(p.Price);
+        TxtDiscMax.Text = (p.DiscPct / 100.0).ToString("F2", CultureInfo.InvariantCulture);
+        LblMargin.Text = (p.MarginPct / 100.0).ToString("F2", CultureInfo.InvariantCulture);
         CboStatus.SelectedIndex = p.Status == "I" ? 1 : 0;
         var items = CboDept.ItemsSource as List<string>;
         if (items != null)
@@ -140,6 +140,33 @@ public partial class ProductView : UserControl
             int idx = items.FindIndex(s => s.StartsWith(p.DeptCode ?? ""));
             CboDept.SelectedIndex = idx >= 0 ? idx : -1;
         }
+
+        // Stok grid: Maximum / Ideal / Minimum / Awal / Sekarang per location (T = Toko, G = Gudang)
+        // qty_max/qty_min/qty_order are stored × 100 (display whole units)
+        string max = (p.QtyMax / 100).ToString();
+        string ideal = (p.QtyOrder / 100).ToString();
+        string min = (p.QtyMin / 100).ToString();
+        LblStokMaxG.Text = max; LblStokMaxT.Text = max;
+        LblStokIdealG.Text = ideal; LblStokIdealT.Text = ideal;
+        LblStokMinG.Text = min; LblStokMinT.Text = min;
+
+        // Awal (period opening) — placeholder until stock_register is populated by posting.
+        // For now show "0" for both columns; production data has zero rows in stock_register.
+        LblStokAwalG.Text = "0";
+        LblStokAwalT.Text = "0";
+
+        // Sekarang = current on-hand from stock_movements aggregate (matches grid)
+        int nowT = _inventoryService.GetStockOnHandByLocation(p.ProductCode ?? "", "TOKO");
+        int nowG = _inventoryService.GetStockOnHandByLocation(p.ProductCode ?? "", "GUDANG");
+        LblStokNowT.Text = nowT.ToString();
+        LblStokNowG.Text = nowG.ToString();
+    }
+
+    private static string FormatMoney(long cents)
+    {
+        // Display whole rupiah with Indonesian thousands separators
+        long whole = cents / 100;
+        return whole.ToString("#,0", CultureInfo.GetCultureInfo("id-ID"));
     }
 
     private Product ReadDetail()
@@ -147,21 +174,12 @@ public partial class ProductView : UserControl
         var p = _currentProduct ?? new Product();
         p.ProductCode = TxtCode.Text?.Trim() ?? "";
         p.Name = TxtName.Text?.Trim() ?? "";
-        p.Barcode = TxtBarcode.Text?.Trim() ?? "";
         p.Unit = TxtUnit.Text?.Trim() ?? "";
-        p.Price = ParseMoney(TxtPrice.Text);
-        p.Price1 = ParseMoney(TxtPrice1.Text);
-        p.Price2 = ParseMoney(TxtPrice2.Text);
-        p.Price3 = ParseMoney(TxtPrice3.Text);
-        p.Price4 = ParseMoney(TxtPrice4.Text);
+        p.VendorCode = TxtVendorCode.Text?.Trim() ?? "";
         p.BuyingPrice = ParseMoney(TxtBuyingPrice.Text);
         p.CostPrice = ParseMoney(TxtCostPrice.Text);
-        p.QtyBreak2 = int.TryParse(TxtQtyBreak2.Text, out int qb2) ? qb2 : 0;
-        p.QtyBreak3 = int.TryParse(TxtQtyBreak3.Text, out int qb3) ? qb3 : 0;
-        p.DiscPct = (int)(decimal.TryParse(TxtDiscPct.Text, out decimal dp) ? dp * 100m : 0);
-        p.VendorCode = TxtVendorCode.Text?.Trim() ?? "";
-        p.OpenPrice = CboOpenPrice.SelectedIndex == 1 ? "Y" : "N";
-        p.VatFlag = CboVatFlag.SelectedIndex == 1 ? "Y" : "N";
+        p.Price = ParseMoney(TxtSellingPrice.Text);
+        p.DiscPct = ParsePct(TxtDiscMax.Text);
         p.Status = CboStatus.SelectedIndex == 1 ? "I" : "A";
         if (CboDept.SelectedItem is string deptItem)
         {
@@ -174,17 +192,29 @@ public partial class ProductView : UserControl
 
     private static long ParseMoney(string? text)
     {
-        return decimal.TryParse(text, out decimal v) ? (long)(v * 100m) : 0L;
+        if (string.IsNullOrWhiteSpace(text)) return 0L;
+        // Strip Indonesian thousands dots, then parse as whole rupiah
+        string digits = new string((text ?? "").Where(char.IsDigit).ToArray());
+        if (string.IsNullOrEmpty(digits)) return 0L;
+        return long.Parse(digits, CultureInfo.InvariantCulture) * 100L;
+    }
+
+    private static int ParsePct(string? text)
+    {
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal v))
+            return (int)(v * 100m);
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.GetCultureInfo("id-ID"), out v))
+            return (int)(v * 100m);
+        return 0;
     }
 
     private void SetDetailEnabled(bool enabled)
     {
         _isEditing = enabled;
-        TxtCode.IsEnabled = TxtName.IsEnabled = TxtBarcode.IsEnabled = TxtUnit.IsEnabled = enabled;
-        TxtPrice.IsEnabled = TxtPrice1.IsEnabled = TxtPrice2.IsEnabled = TxtPrice3.IsEnabled = TxtPrice4.IsEnabled = enabled;
-        TxtBuyingPrice.IsEnabled = TxtCostPrice.IsEnabled = TxtQtyBreak2.IsEnabled = TxtQtyBreak3.IsEnabled = enabled;
-        TxtDiscPct.IsEnabled = TxtVendorCode.IsEnabled = enabled;
-        CboDept.IsEnabled = CboStatus.IsEnabled = CboOpenPrice.IsEnabled = CboVatFlag.IsEnabled = enabled;
+        TxtCode.IsEnabled = TxtName.IsEnabled = TxtUnit.IsEnabled = TxtVendorCode.IsEnabled = enabled;
+        TxtBuyingPrice.IsEnabled = TxtCostPrice.IsEnabled = TxtSellingPrice.IsEnabled = enabled;
+        TxtDiscMax.IsEnabled = enabled;
+        CboDept.IsEnabled = CboStatus.IsEnabled = enabled;
     }
 
     private async void SaveProduct()
@@ -207,10 +237,38 @@ public partial class ProductView : UserControl
         catch (Exception ex) { await MsgBox.Show(NavigationService.Owner, "Gagal: " + ex.Message); }
     }
 
+    private async void OpenWholesaleDialog()
+    {
+        if (_currentProduct == null) return;
+        var dlg = new WholesaleTierDialog(_currentProduct);
+        var owner = NavigationService.Owner;
+        if (owner == null) return;
+        var result = await dlg.ShowDialog<bool>(owner);
+        if (result)
+        {
+            // Persist updated tier values
+            try
+            {
+                if (_currentProduct.Id != 0)
+                {
+                    _productRepo.Update(_currentProduct);
+                    LoadGrid();
+                }
+                SetStatus("Harga grosir tersimpan");
+            }
+            catch (Exception ex) { await MsgBox.Show(owner, "Gagal: " + ex.Message); }
+        }
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
         if (KeyboardRouter.IsF2(e)) { e.Handled = true; TxtSearch.Focus(); }
+        else if (e.Key == Key.F8)
+        {
+            e.Handled = true;
+            OpenWholesaleDialog();
+        }
         else if (KeyboardRouter.IsInsert(e))
         {
             e.Handled = true;
@@ -227,6 +285,7 @@ public partial class ProductView : UserControl
             TxtName.Focus();
             SetStatus("Edit: " + _currentProduct.ProductCode);
         }
+        else if (e.Key == Key.F10) { e.Handled = true; SaveProduct(); }
         else if (KeyboardRouter.IsF9(e)) { e.Handled = true; SaveProduct(); }
         else if (KeyboardRouter.IsDelete(e))
         {

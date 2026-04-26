@@ -12,7 +12,6 @@ namespace Kasir.Sync
         public static readonly HashSet<string> SyncedTables = new HashSet<string>
         {
             "products",
-            "product_barcodes",
             "departments",
             "subsidiaries",
             "members",

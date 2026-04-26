@@ -18,7 +18,7 @@ namespace Kasir.Avalonia.Forms.Reports;
 
 public partial class ProductReportView : UserControl
 {
-    private record ProductRow(string Code, string Barcode, string Name, string Unit, string Dept,
+    private record ProductRow(string Code, string Name, string Unit, string Dept,
         string Price, string Buying, string Cost, string Status);
 
     private readonly ObservableCollection<ProductRow> _rows = new();
@@ -52,7 +52,7 @@ public partial class ProductReportView : UserControl
         foreach (var p in products)
         {
             var r = new ProductRow(
-                p.ProductCode, p.Barcode ?? "", p.Name, p.Unit ?? "", p.DeptCode ?? "",
+                p.ProductCode, p.Name, p.Unit ?? "", p.DeptCode ?? "",
                 Formatting.FormatCurrencyShort(p.Price),
                 Formatting.FormatCurrencyShort(p.BuyingPrice),
                 Formatting.FormatCurrencyShort(p.CostPrice),
@@ -86,20 +86,19 @@ public partial class ProductReportView : UserControl
         if (file == null) return;
         using var wb = new XLWorkbook();
         var ws = wb.Worksheets.Add("Barang");
-        var headers = new[] { "Kode", "Barcode", "Nama", "Satuan", "Dept", "Harga Jual", "Harga Beli", "HPP", "Status" };
+        var headers = new[] { "Kode", "Nama", "Satuan", "Dept", "Harga Jual", "Harga Beli", "HPP", "Status" };
         for (int c = 0; c < headers.Length; c++) ws.Cell(1, c + 1).Value = headers[c];
         int row = 2;
         foreach (var r in _rows)
         {
             ws.Cell(row, 1).Value = r.Code;
-            ws.Cell(row, 2).Value = r.Barcode;
-            ws.Cell(row, 3).Value = r.Name;
-            ws.Cell(row, 4).Value = r.Unit;
-            ws.Cell(row, 5).Value = r.Dept;
-            ws.Cell(row, 6).Value = r.Price;
-            ws.Cell(row, 7).Value = r.Buying;
-            ws.Cell(row, 8).Value = r.Cost;
-            ws.Cell(row, 9).Value = r.Status;
+            ws.Cell(row, 2).Value = r.Name;
+            ws.Cell(row, 3).Value = r.Unit;
+            ws.Cell(row, 4).Value = r.Dept;
+            ws.Cell(row, 5).Value = r.Price;
+            ws.Cell(row, 6).Value = r.Buying;
+            ws.Cell(row, 7).Value = r.Cost;
+            ws.Cell(row, 8).Value = r.Status;
             row++;
         }
         wb.SaveAs(file.Path.LocalPath);

@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kasir.Avalonia.Forms.Master.WholesaleTierDialog"
+        x:DataType="x:Object"
+        Title="Harga Grosir"
+        Width="520" Height="320"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource Bg0Brush}"
+        WindowDecorations="None">
+  <DockPanel Margin="20">
+    <TextBlock DockPanel.Dock="Top" Text="Harga Grosir &amp; Batas Qty"
+               Foreground="{DynamicResource FgPrimaryBrush}"
+               FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="14" FontWeight="Bold"
+               Margin="0,0,0,12"/>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                HorizontalAlignment="Right" Spacing="10" Margin="0,12,0,0">
+      <Button x:Name="BtnOk" Content="F10=Simpan" Width="120" Height="32"
+              Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+      <Button x:Name="BtnCancel" Content="Esc=Batal" Width="120" Height="32"
+              Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
+              FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+    </StackPanel>
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="80,*,80,140">
+      <!-- Tier 1 (no qty threshold) -->
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="Harga 1:"
+                 Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,8"/>
+      <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtPrice1" Height="28" TextAlignment="Right" Margin="0,0,12,8"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+      <!-- Tier 2 -->
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="Harga 2:"
+                 Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,8"/>
+      <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtPrice2" Height="28" TextAlignment="Right" Margin="0,0,12,8"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+      <TextBlock Grid.Row="1" Grid.Column="2" Text="Qty &gt;=:"
+                 Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,8"/>
+      <TextBox   Grid.Row="1" Grid.Column="3" x:Name="TxtQtyBreak2" Height="28" TextAlignment="Right" Margin="0,0,0,8"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+      <!-- Tier 3 -->
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="Harga 3:"
+                 Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,8"/>
+      <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtPrice3" Height="28" TextAlignment="Right" Margin="0,0,12,8"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+      <TextBlock Grid.Row="2" Grid.Column="2" Text="Qty &gt;=:"
+                 Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,8"/>
+      <TextBox   Grid.Row="2" Grid.Column="3" x:Name="TxtQtyBreak3" Height="28" TextAlignment="Right" Margin="0,0,0,8"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+      <!-- Tier 4 (customer-tier only, no qty threshold per PricingEngine) -->
+      <TextBlock Grid.Row="3" Grid.Column="0" Text="Harga 4:"
+                 Foreground="{DynamicResource FgSecondaryBrush}" VerticalAlignment="Center"/>
+      <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtPrice4" Height="28" TextAlignment="Right" Margin="0,0,12,0"
+                 Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
+    </Grid>
+  </DockPanel>
+</Window>
