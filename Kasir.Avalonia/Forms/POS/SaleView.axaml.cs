@@ -358,6 +358,7 @@ public partial class SaleView : UserControl, INavigationAware
     {
         _bannerState = BannerState.Tunai;
         LblSubtotal.Text = $"TUNAI: {Formatting.FormatCurrency(cashCents)}";
+        if (_subtotalDefaultBrush != null) LblSubtotal.Foreground = _subtotalDefaultBrush;
     }
 
     private void ShowKembalianBanner(long changeCents)
@@ -419,7 +420,10 @@ public partial class SaleView : UserControl, INavigationAware
             // Show kembalian (overrides the brief Tunai banner). UpdateTotals
             // is intentionally NOT called here — ShowKembalianBanner sets the
             // banner text directly, and ResetBanner() will refresh totals.
-            ShowKembalianBanner(sale.ChangeAmount);
+            if (sale.ChangeAmount > 0)
+                ShowKembalianBanner(sale.ChangeAmount);
+            else
+                ResetBanner();
             TxtBarcode.Focus();
         }
         catch (Exception ex)
@@ -615,7 +619,7 @@ public partial class SaleView : UserControl, INavigationAware
             }
         }
         else if (KeyboardRouter.IsF11(e)) { e.Handled = true; OpenCashDrawer(); StatusLabel.Text = "Laci dibuka."; }
-        else if (e.Key == Key.Add) { e.Handled = true; DoExactPayment(); }
+        else if (e.Key == Key.Add || e.Key == Key.OemPlus) { e.Handled = true; DoExactPayment(); }
         else if (KeyboardRouter.IsEscape(e))
         {
             e.Handled = true;
@@ -626,6 +630,7 @@ public partial class SaleView : UserControl, INavigationAware
             if (!ok) return;
             _clockTimer?.Stop();
             _debounce?.Stop();
+            _bannerTimer?.Stop();
             NavigationService.GoHome();
         }
     }
