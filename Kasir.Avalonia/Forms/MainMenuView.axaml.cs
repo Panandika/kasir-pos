@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -14,6 +15,7 @@ using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Utils;
 using Kasir.Auth;
+using Kasir.Services;
 using Kasir.Avalonia.Forms.Master;
 using Kasir.Avalonia.Forms.Admin;
 using Kasir.Avalonia.Forms.POS;
@@ -36,6 +38,7 @@ public partial class MainMenuView : UserControl, INavigationAware
     private Level _level = Level.Main;
     private string? _openCategory;
     private TopLevel? _registeredTopLevel;
+    private string? _updateBadgeVersion;
 
     public MainMenuView(int userId = 1)
     {
@@ -52,6 +55,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         FooterStatus.RegisterDefault(StatusLabel, "F12=Sync  Esc=Kembali  F10=Menu");
         ShowMainTiles();
         RefreshStatus();
+        _ = CheckForUpdateAsync();
     }
 
     public void OnNavigatedTo()
@@ -138,7 +142,7 @@ public partial class MainMenuView : UserControl, INavigationAware
             new TileSpec { Label = "Printer Config",   UnderlineIndex = 0, Hotkey = Key.P, Activate = () => NavigationService.Navigate(new PrinterConfigView()) },
             new TileSpec { Label = "Backup",           UnderlineIndex = 0, Hotkey = Key.B, Activate = () => NavigationService.Navigate(new BackupView()) },
             new TileSpec { Label = "Shift Management", UnderlineIndex = 0, Hotkey = Key.S, Activate = () => NavigationService.Navigate(new ShiftView(_userId)) },
-            new TileSpec { Label = "Periksa Update",   UnderlineIndex = 8, Hotkey = Key.U, Activate = () => NavigationService.Navigate(new UpdateView()) },
+            new TileSpec { Label = "Periksa Update" + (_updateBadgeVersion != null ? $"  ● v{_updateBadgeVersion}" : ""), UnderlineIndex = 8, Hotkey = Key.U, Activate = () => NavigationService.Navigate(new UpdateView()) },
             new TileSpec { Label = "Tentang",          UnderlineIndex = 0, Hotkey = Key.T, Activate = () => NavigationService.Navigate(new AboutView()) },
         },
         _ => Array.Empty<TileSpec>(),
@@ -376,6 +380,31 @@ public partial class MainMenuView : UserControl, INavigationAware
 
         e.Handled = true;
         buttons[next].Focus();
+    }
+
+    // ── Update check ──────────────────────────────────────────────────────
+
+    private async Task CheckForUpdateAsync()
+    {
+        try
+        {
+            var svc = new UpdateService(DbConnection.GetConnection());
+            var result = await svc.CheckForUpdateAsync();
+            if (!result.Available || string.IsNullOrEmpty(result.NewVersion)) return;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                // (b) Footer toast — 10 seconds
+                FooterStatus.Show(StatusLabel, $"● Update v{result.NewVersion} tersedia — Utility → U", 10);
+
+                // (a) Badge — store version so tile builder picks it up on next Utility navigation
+                _updateBadgeVersion = result.NewVersion;
+            });
+        }
+        catch
+        {
+            // Silent — update check is best-effort, no UI surprise on offline / 404
+        }
     }
 
     // ── Status helpers ────────────────────────────────────────────────────
