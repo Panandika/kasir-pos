@@ -21,14 +21,6 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@code", productCode));
         }
 
-        public Product GetByBarcode(string barcode)
-        {
-            return SqlHelper.QuerySingle(_db,
-                "SELECT * FROM products WHERE barcode = @barcode",
-                MapProduct,
-                SqlHelper.Param("@barcode", barcode));
-        }
-
         public Product GetById(int id)
         {
             return SqlHelper.QuerySingle(_db,
@@ -67,18 +59,11 @@ namespace Kasir.Data.Repositories
                 return new List<Product> { exact };
             }
 
-            // Exact barcode match
-            var byBarcode = GetByBarcode(prefix);
-            if (byBarcode != null)
-            {
-                return new List<Product> { byBarcode };
-            }
-
-            // Prefix search on product_code and barcode
+            // Prefix search on product_code only
             string likePrefix = prefix + "%";
             return SqlHelper.Query(_db,
                 @"SELECT * FROM products
-                  WHERE (product_code LIKE @q OR barcode LIKE @q)
+                  WHERE product_code LIKE @q
                   AND status = 'A'
                   ORDER BY product_code
                   LIMIT @limit",
@@ -143,14 +128,7 @@ namespace Kasir.Data.Repositories
                 return new List<Product> { exact };
             }
 
-            // Strategy 2: exact barcode match
-            var byBarcode = GetByBarcode(query);
-            if (byBarcode != null)
-            {
-                return new List<Product> { byBarcode };
-            }
-
-            // Strategy 3: FTS5 search (if available)
+            // Strategy 2: FTS5 search (if available)
             try
             {
                 string ftsQuery = query.Replace("'", "''").Replace("\"", "\"\"") + "*";
@@ -173,11 +151,11 @@ namespace Kasir.Data.Repositories
                 // FTS5 not available — fall through to LIKE
             }
 
-            // Strategy 4: LIKE fallback
+            // Strategy 3: LIKE fallback
             string likeQuery = "%" + query + "%";
             return SqlHelper.Query(_db,
                 @"SELECT * FROM products
-                  WHERE (product_code LIKE @q OR barcode LIKE @q OR name LIKE @q)
+                  WHERE (product_code LIKE @q OR name LIKE @q)
                   AND status = 'A'
                   ORDER BY name
                   LIMIT @limit",
@@ -189,18 +167,19 @@ namespace Kasir.Data.Repositories
         public int Insert(Product product)
         {
             SqlHelper.ExecuteNonQuery(_db,
-                @"INSERT INTO products (product_code, account_code, dept_code, barcode, name, status,
+                @"INSERT INTO products (product_code, account_code, dept_code, name, status,
                   unit, unit1, price, price1, price2, price3, price4, buying_price, vendor_code,
-                  qty_break2, qty_break3, open_price, disc_pct, cost_price, vat_flag,
+                  qty_break2, qty_break3, qty_min, qty_max, qty_order, open_price,
+                  disc_pct, margin_pct, cost_price, vat_flag,
                   luxury_tax_flag, is_consignment, product_type, changed_by, changed_at)
-                  VALUES (@code, @acc, @dept, @barcode, @name, @status,
+                  VALUES (@code, @acc, @dept, @name, @status,
                   @unit, @unit1, @price, @price1, @price2, @price3, @price4, @buying, @vendor,
-                  @break2, @break3, @open, @disc, @cost, @vat,
+                  @break2, @break3, @qmin, @qmax, @qorder, @open,
+                  @disc, @margin, @cost, @vat,
                   @luxury, @consign, @type, @changedBy, datetime('now','localtime'))",
                 SqlHelper.Param("@code", product.ProductCode),
                 SqlHelper.Param("@acc", product.AccountCode),
                 SqlHelper.Param("@dept", product.DeptCode),
-                SqlHelper.Param("@barcode", product.Barcode),
                 SqlHelper.Param("@name", product.Name),
                 SqlHelper.Param("@status", product.Status ?? "A"),
                 SqlHelper.Param("@unit", product.Unit),
@@ -214,8 +193,12 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@vendor", product.VendorCode),
                 SqlHelper.Param("@break2", product.QtyBreak2),
                 SqlHelper.Param("@break3", product.QtyBreak3),
+                SqlHelper.Param("@qmin", product.QtyMin),
+                SqlHelper.Param("@qmax", product.QtyMax),
+                SqlHelper.Param("@qorder", product.QtyOrder),
                 SqlHelper.Param("@open", product.OpenPrice ?? "N"),
                 SqlHelper.Param("@disc", product.DiscPct),
+                SqlHelper.Param("@margin", product.MarginPct),
                 SqlHelper.Param("@cost", product.CostPrice),
                 SqlHelper.Param("@vat", product.VatFlag ?? "N"),
                 SqlHelper.Param("@luxury", product.LuxuryTaxFlag ?? "N"),
@@ -229,14 +212,14 @@ namespace Kasir.Data.Repositories
         public void Update(Product product)
         {
             SqlHelper.ExecuteNonQuery(_db,
-                @"UPDATE products SET name = @name, barcode = @barcode, dept_code = @dept,
+                @"UPDATE products SET name = @name, dept_code = @dept,
                   price = @price, price1 = @price1, price2 = @price2, price3 = @price3, price4 = @price4,
                   buying_price = @buying, vendor_code = @vendor, qty_break2 = @break2, qty_break3 = @break3,
-                  open_price = @open, disc_pct = @disc, cost_price = @cost, status = @status,
+                  qty_min = @qmin, qty_max = @qmax, qty_order = @qorder,
+                  open_price = @open, disc_pct = @disc, margin_pct = @margin, cost_price = @cost, status = @status,
                   changed_by = @changedBy, changed_at = datetime('now','localtime')
                   WHERE id = @id",
                 SqlHelper.Param("@name", product.Name),
-                SqlHelper.Param("@barcode", product.Barcode),
                 SqlHelper.Param("@dept", product.DeptCode),
                 SqlHelper.Param("@price", product.Price),
                 SqlHelper.Param("@price1", product.Price1),
@@ -247,8 +230,12 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@vendor", product.VendorCode),
                 SqlHelper.Param("@break2", product.QtyBreak2),
                 SqlHelper.Param("@break3", product.QtyBreak3),
+                SqlHelper.Param("@qmin", product.QtyMin),
+                SqlHelper.Param("@qmax", product.QtyMax),
+                SqlHelper.Param("@qorder", product.QtyOrder),
                 SqlHelper.Param("@open", product.OpenPrice),
                 SqlHelper.Param("@disc", product.DiscPct),
+                SqlHelper.Param("@margin", product.MarginPct),
                 SqlHelper.Param("@cost", product.CostPrice),
                 SqlHelper.Param("@status", product.Status),
                 SqlHelper.Param("@changedBy", product.ChangedBy),
@@ -273,7 +260,6 @@ namespace Kasir.Data.Repositories
                 ProductCode = SqlHelper.GetString(reader, "product_code"),
                 AccountCode = SqlHelper.GetString(reader, "account_code"),
                 DeptCode = SqlHelper.GetString(reader, "dept_code"),
-                Barcode = SqlHelper.GetString(reader, "barcode"),
                 Name = SqlHelper.GetString(reader, "name"),
                 Status = SqlHelper.GetString(reader, "status"),
                 Unit = SqlHelper.GetString(reader, "unit"),
@@ -287,8 +273,12 @@ namespace Kasir.Data.Repositories
                 VendorCode = SqlHelper.GetString(reader, "vendor_code"),
                 QtyBreak2 = SqlHelper.GetInt(reader, "qty_break2"),
                 QtyBreak3 = SqlHelper.GetInt(reader, "qty_break3"),
+                QtyMin = SqlHelper.GetInt(reader, "qty_min"),
+                QtyMax = SqlHelper.GetInt(reader, "qty_max"),
+                QtyOrder = SqlHelper.GetInt(reader, "qty_order"),
                 OpenPrice = SqlHelper.GetString(reader, "open_price"),
                 DiscPct = SqlHelper.GetInt(reader, "disc_pct"),
+                MarginPct = SqlHelper.GetInt(reader, "margin_pct"),
                 CostPrice = SqlHelper.GetLong(reader, "cost_price"),
                 VatFlag = SqlHelper.GetString(reader, "vat_flag"),
                 LuxuryTaxFlag = SqlHelper.GetString(reader, "luxury_tax_flag"),

@@ -11,7 +11,6 @@ namespace Kasir.Services
     {
         private readonly SqliteConnection _db;
         private readonly ProductRepository _productRepo;
-        private readonly ProductBarcodeRepository _barcodeRepo;
         private readonly SaleRepository _saleRepo;
         private readonly CounterRepository _counterRepo;
         private readonly ConfigRepository _configRepo;
@@ -31,7 +30,6 @@ namespace Kasir.Services
         {
             _db = db;
             _productRepo = new ProductRepository(db);
-            _barcodeRepo = new ProductBarcodeRepository(db);
             _saleRepo = new SaleRepository(db);
             _counterRepo = new CounterRepository(db);
             _configRepo = new ConfigRepository(db);
@@ -61,9 +59,9 @@ namespace Kasir.Services
             _currentShift = shift;
         }
 
-        public SaleItem AddItem(string codeOrBarcode, int qty)
+        public SaleItem AddItem(string productCode, int qty)
         {
-            return AddItem(codeOrBarcode, qty, 0);
+            return AddItem(productCode, qty, 0);
         }
 
         // Reserved product code for "Barang Tanpa Kode" — items without a catalog entry
@@ -93,45 +91,22 @@ namespace Kasir.Services
             return item;
         }
 
-        public SaleItem AddItem(string codeOrBarcode, int qty, int overridePrice)
+        public SaleItem AddItem(string productCode, int qty, int overridePrice)
         {
-            // Look up product: try barcode table first, then product code/barcode
-            long barcodeOverridePrice = 0;
-            int barcodeQty = 0;
-            Product product = null;
-
-            var barcodeEntry = _barcodeRepo.GetByBarcode(codeOrBarcode);
-            if (barcodeEntry != null)
-            {
-                product = _productRepo.GetByCode(barcodeEntry.ProductCode);
-                barcodeOverridePrice = barcodeEntry.PriceOverride;
-                barcodeQty = barcodeEntry.QtyPerScan;
-            }
-
-            if (product == null)
-            {
-                product = _productRepo.GetByCode(codeOrBarcode);
-            }
-
-            if (product == null)
-            {
-                product = _productRepo.GetByBarcode(codeOrBarcode);
-            }
-
+            // Look up product strictly by product_code
+            Product product = _productRepo.GetByCode(productCode);
             if (product == null)
             {
                 return null; // Product not found
             }
 
-            // Use barcode qty if specified, otherwise use the passed qty
-            int effectiveQty = barcodeQty > 0 ? barcodeQty : qty;
+            int effectiveQty = qty;
 
             // Resolve price
             long unitPrice = _pricingEngine.GetUnitPrice(
                 product,
                 effectiveQty,
-                overridePrice: overridePrice,
-                barcodeOverride: barcodeOverridePrice);
+                overridePrice: overridePrice);
 
             // Resolve discount
             string saleDateIso = _clock.Now.ToString("yyyy-MM-dd");
@@ -165,7 +140,7 @@ namespace Kasir.Services
                 DiscValue = lineDiscount,
                 Value = lineNet,
                 Cogs = product.CostPrice * effectiveQty,
-                IsPriceOverridden = overridePrice > 0 || barcodeOverridePrice > 0
+                IsPriceOverridden = overridePrice > 0
             };
 
             _currentItems.Add(item);

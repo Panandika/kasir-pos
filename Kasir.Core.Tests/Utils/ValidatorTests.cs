@@ -7,21 +7,6 @@ namespace Kasir.Tests.Utils
     [TestFixture]
     public class ValidatorTests
     {
-        [TestCase("1234", true)]
-        [TestCase("0007916248023", true)]
-        [TestCase("ABCD1234", true)]
-        [TestCase("12345678901234567890", true)]
-        [TestCase("123", false)]
-        [TestCase("", false)]
-        [TestCase(null, false)]
-        [TestCase("   ", false)]
-        [TestCase("123456789012345678901", false)]
-        [TestCase("ABC-123", false)]
-        public void IsValidBarcode_ValidatesCorrectly(string code, bool expected)
-        {
-            Validators.IsValidBarcode(code).Should().Be(expected);
-        }
-
         [TestCase("P001", true)]
         [TestCase("0010", true)]
         [TestCase("A", true)]
