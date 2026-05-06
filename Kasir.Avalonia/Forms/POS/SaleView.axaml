@@ -2,17 +2,17 @@
         x:Class="Kasir.Avalonia.Forms.POS.SaleView"
         x:DataType="x:Object"
         Background="{DynamicResource Bg0Brush}">
-  <Grid RowDefinitions="2.5*,7.5*,40,24">
+  <Grid RowDefinitions="2.5*,7.5*,Auto,Auto">
     <!-- Row 0: Subtotal header (proportional ~25% of viewport) -->
     <Panel Grid.Row="0" Background="{DynamicResource Bg2Brush}">
       <TextBlock Text="SUBTOTAL" Foreground="{DynamicResource FgPrimaryBrush}"
                  FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontWeight="Bold"
-                 FontSize="40" VerticalAlignment="Center" Margin="16,0"/>
+                 FontSize="{DynamicResource Fs3xl}" VerticalAlignment="Center" Margin="16,0"/>
       <TextBlock x:Name="LblSubtotal" Text="0"
-                 Foreground="{DynamicResource FgPrimaryBrush}" FontWeight="Bold"
+                 Foreground="{DynamicResource BrandBrush}" FontWeight="Bold"
                  FontFamily="{DynamicResource JetBrainsMonoFont}"
-                 FontSize="56" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,24,0"/>
+                 FontSize="{DynamicResource Fs4xl}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,24,0"/>
     </Panel>
     <!-- Row 1: Items grid + search overlay -->
     <Panel Grid.Row="1">
