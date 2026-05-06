@@ -45,6 +45,16 @@ public static class KeyboardRouter
     public static bool IsCtrlShiftL(KeyEventArgs e) =>
         e.Key == Key.L && e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
+    /// <summary>
+    /// Ctrl+/ — opens Bantuan help assistant. Accepts both Key.OemQuestion and
+    /// Key.Oem2 since Indonesian / US-international layouts emit different
+    /// values for the slash key.
+    /// </summary>
+    public static bool IsCtrlSlash(KeyEventArgs e) =>
+        (e.Key == Key.OemQuestion || e.Key == Key.Oem2) &&
+        e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
+        !e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+
     public static bool IsPageUp(KeyEventArgs e) => e.Key == Key.PageUp && e.KeyModifiers == KeyModifiers.None;
     public static bool IsPageDown(KeyEventArgs e) => e.Key == Key.PageDown && e.KeyModifiers == KeyModifiers.None;
     public static bool IsHome(KeyEventArgs e) => e.Key == Key.Home && e.KeyModifiers == KeyModifiers.None;

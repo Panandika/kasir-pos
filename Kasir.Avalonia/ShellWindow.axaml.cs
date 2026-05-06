@@ -66,6 +66,12 @@ public partial class ShellWindow : Window
             e.Handled = true;
             return;
         }
+        if (KeyboardRouter.IsCtrlSlash(e))
+        {
+            Forms.Help.BantuanOverlayHost.Current.Toggle(this);
+            e.Handled = true;
+            return;
+        }
         base.OnKeyDown(e);
     }
 
