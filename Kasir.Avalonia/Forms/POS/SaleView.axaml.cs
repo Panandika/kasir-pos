@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -328,8 +329,8 @@ public partial class SaleView : UserControl, INavigationAware
         {
             LblPrinterStatus.Text = $"🖨 {_printerStatusText}";
             LblPrinterStatus.Foreground = _printerStatusOk
-                ? new SolidColorBrush(Colors.LimeGreen)
-                : new SolidColorBrush(Colors.OrangeRed);
+                ? Application.Current?.FindResource("SuccessBrush") as IBrush
+                : Application.Current?.FindResource("DangerBrush") as IBrush;
         }
     }
 
@@ -369,7 +370,7 @@ public partial class SaleView : UserControl, INavigationAware
     {
         _bannerState = BannerState.Kembalian;
         LblSubtotal.Text = $"KEMBALIAN: {Formatting.FormatCurrency(changeCents)}";
-        LblSubtotal.Foreground = new SolidColorBrush(Colors.LimeGreen);
+        LblSubtotal.Foreground = Application.Current?.FindResource("BrandBrush") as IBrush;
         StartBannerTimer();
     }
 

@@ -20,12 +20,16 @@ public partial class InputDialogWindow : Window
         Height = 80 + (labels.Length * 58) + 60;
         _inputs = new TextBox[labels.Length];
 
+        var dimBrush = Application.Current?.FindResource("FgDimBrush") as IBrush;
+        var inputBg = Application.Current?.FindResource("Bg1Brush") as IBrush;
+        var fgPrimary = Application.Current?.FindResource("FgPrimaryBrush") as IBrush;
+
         for (int i = 0; i < labels.Length; i++)
         {
             var lbl = new TextBlock
             {
                 Text = labels[i] + ":",
-                Foreground = ThemeConstants.DisabledBrush,
+                Foreground = dimBrush,
                 FontFamily = new global::Avalonia.Media.FontFamily(ThemeConstants.FontFamily),
                 FontSize = ThemeConstants.FontSize
             };
@@ -33,8 +37,8 @@ public partial class InputDialogWindow : Window
             var tb = new TextBox
             {
                 Text = (defaults != null && i < defaults.Length) ? defaults[i] ?? "" : "",
-                Background = ThemeConstants.InputBackBrush,
-                Foreground = ThemeConstants.ForegroundBrush,
+                Background = inputBg,
+                Foreground = fgPrimary,
                 FontFamily = new global::Avalonia.Media.FontFamily(ThemeConstants.FontFamily),
                 FontSize = ThemeConstants.FontSize,
                 Height = 30
