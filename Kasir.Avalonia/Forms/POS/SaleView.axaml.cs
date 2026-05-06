@@ -611,7 +611,7 @@ public partial class SaleView : UserControl, INavigationAware
         else if (KeyboardRouter.IsF9(e))
         {
             e.Handled = true;
-            await new CalculatorDialogWindow().ShowDialog(NavigationService.Owner);
+            await CalculatorDialogWindow.Show(NavigationService.Owner);
             TxtBarcode.Focus();
         }
         else if (KeyboardRouter.IsF10(e))

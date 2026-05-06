@@ -1,7 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Kasir.Data;
 using Kasir.Data.Repositories;
@@ -12,11 +13,12 @@ using Kasir.Utils;
 
 namespace Kasir.Avalonia.Forms.POS;
 
-public partial class PaymentWindow : Window
+public partial class PaymentOverlay : UserControl
 {
     private readonly long _totalDue;
     private readonly PaymentCalculator _paymentCalc;
     private readonly List<CreditCard> _cards;
+    private readonly TaskCompletionSource<bool> _tcs = new();
 
     public long CashAmount { get; private set; }
     public long CardAmount { get; private set; }
@@ -26,7 +28,7 @@ public partial class PaymentWindow : Window
     public long Change { get; private set; }
     public bool Accepted { get; private set; }
 
-    public PaymentWindow(long totalDue)
+    public PaymentOverlay(long totalDue)
     {
         InitializeComponent();
         _totalDue = totalDue;
@@ -53,9 +55,18 @@ public partial class PaymentWindow : Window
         TxtVoucher.TextChanged += (_, _) => Recalculate();
 
         BtnOk.Click += (_, _) => Accept();
-        BtnCancel.Click += (_, _) => Close();
+        BtnCancel.Click += (_, _) => _tcs.TrySetResult(false);
+
+        AttachedToVisualTree += (_, _) => { TxtCash.Focus(); TxtCash.SelectAll(); };
+        KeyDown += OnKey;
 
         Recalculate();
+    }
+
+    private void OnKey(object? sender, KeyEventArgs e)
+    {
+        if (KeyboardRouter.IsEnter(e)) { e.Handled = true; Accept(); }
+        else if (KeyboardRouter.IsEscape(e)) { e.Handled = true; _tcs.TrySetResult(false); }
     }
 
     private void Recalculate()
@@ -91,15 +102,10 @@ public partial class PaymentWindow : Window
             CardType = "C";
         }
         Accepted = true;
-        Close();
+        _tcs.TrySetResult(true);
     }
 
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (KeyboardRouter.IsEnter(e)) { e.Handled = true; Accept(); }
-        else if (KeyboardRouter.IsEscape(e)) { e.Handled = true; Close(); }
-    }
+    public Task<bool> Result => _tcs.Task;
 
     private static long ParseAmount(string? text)
     {
@@ -107,11 +113,25 @@ public partial class PaymentWindow : Window
             return v * 100;
         return 0;
     }
+}
 
-    public static async Task<PaymentWindow?> Show(Window owner, long totalDue)
+// Compatibility shim preserving the PaymentWindow.Show() surface used by SaleView.
+public static class PaymentWindow
+{
+    public static async Task<PaymentOverlay?> Show(Visual? owner, long totalDue)
     {
-        var dlg = new PaymentWindow(totalDue);
-        await dlg.ShowDialog(owner);
-        return dlg.Accepted ? dlg : null;
+        ShellWindow? shell = TopLevel.GetTopLevel(owner) as ShellWindow;
+        if (shell is null
+            && Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            shell = desktop.MainWindow as ShellWindow;
+        }
+        if (shell is null) return null;
+
+        var overlay = new PaymentOverlay(totalDue);
+        shell.ShowOverlay(overlay);
+        try { await overlay.Result; }
+        finally { shell.HideOverlay(); }
+        return overlay.Accepted ? overlay : null;
     }
 }
