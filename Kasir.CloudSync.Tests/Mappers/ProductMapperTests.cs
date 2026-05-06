@@ -28,9 +28,9 @@ namespace Kasir.CloudSync.Tests.Mappers
         public void FromReader_Happy_Path_Converts_Types_Correctly()
         {
             SeedDept();
-            Exec(@"INSERT INTO products (product_code, name, barcode, dept_code, unit, status,
+            Exec(@"INSERT INTO products (product_code, name, dept_code, unit, status,
                                           price, buying_price, qty_min, changed_at, is_consignment)
-                   VALUES ('P1','Sampo','8999999','D1','pcs','A',
+                   VALUES ('P1','Sampo','D1','pcs','A',
                            150000, 100000, 10, '2026-04-25 10:30:00','N');");
             using var cmd = _db.CreateCommand();
             cmd.CommandText = "SELECT * FROM products WHERE product_code='P1';";
@@ -41,7 +41,7 @@ namespace Kasir.CloudSync.Tests.Mappers
 
             p.ProductCode.Should().Be("P1");
             p.Name.Should().Be("Sampo");
-            p.Barcode.Should().Be("8999999");
+            p.Barcode.Should().BeNull("barcode column dropped from products schema");
             p.DeptCode.Should().Be("D1");
             p.Status.Should().Be("A");
             p.IsConsignment.Should().Be("N");

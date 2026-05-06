@@ -10,6 +10,7 @@ using Kasir.Services;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -32,7 +33,7 @@ public partial class UpdateView : UserControl
         BtnApply.Click    += (_, _) => ApplyUpdate();
         BtnImportZip.Click += BtnImportZip_Click;
 
-        SetStatus("Periksa Update — F5=Periksa  F8=Update  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Periksa Update — F5=Periksa  F8=Update  Esc=Keluar");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -145,8 +146,5 @@ public partial class UpdateView : UserControl
         }
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

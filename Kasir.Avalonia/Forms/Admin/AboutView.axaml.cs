@@ -4,6 +4,7 @@ using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -31,7 +32,7 @@ public partial class AboutView : UserControl
             $"Cek Update   : {lastUpdateCheck}\n\n" +
             $"© Sinar Makmur";
 
-        StatusLabel.Text = $"Tentang — Kasir v{version}";
+        FooterStatus.RegisterDefault(StatusLabel, $"Tentang — Kasir v{version}");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

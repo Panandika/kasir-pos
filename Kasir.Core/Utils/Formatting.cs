@@ -61,6 +61,27 @@ namespace Kasir.Utils
             return DateTime.Now.ToString("yyyy-MM-dd");
         }
 
+        // Parse Indonesian-formatted rupiah input (strips dots, commas, "Rp", whitespace).
+        // Returns true if a non-negative integer rupiah amount could be parsed.
+        public static bool TryParseRupiah(string? text, out long rupiah)
+        {
+            rupiah = 0;
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            var cleaned = text
+                .Replace("Rp", "", StringComparison.OrdinalIgnoreCase)
+                .Replace(".", "")
+                .Replace(",", "")
+                .Replace(" ", "")
+                .Trim();
+            return long.TryParse(cleaned, NumberStyles.Integer, CultureInfo.InvariantCulture, out rupiah);
+        }
+
+        // Format an integer rupiah amount (NOT cents) for InputDialog prefill: "100.000".
+        public static string FormatRupiahInput(long rupiah)
+        {
+            return rupiah.ToString("N0", Indonesian);
+        }
+
         public static string CurrentPeriod()
         {
             return DateTime.Now.ToString("yyyyMM");

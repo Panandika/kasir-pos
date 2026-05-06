@@ -33,7 +33,7 @@ namespace Kasir.Data
         {
             "config", "counters", "roles", "users", "fiscal_periods",
             "accounts", "account_balances", "account_config",
-            "subsidiaries", "products", "product_barcodes", "product_types",
+            "subsidiaries", "products", "product_types",
             "departments", "locations", "credit_cards", "members",
             "discounts", "discount_partners", "promotional_prices",
             "stock_movements", "stock_register", "points_register",

@@ -12,14 +12,12 @@ namespace Kasir.Tests.Data
     {
         private SqliteConnection _db;
         private ProductRepository _repo;
-        private ProductBarcodeRepository _barcodeRepo;
 
         [SetUp]
         public void SetUp()
         {
             _db = TestDb.Create();
             _repo = new ProductRepository(_db);
-            _barcodeRepo = new ProductBarcodeRepository(_db);
         }
 
         [TearDown]
@@ -70,19 +68,6 @@ namespace Kasir.Tests.Data
         public void GetByCode_NonExistent_ReturnsNull()
         {
             _repo.GetByCode("XXXX").Should().BeNull();
-        }
-
-        [Test]
-        public void GetByBarcode_ExistingBarcode_ReturnsProduct()
-        {
-            var product = CreateTestProduct("P001", "MINYAK GORENG 2L", 3200000);
-            product.Barcode = "8991234567890";
-            _repo.Insert(product);
-
-            var found = _repo.GetByBarcode("8991234567890");
-
-            found.Should().NotBeNull();
-            found.ProductCode.Should().Be("P001");
         }
 
         [Test]
@@ -185,76 +170,5 @@ namespace Kasir.Tests.Data
             act.Should().Throw<SqliteException>();
         }
 
-        // ProductBarcode tests
-
-        [Test]
-        public void Barcode_InsertAndGetByBarcode()
-        {
-            _repo.Insert(CreateTestProduct("P001", "MINYAK GORENG 2L", 3200000));
-
-            var barcode = new ProductBarcode
-            {
-                ProductCode = "P001",
-                Barcode = "8991234567890",
-                ProductName = "MINYAK GORENG 2L",
-                QtyPerScan = 1,
-                PriceOverride = 0
-            };
-            _barcodeRepo.Insert(barcode);
-
-            var found = _barcodeRepo.GetByBarcode("8991234567890");
-            found.Should().NotBeNull();
-            found.ProductCode.Should().Be("P001");
-            found.QtyPerScan.Should().Be(1);
-        }
-
-        [Test]
-        public void Barcode_WithQtyPerScan_ReturnsCorrectQty()
-        {
-            _repo.Insert(CreateTestProduct("P001", "MINYAK GORENG KARTON", 3200000));
-
-            var barcode = new ProductBarcode
-            {
-                ProductCode = "P001",
-                Barcode = "BOX001",
-                ProductName = "MINYAK GORENG KRT",
-                QtyPerScan = 12,
-                PriceOverride = 0
-            };
-            _barcodeRepo.Insert(barcode);
-
-            var found = _barcodeRepo.GetByBarcode("BOX001");
-            found.QtyPerScan.Should().Be(12);
-        }
-
-        [Test]
-        public void Barcode_WithPriceOverride_ReturnsOverridePrice()
-        {
-            _repo.Insert(CreateTestProduct("P001", "MINYAK GORENG 2L", 3200000));
-
-            var barcode = new ProductBarcode
-            {
-                ProductCode = "P001",
-                Barcode = "PROMO001",
-                ProductName = "MINYAK GORENG PROMO",
-                QtyPerScan = 1,
-                PriceOverride = 2900000
-            };
-            _barcodeRepo.Insert(barcode);
-
-            var found = _barcodeRepo.GetByBarcode("PROMO001");
-            found.PriceOverride.Should().Be(2900000);
-        }
-
-        [Test]
-        public void Barcode_GetByProductCode_ReturnsAllBarcodes()
-        {
-            _repo.Insert(CreateTestProduct("P001", "MINYAK GORENG 2L", 3200000));
-            _barcodeRepo.Insert(new ProductBarcode { ProductCode = "P001", Barcode = "BC1", QtyPerScan = 1 });
-            _barcodeRepo.Insert(new ProductBarcode { ProductCode = "P001", Barcode = "BC2", QtyPerScan = 12 });
-
-            var barcodes = _barcodeRepo.GetByProductCode("P001");
-            barcodes.Count.Should().Be(2);
-        }
     }
 }

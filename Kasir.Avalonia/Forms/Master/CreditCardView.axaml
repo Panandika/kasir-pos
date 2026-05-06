@@ -22,6 +22,7 @@
                Foreground="{DynamicResource FgPrimaryBrush}" />
     </Border>
     <DataGrid x:Name="DgvCards"
+              Classes="compact"
               AutoGenerateColumns="False"
               SelectionMode="Single"
               Foreground="{DynamicResource FgPrimaryBrush}"

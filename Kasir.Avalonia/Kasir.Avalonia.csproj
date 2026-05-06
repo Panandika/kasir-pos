@@ -14,6 +14,7 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.1" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.1" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.0.0" />
+    <PackageReference Include="Lucide.Avalonia" Version="0.2.5" />
     <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
@@ -22,5 +23,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kasir.Core\Kasir.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/Fonts/**" />
+    <AvaloniaResource Include="Assets/icon-256.png" />
+    <AvaloniaResource Include="Assets/icon.svg" />
   </ItemGroup>
 </Project>

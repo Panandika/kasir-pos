@@ -7,6 +7,7 @@ using Kasir.Models;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.POS;
 
@@ -29,7 +30,7 @@ public partial class ShiftView : UserControl
         _saleRepo = new SaleRepository(conn);
         BtnOpenShift.Click += async (_, _) => await OpenShift();
         BtnCloseShift.Click += async (_, _) => await CloseShift();
-        SetStatus("F1=Buka Shift  F2=Tutup Shift  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "F1=Buka Shift  F2=Tutup Shift  Esc=Keluar");
         RefreshStatus();
     }
 
@@ -73,7 +74,7 @@ public partial class ShiftView : UserControl
 
         if (!ok) return;
 
-        if (!long.TryParse(vals[0], out long openingCash))
+        if (!Formatting.TryParseRupiah(vals[0], out long openingCash))
         {
             await MsgBox.Show(NavigationService.Owner, "Jumlah tidak valid.");
             return;
@@ -107,11 +108,11 @@ public partial class ShiftView : UserControl
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner,
             "Tutup Shift",
             new[] { $"Hitung uang di laci (ekspektasi: {Formatting.FormatCurrency(expected)})" },
-            new[] { (expected / 100).ToString() });
+            new[] { Formatting.FormatRupiahInput(expected / 100) });
 
         if (!ok) return;
 
-        if (!long.TryParse(vals[0], out long closing))
+        if (!Formatting.TryParseRupiah(vals[0], out long closing))
         {
             await MsgBox.Show(NavigationService.Owner, "Jumlah tidak valid.");
             return;
@@ -129,5 +130,5 @@ public partial class ShiftView : UserControl
         RefreshStatus();
     }
 
-    private void SetStatus(string t) => StatusLabel.Text = t;
+    private void SetStatus(string t) => FooterStatus.Show(StatusLabel, t);
 }
