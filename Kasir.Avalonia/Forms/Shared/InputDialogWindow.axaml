@@ -1,33 +1,43 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Kasir.Avalonia.Forms.Shared.InputDialogWindow"
-        Width="500"
+        Width="0" Height="0"
         WindowStartupLocation="CenterOwner"
-        CanResize="False"
-        Background="{DynamicResource Bg0Brush}"
-        WindowDecorations="None">
-  <DockPanel Margin="20">
-    <TextBlock x:Name="TitleBlock"
-               DockPanel.Dock="Top"
-               FontFamily="{DynamicResource JetBrainsMonoFont}"
-               FontSize="18"
-               FontWeight="Bold"
-               Foreground="{DynamicResource FgPrimaryBrush}"
-               TextWrapping="Wrap"
-               Margin="0,0,0,14" />
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                HorizontalAlignment="Right" Spacing="10" Margin="0,12,0,0">
-      <Button x:Name="BtnOk" Content="OK"
-              Width="90" Height="32"
-              Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
-              FontFamily="{DynamicResource JetBrainsMonoFont}"
-              FontSize="13" />
-      <Button x:Name="BtnCancel" Content="Batal"
-              Width="90" Height="32"
-              Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
-              FontFamily="{DynamicResource JetBrainsMonoFont}"
-              FontSize="13" />
-    </StackPanel>
-    <StackPanel x:Name="FieldPanel" Spacing="6" />
-  </DockPanel>
+        WindowState="FullScreen"
+        WindowDecorations="None"
+        Background="#CC0F1419"
+        TransparencyLevelHint="AcrylicBlur,Transparent">
+  <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Border Width="500"
+            Background="{DynamicResource Bg1Brush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="24">
+      <DockPanel>
+        <TextBlock x:Name="TitleBlock"
+                   DockPanel.Dock="Top"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,14" />
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Spacing="10" Margin="0,12,0,0">
+          <Button x:Name="BtnOk" Content="OK"
+                  Width="90" Height="32"
+                  Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
+                  FontSize="13" />
+          <Button x:Name="BtnCancel" Content="Batal"
+                  Width="90" Height="32"
+                  Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"
+                  FontSize="13" />
+        </StackPanel>
+        <StackPanel x:Name="FieldPanel" Spacing="6" />
+      </DockPanel>
+    </Border>
+  </Grid>
 </Window>
