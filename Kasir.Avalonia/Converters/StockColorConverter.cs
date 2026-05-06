@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Converters;
 
@@ -28,9 +29,9 @@ public class StockColorConverter : IValueConverter
     private void ResolveBrushes()
     {
         if (Application.Current is not { } app) return;
-        _danger = app.FindResource("DangerBrush") as IBrush;
-        _dim = app.FindResource("FgDimBrush") as IBrush;
-        _primary = app.FindResource("FgPrimaryBrush") as IBrush;
+        _danger = ThemeResources.Brush("DangerBrush");
+        _dim = ThemeResources.Brush("FgDimBrush");
+        _primary = ThemeResources.Brush("FgPrimaryBrush");
     }
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

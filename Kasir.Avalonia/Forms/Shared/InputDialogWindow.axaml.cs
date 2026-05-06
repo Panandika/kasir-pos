@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Shared;
 
@@ -20,9 +21,9 @@ public partial class InputDialogWindow : Window
         Height = 80 + (labels.Length * 58) + 60;
         _inputs = new TextBox[labels.Length];
 
-        var dimBrush = Application.Current?.FindResource("FgDimBrush") as IBrush;
-        var inputBg = Application.Current?.FindResource("Bg1Brush") as IBrush;
-        var fgPrimary = Application.Current?.FindResource("FgPrimaryBrush") as IBrush;
+        var dimBrush = ThemeResources.Brush("FgDimBrush");
+        var inputBg = ThemeResources.Brush("Bg1Brush");
+        var fgPrimary = ThemeResources.Brush("FgPrimaryBrush");
 
         for (int i = 0; i < labels.Length; i++)
         {

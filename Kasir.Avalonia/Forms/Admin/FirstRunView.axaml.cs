@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Kasir.Avalonia.Navigation;
 using Kasir.Data;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -49,12 +50,12 @@ public partial class FirstRunView : UserControl
         if (files.Count == 0) return;
 
         LblStatus.Text = "Memvalidasi database...";
-        LblStatus.Foreground = Application.Current?.FindResource("SuccessBrush") as IBrush;
+        LblStatus.Foreground = ThemeResources.Brush("SuccessBrush");
 
         var validation = DatabaseValidator.Validate(files[0].Path.LocalPath, runIntegrityCheck: true);
         if (!validation.IsValid)
         {
-            LblStatus.Foreground = Application.Current?.FindResource("DangerBrush") as IBrush;
+            LblStatus.Foreground = ThemeResources.Brush("DangerBrush");
             LblStatus.Text = "Database tidak valid:\n - " + string.Join("\n - ", validation.Errors);
             return;
         }
