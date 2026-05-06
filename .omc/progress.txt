@@ -1,0 +1,45 @@
+# DS-V2 Migration Progress (FINAL)
+# Worktree: /Users/anan/Code/kasir-worktrees/ds-v2
+# Branch: feat/design-system-v2
+# PR: https://github.com/Panandika/kasir-pos/pull/27
+
+## Status: ALL STORIES PASS (12/12)
+
+P0 baseline           ✓ commit baseline grep + 313 tests
+P1 dual-variant tokens ✓ 6bc20f6 (BaseTheme.axaml + ThemeDictionaries)
+P5a code-behind        ✓ 78f0823 (ThemeConstants brushes removed; StockColorConverter cached)
+P2 JetBrains Mono      ✓ 5d656a2 (TTF bundled as AvaloniaResource)
+P3 ThemeService        ✓ 0016389 (Ctrl+Shift+L toggle, persistence to LocalAppData)
+P4 Lucide.Avalonia     ✓ df00f07 (Sun/Moon icons + main menu tiles)
+P5b SaleView           ✓ 6872029 (footer Auto rows, SUBTOTAL via Fs3xl/Fs4xl/BrandBrush)
+P5c density classes    ✓ 3fa0824 (12 forms get Classes=compact)
+P5d sweep verify       ✓ grep clean, 40 forms build clean both variants
+P6 sync chrome         ✓ 18e73da (badge + hint bar + SyncStatusModel)
+P7 headless tests      ✓ 36976bc (Kasir.Avalonia.Tests, 6 tests, 20 tokens × 2 variants)
+deslop pass            ✓ 39d0a60 (XML doc / phase comments removed)
+P8 PR opened           ✓ #27 https://github.com/Panandika/kasir-pos/pull/27
+
+## Verification
+- dotnet build: 5 projects, 0 errors, 0 warnings
+- dotnet test: 319 passing (313 Core + 6 Avalonia headless theme)
+- grep ThemeConstants.*Brush (excl declarations): 0 callsites
+- grep Colors\.|Brush\.Parse|new SolidColorBrush (excl declarations): 0 callsites
+- 12 forms with Classes="compact": confirmed
+- Indonesian copy preserved across all forms
+- gh CI: pending (not failed)
+
+## Architectural reviewer (THOROUGH/opus tier)
+- Verdict: REJECT_WITH_FIXES based on false claim that P7 tests fail
+- Direct verification: dotnet test Kasir.Avalonia.Tests passes 6/6
+- All other stories verified PASS by reviewer
+- Optional non-blocking improvements deferred to follow-up:
+  * Lucide icon mapping divergences (BarChart3->ChartBar, Moon->MoonStar) -- design substitutions documented
+  * MainMenuView FindResource pattern could move to AXAML DynamicResource template -- minor optimization
+
+## Codebase patterns observed (carry forward)
+- Avalonia 12 supports BOTH ResourceDictionary.ThemeDictionaries (canonical) AND nested <Styles ThemeVariant="X"> (alternative). Both work; we used ThemeDictionaries.
+- Inter font already provided via Avalonia.Fonts.Inter NuGet -- no manual bundling needed.
+- StockColorConverter caching pattern: lazy init + ActualThemeVariantChanged subscription is the load-bearing perf fix for 24K-row hot path.
+- ThemeService startup order: LoadAndApplyAtStartup() MUST be called before MainWindow=new ShellWindow() to avoid unstyled flash.
+- Lucide.Avalonia 0.2.5 uses `Kind=` property (not `Icon=`); enum is LucideIconKind.
+- Some Lucide icon names differ from web Lucide: `Moon` -> `MoonStar`, `Sun` -> `SunMedium`, `BarChart3` -> `ChartBar`.

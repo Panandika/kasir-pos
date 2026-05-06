@@ -1,13 +1,14 @@
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 
 namespace Kasir.Avalonia.Forms.POS;
 
-public partial class CalculatorDialogWindow : Window
+public partial class CalculatorDialogOverlay : UserControl
 {
-    public bool Accepted { get; private set; }
+    private readonly TaskCompletionSource<bool> _tcs = new();
 
-    public CalculatorDialogWindow()
+    public CalculatorDialogOverlay()
     {
         InitializeComponent();
 
@@ -16,10 +17,22 @@ public partial class CalculatorDialogWindow : Window
         TxtC.TextChanged += (_, _) => UpdateCalc();
         TxtD.TextChanged += (_, _) => UpdateCalc();
 
-        BtnOk.Click += (_, _) => { Accepted = true; Close(); };
-        BtnTutup.Click += (_, _) => { Accepted = false; Close(); };
+        BtnOk.Click += (_, _) => _tcs.TrySetResult(true);
+        BtnTutup.Click += (_, _) => _tcs.TrySetResult(false);
+
+        AttachedToVisualTree += (_, _) => TxtA.Focus();
+        KeyDown += OnKey;
 
         UpdateCalc();
+    }
+
+    private void OnKey(object? sender, KeyEventArgs e)
+    {
+        if (KeyboardRouter.IsEscape(e))
+        {
+            e.Handled = true;
+            _tcs.TrySetResult(false);
+        }
     }
 
     private void UpdateCalc()
@@ -43,14 +56,5 @@ public partial class CalculatorDialogWindow : Window
         return v;
     }
 
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (KeyboardRouter.IsEscape(e))
-        {
-            e.Handled = true;
-            Accepted = false;
-            Close();
-        }
-    }
+    public Task<bool> Result => _tcs.Task;
 }

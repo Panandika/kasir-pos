@@ -85,7 +85,7 @@ public partial class PayablesView : UserControl
             return;
         }
 
-        if (!long.TryParse(paymentStr, out long paymentAmount) || paymentAmount <= 0)
+        if (!Formatting.TryParseRupiah(paymentStr, out long paymentAmount) || paymentAmount <= 0)
         {
             await MsgBox.Show(NavigationService.Owner, "Jumlah pembayaran tidak valid.");
             return;
