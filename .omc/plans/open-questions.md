@@ -28,3 +28,20 @@
   Apply NumericInputBehavior to TxtCash/TxtCard/TxtVoucher.
 
 - [x] **Migration version numbering** — Existing migrations: `Migration_002.cs`, `Migration_003.cs`, `Migration_004.cs`. **Migration_005 IS the sequential next** — there is no gap. Planner's note about "skipped 003/004" was incorrect. Use `Migration_005` as planned.
+
+---
+
+## footer-chrome — 2026-05-07 (OPEN)
+
+- [ ] **HTTPS update channel** — `UpdateService` currently checks LAN-only `update_share` UNC path (default `\\KASIR01\kasir\updates\latest`). On Mac dev or any register without LAN access to the Hub, "Periksa Update" returns "Tidak dapat terhubung ke server update". Single point of failure: if Hub register is offline, no register can auto-update.
+
+  **Proposed fix**: Add HTTPS fallback channel polling GitHub Releases:
+  - New config row `update_url` defaulting to `https://api.github.com/repos/Panandika/kasir-pos/releases/latest`
+  - Modify `UpdateService.CheckForUpdate()` to try LAN UNC first, fall back to HTTPS if UNC fails OR if `update_url` is set and `update_share` is empty
+  - `UpdateStatusModel` (footer badge) honors HTTPS path automatically once UpdateService supports it
+  - Apply-update flow still downloads the .exe; HTTPS download via `HttpClient` with progress reporting
+  - Rate limit: GitHub anonymous API allows 60 req/hour per IP — fine for daily check
+  
+  **Scope**: ~3-4 files (`UpdateService.cs`, config seed in `DbConnection.cs`, `UpdateView.axaml.cs` to show channel source). New tests for HTTPS path. Optionally: code signature verification before applying downloaded .exe (defer).
+
+  **Why deferred**: out of scope for current footer-chrome PR (#29). Logged as separate follow-up. Current PR's `UpdateStatusModel` correctly reflects whatever UpdateService returns — adding HTTPS later requires zero changes to the footer model.
