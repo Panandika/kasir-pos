@@ -11,6 +11,7 @@ using Kasir.Avalonia.Forms;
 using Kasir.Avalonia.Forms.Admin;
 using Kasir.Avalonia.Diagnostics;
 using Kasir.Avalonia.Infrastructure;
+using Lucide.Avalonia;
 
 namespace Kasir.Avalonia;
 
@@ -22,13 +23,13 @@ public partial class ShellWindow : Window
     {
         InitializeComponent();
         NavigationService.Initialize(this, ContentArea);
-        UpdateThemeGlyph();
+        UpdateThemeIcon();
     }
 
     private void OnThemeTogglePressed(object? sender, RoutedEventArgs e)
     {
         ThemeService.Current.Toggle();
-        UpdateThemeGlyph();
+        UpdateThemeIcon();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -37,17 +38,19 @@ public partial class ShellWindow : Window
         if (KeyboardRouter.IsCtrlShiftL(e))
         {
             ThemeService.Current.Toggle();
-            UpdateThemeGlyph();
+            UpdateThemeIcon();
             e.Handled = true;
             return;
         }
         base.OnKeyDown(e);
     }
 
-    private void UpdateThemeGlyph()
+    private void UpdateThemeIcon()
     {
-        if (ThemeToggleGlyph is null) return;
-        ThemeToggleGlyph.Text = ThemeService.Current.ActiveVariant == ThemeVariant.Dark ? "☾" : "☀";
+        if (ThemeToggleIcon is null) return;
+        ThemeToggleIcon.Kind = ThemeService.Current.ActiveVariant == ThemeVariant.Dark
+            ? LucideIconKind.MoonStar
+            : LucideIconKind.SunMedium;
     }
 
     protected override async void OnOpened(EventArgs e)

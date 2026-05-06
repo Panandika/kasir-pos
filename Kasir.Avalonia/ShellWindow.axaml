@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lucide="clr-namespace:Lucide.Avalonia;assembly=Lucide.Avalonia"
         x:Class="Kasir.Avalonia.ShellWindow"
         CanResize="True"
         Background="#000000"
@@ -16,7 +17,7 @@
             VerticalAlignment="Top"
             Margin="0,8,8,0"
             Click="OnThemeTogglePressed">
-      <TextBlock x:Name="ThemeToggleGlyph" Text="◐" FontSize="18"/>
+      <lucide:LucideIcon x:Name="ThemeToggleIcon" Kind="MoonStar" Size="18"/>
     </Button>
   </Grid>
 </Window>
