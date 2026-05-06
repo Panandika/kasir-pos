@@ -81,8 +81,8 @@ public partial class JournalView : UserControl
         long td = 0, tc = 0;
         foreach (var r in _rows)
         {
-            long.TryParse(r.Debit,  out long d);
-            long.TryParse(r.Credit, out long c);
+            Formatting.TryParseRupiah(r.Debit,  out long d);
+            Formatting.TryParseRupiah(r.Credit, out long c);
             td += d;
             tc += c;
         }
@@ -149,8 +149,8 @@ public partial class JournalView : UserControl
         foreach (var r in _rows)
         {
             if (string.IsNullOrEmpty(r.AccCode)) continue;
-            long.TryParse(r.Debit,  out long d);
-            long.TryParse(r.Credit, out long c);
+            Formatting.TryParseRupiah(r.Debit,  out long d);
+            Formatting.TryParseRupiah(r.Credit, out long c);
             entry.Lines.Add(new JournalLine
             {
                 AccountCode = r.AccCode,
