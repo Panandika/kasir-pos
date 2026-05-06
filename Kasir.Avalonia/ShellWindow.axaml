@@ -5,19 +5,64 @@
         CanResize="True"
         Background="#000000"
         Focusable="True">
-  <Grid>
-    <ContentControl x:Name="ContentArea"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch" />
-    <Button x:Name="ThemeToggleBtn"
-            Classes="ghost"
-            ToolTip.Tip="Toggle theme (Ctrl+Shift+L)"
-            Width="36" Height="36"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top"
-            Margin="0,8,8,0"
-            Click="OnThemeTogglePressed">
-      <lucide:LucideIcon x:Name="ThemeToggleIcon" Kind="MoonStar" Size="18"/>
-    </Button>
-  </Grid>
+  <DockPanel>
+
+    <!-- Hint bar: permanent F-key chip strip, above status bar -->
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource Bg2Brush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="16,8">
+      <TextBlock x:Name="HintBarText"
+                 Text="F2 Cari · F8 Diskon · F10 Bayar · Esc Menu"
+                 FontSize="{DynamicResource FontSizeSm}"
+                 Foreground="{DynamicResource FgSecondaryBrush}"/>
+    </Border>
+
+    <!-- Status bar: sync badge row -->
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource Bg2Brush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="12,4">
+      <StackPanel Orientation="Horizontal">
+        <Border x:Name="SyncBadge"
+                Background="{DynamicResource BgSelectedBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="999"
+                Padding="8,2"
+                VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <Ellipse x:Name="SyncDot" Width="6" Height="6" Fill="{DynamicResource SuccessBrush}"/>
+            <lucide:LucideIcon x:Name="SyncSpinner" Kind="RefreshCw" Size="10"
+                               IsVisible="False"
+                               Foreground="{DynamicResource FgSecondaryBrush}"/>
+            <TextBlock x:Name="SyncText"
+                       Text="Online · Sync 0d lalu"
+                       FontSize="{DynamicResource FontSizeXs}"
+                       Foreground="{DynamicResource FgSecondaryBrush}"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Border>
+
+    <!-- Main content area -->
+    <Grid>
+      <ContentControl x:Name="ContentArea"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Stretch" />
+      <Button x:Name="ThemeToggleBtn"
+              Classes="ghost"
+              ToolTip.Tip="Toggle theme (Ctrl+Shift+L)"
+              Width="36" Height="36"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top"
+              Margin="0,8,8,0"
+              Click="OnThemeTogglePressed">
+        <lucide:LucideIcon x:Name="ThemeToggleIcon" Kind="MoonStar" Size="18"/>
+      </Button>
+    </Grid>
+
+  </DockPanel>
 </Window>
