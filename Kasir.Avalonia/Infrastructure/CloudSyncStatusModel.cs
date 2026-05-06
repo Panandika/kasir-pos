@@ -1,8 +1,6 @@
 using System;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -32,17 +30,12 @@ public sealed class CloudSyncStatusModel : INotifyPropertyChanged
     private static readonly TimeSpan ConnectivityInterval = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan WakeTimeout = TimeSpan.FromSeconds(90);
 
-    private static readonly string ConfigDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Kasir");
-    private static readonly string CredsPath = Path.Combine(ConfigDir, "cloudsync.json");
-
     private CloudSyncState _state = CloudSyncState.Disabled;
     private int _queueDepth;
     private int _consecutiveFailures;
     private DateTime _lastConnectivityCheck = DateTime.MinValue;
     private DateTime _lastKeepAliveDate = DateTime.MinValue.Date;
-    private CloudCreds? _creds;
+    private CloudSyncCreds? _creds;
 
     private Timer? _queueTimer;
     private Timer? _connectivityTimer;
@@ -121,6 +114,34 @@ public sealed class CloudSyncStatusModel : INotifyPropertyChanged
         // Keep-alive: tick every 30 minutes, fire at 03:00 once per day.
         _keepAliveTimer = new Timer(_ => _ = MaybeKeepAliveAsync(), null,
             TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(30));
+    }
+
+    /// <summary>
+    /// Reload credentials from disk after the user saves them in the setup
+    /// screen. If creds become available, transition to Waking and fire a
+    /// SELECT 1 probe; if creds were removed, transition to Disabled.
+    /// </summary>
+    public void RefreshCreds()
+    {
+        _creds = TryReadCreds();
+        if (_creds is null)
+        {
+            State = CloudSyncState.Disabled;
+            return;
+        }
+
+        State = CloudSyncState.Waking;
+        _consecutiveFailures = 0;
+        _ = WakeAsync();
+
+        // Ensure timers are running (in case Start() was called when creds were absent).
+        if (_queueTimer is null)
+            _queueTimer = new Timer(_ => PollQueueDepth(), null, QueuePollInterval, QueuePollInterval);
+        if (_connectivityTimer is null)
+            _connectivityTimer = new Timer(_ => _ = ConnectivityCheckAsync(), null, ConnectivityInterval, ConnectivityInterval);
+        if (_keepAliveTimer is null)
+            _keepAliveTimer = new Timer(_ => _ = MaybeKeepAliveAsync(), null,
+                TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(30));
     }
 
     public void Stop()
@@ -231,7 +252,7 @@ public sealed class CloudSyncStatusModel : INotifyPropertyChanged
         }
     }
 
-    private static string BuildConnString(CloudCreds c)
+    private static string BuildConnString(CloudSyncCreds c)
     {
         var b = new NpgsqlConnectionStringBuilder
         {
@@ -246,25 +267,16 @@ public sealed class CloudSyncStatusModel : INotifyPropertyChanged
         return b.ConnectionString;
     }
 
-    private static CloudCreds? TryReadCreds()
+    private static CloudSyncCreds? TryReadCreds()
     {
-        try
-        {
-            if (!File.Exists(CredsPath)) return null;
-            var json = File.ReadAllText(CredsPath);
-            var c = JsonSerializer.Deserialize<CloudCreds>(json);
-            if (c is null) return null;
-            if (string.IsNullOrWhiteSpace(c.Host) || string.IsNullOrWhiteSpace(c.Database)
-                || string.IsNullOrWhiteSpace(c.Username) || string.IsNullOrWhiteSpace(c.Password))
-            {
-                return null;
-            }
-            return c;
-        }
-        catch
+        var c = CloudSyncCredsService.Load();
+        if (c is null) return null;
+        if (string.IsNullOrWhiteSpace(c.Host) || string.IsNullOrWhiteSpace(c.Database)
+            || string.IsNullOrWhiteSpace(c.Username) || string.IsNullOrWhiteSpace(c.Password))
         {
             return null;
         }
+        return c;
     }
 
     private void RaiseDerived()
@@ -294,13 +306,4 @@ public sealed class CloudSyncStatusModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-    private sealed class CloudCreds
-    {
-        public string Host { get; set; } = "";
-        public int Port { get; set; } = 6543;
-        public string Database { get; set; } = "postgres";
-        public string Username { get; set; } = "";
-        public string Password { get; set; } = "";
-    }
 }

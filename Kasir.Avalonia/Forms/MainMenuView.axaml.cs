@@ -143,6 +143,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         {
             new TileSpec { Label = "User Management",  UnderlineIndex = 5, Hotkey = Key.M, Activate = () => NavigationService.Navigate(new UserView()) },
             new TileSpec { Label = "Printer Config",   UnderlineIndex = 0, Hotkey = Key.P, Activate = () => NavigationService.Navigate(new PrinterConfigView()) },
+            new TileSpec { Label = "Cloud Sync",       UnderlineIndex = 0, Hotkey = Key.C, Activate = () => NavigationService.Navigate(new CloudSyncSetupView()) },
             new TileSpec { Label = "Backup",           UnderlineIndex = 0, Hotkey = Key.B, Activate = () => NavigationService.Navigate(new BackupView()) },
             new TileSpec { Label = "Shift Management", UnderlineIndex = 0, Hotkey = Key.S, Activate = () => NavigationService.Navigate(new ShiftView(_userId)) },
             new TileSpec { Label = "Periksa Update" + (_updateBadgeVersion != null ? $"  ● v{_updateBadgeVersion}" : ""), UnderlineIndex = 8, Hotkey = Key.U, Activate = () => NavigationService.Navigate(new UpdateView()) },
