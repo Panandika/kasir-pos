@@ -29,7 +29,13 @@ public partial class ShellWindow : Window
         NavigationService.Initialize(this, ContentArea);
         UpdateThemeIcon();
         SyncStatusModel.Current.PropertyChanged += OnSyncStatusChanged;
+        PrinterStatusModel.Current.PropertyChanged += OnPrinterStatusChanged;
+        UpdateStatusModel.Current.PropertyChanged += OnUpdateStatusChanged;
+        CloudSyncStatusModel.Current.PropertyChanged += OnCloudStatusChanged;
         UpdateSyncBadge();
+        UpdatePrinterBadge();
+        UpdateVersionBadge();
+        UpdateCloudBadge();
     }
 
     public void ShowOverlay(Control content)
@@ -74,6 +80,52 @@ public partial class ShellWindow : Window
     private void OnSyncStatusChanged(object? sender, PropertyChangedEventArgs e)
     {
         Dispatcher.UIThread.Post(UpdateSyncBadge);
+    }
+
+    private void OnPrinterStatusChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        Dispatcher.UIThread.Post(UpdatePrinterBadge);
+    }
+
+    private void OnUpdateStatusChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        Dispatcher.UIThread.Post(UpdateVersionBadge);
+    }
+
+    private void OnCloudStatusChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        Dispatcher.UIThread.Post(UpdateCloudBadge);
+    }
+
+    private void UpdatePrinterBadge()
+    {
+        if (PrinterText is null || PrinterDot is null) return;
+        var m = PrinterStatusModel.Current;
+        PrinterText.Text = m.DisplayText;
+        PrinterDot.IsVisible = m.ShowDot;
+        if (m.ShowDot) PrinterDot.Fill = m.DotBrush;
+    }
+
+    private void UpdateVersionBadge()
+    {
+        if (VersionText is null || VersionDot is null || VersionSpinner is null) return;
+        var m = UpdateStatusModel.Current;
+        VersionText.Text = m.DisplayText;
+        VersionText.Foreground = m.TextBrush;
+        VersionSpinner.IsVisible = m.ShowSpinner;
+        VersionDot.IsVisible = m.ShowDot;
+        if (m.ShowDot) VersionDot.Fill = m.DotBrush;
+    }
+
+    private void UpdateCloudBadge()
+    {
+        if (CloudText is null || CloudDot is null || CloudSpinner is null) return;
+        var m = CloudSyncStatusModel.Current;
+        CloudText.Text = m.DisplayText;
+        CloudText.Foreground = m.TextBrush;
+        CloudSpinner.IsVisible = m.ShowSpinner;
+        CloudDot.IsVisible = m.ShowDot;
+        if (m.ShowDot) CloudDot.Fill = m.DotBrush;
     }
 
     private void UpdateSyncBadge()
