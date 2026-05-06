@@ -74,8 +74,9 @@ public partial class PurchaseOrderView : UserControl
 
         if (!int.TryParse(vals[0], out int qty) || qty <= 0)
         { await MsgBox.Show(NavigationService.Owner, "Qty tidak valid."); return; }
-        if (!decimal.TryParse(vals[1], out decimal price) || price < 0)
+        if (!Formatting.TryParseRupiah(vals[1], out long priceLong) || priceLong < 0)
         { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid."); return; }
+        decimal price = priceLong;
 
         var item = new OrderItem
         {

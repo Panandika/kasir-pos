@@ -74,7 +74,7 @@ public partial class ShiftView : UserControl
 
         if (!ok) return;
 
-        if (!long.TryParse(vals[0], out long openingCash))
+        if (!Formatting.TryParseRupiah(vals[0], out long openingCash))
         {
             await MsgBox.Show(NavigationService.Owner, "Jumlah tidak valid.");
             return;
@@ -108,11 +108,11 @@ public partial class ShiftView : UserControl
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner,
             "Tutup Shift",
             new[] { $"Hitung uang di laci (ekspektasi: {Formatting.FormatCurrency(expected)})" },
-            new[] { (expected / 100).ToString() });
+            new[] { Formatting.FormatRupiahInput(expected / 100) });
 
         if (!ok) return;
 
-        if (!long.TryParse(vals[0], out long closing))
+        if (!Formatting.TryParseRupiah(vals[0], out long closing))
         {
             await MsgBox.Show(NavigationService.Owner, "Jumlah tidak valid.");
             return;
