@@ -1,19 +1,23 @@
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Kasir.Avalonia.Behaviors;
 using Kasir.Models;
 
 namespace Kasir.Avalonia.Forms.Master;
 
-public partial class WholesaleTierDialog : Window
+public partial class WholesaleTierOverlay : UserControl
 {
     private readonly Product _product;
+    private readonly TaskCompletionSource<bool> _tcs = new();
 
-    public WholesaleTierDialog() : this(new Product()) { }
+    public WholesaleTierOverlay() : this(new Product()) { }
 
-    public WholesaleTierDialog(Product product)
+    public WholesaleTierOverlay(Product product)
     {
         InitializeComponent();
         _product = product;
@@ -33,11 +37,12 @@ public partial class WholesaleTierDialog : Window
         TxtQtyBreak3.Text = product.QtyBreak3.ToString();
 
         BtnOk.Click += (_, _) => OnSave();
-        BtnCancel.Click += (_, _) => Close(false);
-        KeyDown += OnKeyDown;
+        BtnCancel.Click += (_, _) => _tcs.TrySetResult(false);
+        AttachedToVisualTree += (_, _) => TxtPrice1.Focus();
+        KeyDown += OnKey;
     }
 
-    private void OnKeyDown(object? sender, KeyEventArgs e)
+    private void OnKey(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.F10 || e.Key == Key.Enter)
         {
@@ -47,7 +52,7 @@ public partial class WholesaleTierDialog : Window
         else if (e.Key == Key.Escape)
         {
             e.Handled = true;
-            Close(false);
+            _tcs.TrySetResult(false);
         }
     }
 
@@ -59,8 +64,10 @@ public partial class WholesaleTierDialog : Window
         _product.Price4 = ParseMoney(TxtPrice4.Text);
         _product.QtyBreak2 = ParseInt(TxtQtyBreak2.Text);
         _product.QtyBreak3 = ParseInt(TxtQtyBreak3.Text);
-        Close(true);
+        _tcs.TrySetResult(true);
     }
+
+    public Task<bool> Result => _tcs.Task;
 
     private static string FormatMoney(long cents)
     {
@@ -82,5 +89,25 @@ public partial class WholesaleTierDialog : Window
         string digits = new string((text ?? "").Where(char.IsDigit).ToArray());
         if (string.IsNullOrEmpty(digits)) return 0;
         return int.Parse(digits, CultureInfo.InvariantCulture);
+    }
+}
+
+// Compatibility shim preserving the WholesaleTierDialog surface used by ProductView.
+public static class WholesaleTierDialog
+{
+    public static async Task<bool> Show(Visual? owner, Product product)
+    {
+        ShellWindow? shell = TopLevel.GetTopLevel(owner) as ShellWindow;
+        if (shell is null
+            && Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            shell = desktop.MainWindow as ShellWindow;
+        }
+        if (shell is null) return false;
+
+        var overlay = new WholesaleTierOverlay(product);
+        shell.ShowOverlay(overlay);
+        try { return await overlay.Result; }
+        finally { shell.HideOverlay(); }
     }
 }
