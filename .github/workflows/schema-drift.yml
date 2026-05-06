@@ -1,0 +1,23 @@
+name: schema-drift
+
+on:
+  pull_request:
+    paths:
+      - 'Kasir.Core/Data/Schema.sql'
+      - 'Kasir.CloudSync/Sql/**'
+      - 'Kasir.CloudSync/Generation/TableMappings.cs'
+      - 'scripts/check-schema-drift.sh'
+      - '.github/workflows/schema-drift.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Kasir.Core/Data/Schema.sql'
+      - 'Kasir.CloudSync/Sql/**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run schema-drift check
+        run: bash scripts/check-schema-drift.sh
