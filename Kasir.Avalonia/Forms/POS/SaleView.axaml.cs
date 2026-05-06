@@ -18,8 +18,8 @@ using Kasir.Utils;
 using Kasir.Avalonia.Behaviors;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
-using Kasir.Avalonia.Diagnostics;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Avalonia.Diagnostics;
 using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.POS;
@@ -329,8 +329,8 @@ public partial class SaleView : UserControl, INavigationAware
         {
             LblPrinterStatus.Text = $"🖨 {_printerStatusText}";
             LblPrinterStatus.Foreground = _printerStatusOk
-                ? Application.Current?.FindResource("SuccessBrush") as IBrush
-                : Application.Current?.FindResource("DangerBrush") as IBrush;
+                ? ThemeResources.Brush("SuccessBrush")
+                : ThemeResources.Brush("DangerBrush");
         }
     }
 
@@ -370,7 +370,7 @@ public partial class SaleView : UserControl, INavigationAware
     {
         _bannerState = BannerState.Kembalian;
         LblSubtotal.Text = $"KEMBALIAN: {Formatting.FormatCurrency(changeCents)}";
-        LblSubtotal.Foreground = Application.Current?.FindResource("BrandBrush") as IBrush;
+        LblSubtotal.Foreground = ThemeResources.Brush("BrandBrush");
         StartBannerTimer();
     }
 

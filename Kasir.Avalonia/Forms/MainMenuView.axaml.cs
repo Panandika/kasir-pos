@@ -25,6 +25,7 @@ using Kasir.Avalonia.Forms.Inventory;
 using Kasir.Avalonia.Forms.Accounting;
 using Kasir.Avalonia.Forms.Bank;
 using Kasir.Avalonia.Forms.Reports;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms;
 
@@ -231,8 +232,8 @@ public partial class MainMenuView : UserControl, INavigationAware
         var label = new TextBlock
         {
             FontSize = 24,
-            FontFamily = (FontFamily)Application.Current!.FindResource("PlexSansFont")!,
-            Foreground = (IBrush)Application.Current!.FindResource("FgPrimaryBrush")!,
+            FontFamily = ThemeResources.Resource<FontFamily>("PlexSansFont")!,
+            Foreground = ThemeResources.Brush("FgPrimaryBrush")!,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         // Build inline runs: before-letter + underlined-letter + after-letter
@@ -251,9 +252,9 @@ public partial class MainMenuView : UserControl, INavigationAware
         var hint = new TextBlock
         {
             Text = $"[{keyLabel}]",
-            FontSize = (double)Application.Current!.FindResource("FontSizeLabel")!,
-            FontFamily = (FontFamily)Application.Current!.FindResource("JetBrainsMonoFont")!,
-            Foreground = (IBrush)Application.Current!.FindResource("FgSecondaryBrush")!,
+            FontSize = ThemeResources.Number("FontSizeLabel", 11),
+            FontFamily = ThemeResources.Resource<FontFamily>("JetBrainsMonoFont")!,
+            Foreground = ThemeResources.Brush("FgSecondaryBrush")!,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
 
@@ -264,7 +265,7 @@ public partial class MainMenuView : UserControl, INavigationAware
             {
                 Kind = spec.Icon.Value,
                 Size = 32,
-                Foreground = (IBrush)Application.Current!.FindResource("FgPrimaryBrush")!,
+                Foreground = ThemeResources.Brush("FgPrimaryBrush")!,
             });
         }
         stack.Children.Add(label);
@@ -280,12 +281,12 @@ public partial class MainMenuView : UserControl, INavigationAware
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             BorderThickness = new Thickness(1),
-            FontFamily = (FontFamily)Application.Current!.FindResource("PlexSansFont")!,
+            FontFamily = ThemeResources.Resource<FontFamily>("PlexSansFont")!,
             Background = spec.IsDanger
-                ? (IBrush)Application.Current!.FindResource("AccentBgBrush")!
-                : (IBrush)Application.Current!.FindResource("Bg1Brush")!,
-            Foreground = (IBrush)Application.Current!.FindResource("FgPrimaryBrush")!,
-            BorderBrush = (IBrush)Application.Current!.FindResource("BorderStrongBrush")!,
+                ? ThemeResources.Brush("AccentBgBrush")!
+                : ThemeResources.Brush("Bg1Brush")!,
+            Foreground = ThemeResources.Brush("FgPrimaryBrush")!,
+            BorderBrush = ThemeResources.Brush("BorderStrongBrush")!,
         };
         btn.Click += (_, _) => spec.Activate();
         return btn;
