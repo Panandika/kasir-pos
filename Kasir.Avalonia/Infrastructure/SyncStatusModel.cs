@@ -13,10 +13,6 @@ public enum SyncState
     Syncing
 }
 
-/// <summary>
-/// Notifying singleton that tracks sync chrome state.
-/// Actual wiring to SyncEngine is a follow-up task.
-/// </summary>
 public sealed class SyncStatusModel : INotifyPropertyChanged
 {
     private static readonly Lazy<SyncStatusModel> _instance = new(() => new SyncStatusModel());
