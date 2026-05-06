@@ -1,8 +1,12 @@
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Kasir.Data;
@@ -24,6 +28,8 @@ public partial class ShellWindow : Window
         InitializeComponent();
         NavigationService.Initialize(this, ContentArea);
         UpdateThemeIcon();
+        SyncStatusModel.Current.PropertyChanged += OnSyncStatusChanged;
+        UpdateSyncBadge();
     }
 
     private void OnThemeTogglePressed(object? sender, RoutedEventArgs e)
@@ -51,6 +57,40 @@ public partial class ShellWindow : Window
         ThemeToggleIcon.Kind = ThemeService.Current.ActiveVariant == ThemeVariant.Dark
             ? LucideIconKind.MoonStar
             : LucideIconKind.SunMedium;
+    }
+
+    private void OnSyncStatusChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        Dispatcher.UIThread.Post(UpdateSyncBadge);
+    }
+
+    private void UpdateSyncBadge()
+    {
+        if (SyncText is null || SyncDot is null || SyncSpinner is null) return;
+
+        var model = SyncStatusModel.Current;
+        SyncText.Text = model.DisplayText;
+
+        bool isSyncing = model.State == SyncState.Syncing;
+        SyncSpinner.IsVisible = isSyncing;
+        SyncDot.IsVisible = !isSyncing && model.ShowDot;
+
+        if (!isSyncing)
+        {
+            var brushKey = model.State switch
+            {
+                SyncState.OnlineRecent        => "SuccessBrush",
+                SyncState.OnlineOverdue       => "WarningBrush",
+                SyncState.OfflineTransactable => "WarningBrush",
+                SyncState.OfflineBlocked      => "DangerBrush",
+                _                             => "SuccessBrush"
+            };
+            if (Application.Current?.Resources.TryGetResource(brushKey, ActualThemeVariant, out var res) == true
+                && res is IBrush brush)
+            {
+                SyncDot.Fill = brush;
+            }
+        }
     }
 
     protected override async void OnOpened(EventArgs e)
