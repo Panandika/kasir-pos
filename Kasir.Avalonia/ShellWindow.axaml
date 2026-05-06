@@ -1,10 +1,63 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lucide="clr-namespace:Lucide.Avalonia;assembly=Lucide.Avalonia"
         x:Class="Kasir.Avalonia.ShellWindow"
+        Icon="avares://Kasir.Avalonia/Assets/icon-256.png"
         CanResize="True"
-        Background="#000000"
+        Background="{DynamicResource Bg0Brush}"
         Focusable="True">
-  <ContentControl x:Name="ContentArea"
-                  HorizontalContentAlignment="Stretch"
-                  VerticalContentAlignment="Stretch" />
+  <Grid>
+  <DockPanel>
+
+    <!-- Status bar: sync badge row (forms render their own F-key hint bar) -->
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource Bg2Brush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="12,4">
+      <StackPanel Orientation="Horizontal">
+        <Border x:Name="SyncBadge"
+                Background="{DynamicResource BgSelectedBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="999"
+                Padding="8,2"
+                VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <Ellipse x:Name="SyncDot" Width="6" Height="6" Fill="{DynamicResource SuccessBrush}"/>
+            <lucide:LucideIcon x:Name="SyncSpinner" Kind="RefreshCw" Size="10"
+                               IsVisible="False"
+                               Foreground="{DynamicResource FgSecondaryBrush}"/>
+            <TextBlock x:Name="SyncText"
+                       Text="Online · Sync 0d lalu"
+                       FontSize="{DynamicResource FontSizeXs}"
+                       Foreground="{DynamicResource FgSecondaryBrush}"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Border>
+
+    <!-- Main content area -->
+    <Grid>
+      <ContentControl x:Name="ContentArea"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Stretch" />
+      <Button x:Name="ThemeToggleBtn"
+              Classes="ghost"
+              ToolTip.Tip="Toggle theme (Ctrl+Shift+L)"
+              Width="36" Height="36"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top"
+              Margin="0,8,8,0"
+              Click="OnThemeTogglePressed">
+        <lucide:LucideIcon x:Name="ThemeToggleIcon" Kind="MoonStar" Size="18"/>
+      </Button>
+    </Grid>
+
+  </DockPanel>
+  <ContentControl x:Name="OverlayHost"
+                  IsVisible="False"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"/>
+  </Grid>
 </Window>

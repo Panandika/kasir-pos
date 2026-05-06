@@ -48,5 +48,27 @@ namespace Kasir.Tests.Utils
             today.Should().HaveLength(10);
             today.Should().MatchRegex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$");
         }
+
+        [TestCase("100.000", true, 100000)]
+        [TestCase("Rp 50.000", true, 50000)]
+        [TestCase("1.000.000", true, 1000000)]
+        [TestCase("0", true, 0)]
+        [TestCase("abc", false, 0)]
+        [TestCase("", false, 0)]
+        [TestCase(null, false, 0)]
+        public void TryParseRupiah_ParsesIndonesianFormat(string? input, bool expectedOk, long expectedVal)
+        {
+            bool ok = Formatting.TryParseRupiah(input, out long val);
+            ok.Should().Be(expectedOk);
+            val.Should().Be(expectedVal);
+        }
+
+        [TestCase(100000, "100.000")]
+        [TestCase(0, "0")]
+        [TestCase(1000000, "1.000.000")]
+        public void FormatRupiahInput_RoundTrips(long rupiah, string expected)
+        {
+            Formatting.FormatRupiahInput(rupiah).Should().Be(expected);
+        }
     }
 }

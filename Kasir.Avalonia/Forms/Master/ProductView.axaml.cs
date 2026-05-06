@@ -240,10 +240,9 @@ public partial class ProductView : UserControl
     private async void OpenWholesaleDialog()
     {
         if (_currentProduct == null) return;
-        var dlg = new WholesaleTierDialog(_currentProduct);
         var owner = NavigationService.Owner;
         if (owner == null) return;
-        var result = await dlg.ShowDialog<bool>(owner);
+        var result = await WholesaleTierDialog.Show(owner, _currentProduct);
         if (result)
         {
             // Persist updated tier values

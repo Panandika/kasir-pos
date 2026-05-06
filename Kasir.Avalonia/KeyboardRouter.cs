@@ -42,6 +42,8 @@ public static class KeyboardRouter
     public static bool IsCtrlE(KeyEventArgs e) => IsCtrl(e, Key.E);
     public static bool IsCtrlR(KeyEventArgs e) => IsCtrl(e, Key.R);
     public static bool IsCtrlL(KeyEventArgs e) => IsCtrl(e, Key.L);
+    public static bool IsCtrlShiftL(KeyEventArgs e) =>
+        e.Key == Key.L && e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
     public static bool IsPageUp(KeyEventArgs e) => e.Key == Key.PageUp && e.KeyModifiers == KeyModifiers.None;
     public static bool IsPageDown(KeyEventArgs e) => e.Key == Key.PageDown && e.KeyModifiers == KeyModifiers.None;

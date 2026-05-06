@@ -60,7 +60,7 @@ public partial class CashReceiptView : UserControl
 
         if (string.IsNullOrEmpty(accCode) || string.IsNullOrEmpty(amountStr)) return;
 
-        if (!long.TryParse(amountStr, out long amount) || amount <= 0)
+        if (!Formatting.TryParseRupiah(amountStr, out long amount) || amount <= 0)
         {
             await MsgBox.Show(NavigationService.Owner, "Jumlah tidak valid.");
             return;

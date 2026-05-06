@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -17,8 +18,8 @@ using Kasir.Utils;
 using Kasir.Avalonia.Behaviors;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
-using Kasir.Avalonia.Diagnostics;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Avalonia.Diagnostics;
 using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.POS;
@@ -328,8 +329,8 @@ public partial class SaleView : UserControl, INavigationAware
         {
             LblPrinterStatus.Text = $"🖨 {_printerStatusText}";
             LblPrinterStatus.Foreground = _printerStatusOk
-                ? new SolidColorBrush(Colors.LimeGreen)
-                : new SolidColorBrush(Colors.OrangeRed);
+                ? ThemeResources.Brush("SuccessBrush")
+                : ThemeResources.Brush("DangerBrush");
         }
     }
 
@@ -357,7 +358,7 @@ public partial class SaleView : UserControl, INavigationAware
         catch (Exception ex) { await MsgBox.Show(NavigationService.Owner, "Gagal bayar: " + ex.Message); }
     }
 
-    // ── Banner state machine (Q2) ────────────────────────────────────
+    // ── Banner state machine ────────────────────────────────────────
     private void ShowTunaiBanner(long cashCents)
     {
         _bannerState = BannerState.Tunai;
@@ -369,7 +370,7 @@ public partial class SaleView : UserControl, INavigationAware
     {
         _bannerState = BannerState.Kembalian;
         LblSubtotal.Text = $"KEMBALIAN: {Formatting.FormatCurrency(changeCents)}";
-        LblSubtotal.Foreground = new SolidColorBrush(Colors.LimeGreen);
+        LblSubtotal.Foreground = ThemeResources.Brush("BrandBrush");
         StartBannerTimer();
     }
 
@@ -610,7 +611,7 @@ public partial class SaleView : UserControl, INavigationAware
         else if (KeyboardRouter.IsF9(e))
         {
             e.Handled = true;
-            await new CalculatorDialogWindow().ShowDialog(NavigationService.Owner);
+            await CalculatorDialogWindow.Show(NavigationService.Owner);
             TxtBarcode.Focus();
         }
         else if (KeyboardRouter.IsF10(e))

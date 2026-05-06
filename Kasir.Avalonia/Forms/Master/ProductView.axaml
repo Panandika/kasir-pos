@@ -28,7 +28,7 @@
       </Grid>
     </Border>
     <Grid RowDefinitions="3*,2*">
-      <DataGrid Grid.Row="0" x:Name="DgvProducts" AutoGenerateColumns="False" IsReadOnly="True"
+      <DataGrid Grid.Row="0" x:Name="DgvProducts" Classes="compact" AutoGenerateColumns="False" IsReadOnly="True"
                 Background="{DynamicResource Bg1Brush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 GridLinesVisibility="Horizontal"

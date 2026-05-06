@@ -72,6 +72,7 @@
       </StackPanel>
     </Border>
     <DataGrid x:Name="DgvReport"
+              Classes="compact"
               AutoGenerateColumns="False"
               IsReadOnly="True"
               Background="{DynamicResource Bg1Brush}"
