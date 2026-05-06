@@ -7,19 +7,7 @@
         Focusable="True">
   <DockPanel>
 
-    <!-- Hint bar: permanent F-key chip strip, above status bar -->
-    <Border DockPanel.Dock="Bottom"
-            Background="{DynamicResource Bg2Brush}"
-            BorderBrush="{DynamicResource BorderSubtleBrush}"
-            BorderThickness="0,1,0,0"
-            Padding="16,8">
-      <TextBlock x:Name="HintBarText"
-                 Text="F2 Cari · F8 Diskon · F10 Bayar · Esc Menu"
-                 FontSize="{DynamicResource FontSizeSm}"
-                 Foreground="{DynamicResource FgSecondaryBrush}"/>
-    </Border>
-
-    <!-- Status bar: sync badge row -->
+    <!-- Status bar: sync badge row (forms render their own F-key hint bar) -->
     <Border DockPanel.Dock="Bottom"
             Background="{DynamicResource Bg2Brush}"
             BorderBrush="{DynamicResource BorderSubtleBrush}"
