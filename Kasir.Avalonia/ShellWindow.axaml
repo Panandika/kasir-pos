@@ -6,6 +6,7 @@
         CanResize="True"
         Background="{DynamicResource Bg0Brush}"
         Focusable="True">
+  <Grid>
   <DockPanel>
 
     <!-- Status bar: sync badge row (forms render their own F-key hint bar) -->
@@ -54,4 +55,9 @@
     </Grid>
 
   </DockPanel>
+  <ContentControl x:Name="OverlayHost"
+                  IsVisible="False"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"/>
+  </Grid>
 </Window>
