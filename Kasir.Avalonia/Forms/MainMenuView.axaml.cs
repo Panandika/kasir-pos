@@ -10,6 +10,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Kasir.Data;
+using Lucide.Avalonia;
 using Kasir.Data.Repositories;
 using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
@@ -79,16 +80,17 @@ public partial class MainMenuView : UserControl, INavigationAware
         public Key Hotkey { get; init; }
         public Action Activate { get; init; } = () => { };
         public bool IsDanger { get; init; }
+        public LucideIconKind? Icon { get; init; }
     }
 
     private IReadOnlyList<TileSpec> MainTiles() => new[]
     {
-        new TileSpec { Label = "Master",    UnderlineIndex = 0, Hotkey = Key.M, Activate = () => DrillInto("Master") },
-        new TileSpec { Label = "Transaksi", UnderlineIndex = 0, Hotkey = Key.T, Activate = () => DrillInto("Transaksi") },
-        new TileSpec { Label = "Akuntansi", UnderlineIndex = 1, Hotkey = Key.K, Activate = () => DrillInto("Akuntansi") },
-        new TileSpec { Label = "Laporan",   UnderlineIndex = 0, Hotkey = Key.L, Activate = () => DrillInto("Laporan") },
-        new TileSpec { Label = "Bank",      UnderlineIndex = 0, Hotkey = Key.B, Activate = () => DrillInto("Bank") },
-        new TileSpec { Label = "Utility",   UnderlineIndex = 0, Hotkey = Key.U, Activate = () => DrillInto("Utility") },
+        new TileSpec { Label = "Master",    UnderlineIndex = 0, Hotkey = Key.M, Icon = LucideIconKind.Database,  Activate = () => DrillInto("Master") },
+        new TileSpec { Label = "Transaksi", UnderlineIndex = 0, Hotkey = Key.T, Icon = LucideIconKind.ShoppingCart, Activate = () => DrillInto("Transaksi") },
+        new TileSpec { Label = "Akuntansi", UnderlineIndex = 1, Hotkey = Key.K, Icon = LucideIconKind.BookOpen,  Activate = () => DrillInto("Akuntansi") },
+        new TileSpec { Label = "Laporan",   UnderlineIndex = 0, Hotkey = Key.L, Icon = LucideIconKind.ChartBar,  Activate = () => DrillInto("Laporan") },
+        new TileSpec { Label = "Bank",      UnderlineIndex = 0, Hotkey = Key.B, Icon = LucideIconKind.Landmark,  Activate = () => DrillInto("Bank") },
+        new TileSpec { Label = "Utility",   UnderlineIndex = 0, Hotkey = Key.U, Icon = LucideIconKind.Settings,  Activate = () => DrillInto("Utility") },
         new TileSpec { Label = "Keluar",    UnderlineIndex = 1, Hotkey = Key.E, IsDanger = true,
                        Activate = () => NavigationService.ReplaceRoot(new LoginView()) },
     };
@@ -256,6 +258,15 @@ public partial class MainMenuView : UserControl, INavigationAware
         };
 
         var stack = new StackPanel { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
+        if (spec.Icon.HasValue)
+        {
+            stack.Children.Add(new LucideIcon
+            {
+                Kind = spec.Icon.Value,
+                Size = 32,
+                Foreground = (IBrush)Application.Current!.FindResource("FgPrimaryBrush")!,
+            });
+        }
         stack.Children.Add(label);
         stack.Children.Add(hint);
 
