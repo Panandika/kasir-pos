@@ -6,10 +6,6 @@ using Avalonia.Styling;
 
 namespace Kasir.Avalonia.Infrastructure;
 
-/// <summary>
-/// Singleton service that owns runtime theme variant (Dark/Light).
-/// Persists user preference to LocalApplicationData/Kasir/theme.json.
-/// </summary>
 public sealed class ThemeService
 {
     private static readonly Lazy<ThemeService> _instance = new(() => new ThemeService());

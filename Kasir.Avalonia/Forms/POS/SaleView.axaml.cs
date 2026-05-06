@@ -358,7 +358,7 @@ public partial class SaleView : UserControl, INavigationAware
         catch (Exception ex) { await MsgBox.Show(NavigationService.Owner, "Gagal bayar: " + ex.Message); }
     }
 
-    // ── Banner state machine (Q2) ────────────────────────────────────
+    // ── Banner state machine ────────────────────────────────────────
     private void ShowTunaiBanner(long cashCents)
     {
         _bannerState = BannerState.Tunai;
