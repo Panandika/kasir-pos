@@ -32,6 +32,18 @@ public partial class ShellWindow : Window
         UpdateSyncBadge();
     }
 
+    public void ShowOverlay(Control content)
+    {
+        OverlayHost.Content = content;
+        OverlayHost.IsVisible = true;
+    }
+
+    public void HideOverlay()
+    {
+        OverlayHost.IsVisible = false;
+        OverlayHost.Content = null;
+    }
+
     private void OnThemeTogglePressed(object? sender, RoutedEventArgs e)
     {
         ThemeService.Current.Toggle();
