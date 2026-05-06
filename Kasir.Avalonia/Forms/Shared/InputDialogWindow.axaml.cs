@@ -22,7 +22,6 @@ public partial class InputDialogWindow : Window
         InitializeComponent();
         Title = title;
         TitleBlock.Text = title.ToUpperInvariant();
-        Height = 80 + (labels.Length * 58) + 60;
         _inputs = new TextBox[labels.Length];
 
         var dimBrush = ThemeResources.Brush("FgDimBrush");
