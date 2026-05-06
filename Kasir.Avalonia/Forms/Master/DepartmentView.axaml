@@ -22,6 +22,7 @@
                Foreground="{DynamicResource FgPrimaryBrush}" />
     </Border>
     <DataGrid x:Name="DgvDepts"
+              Classes="compact"
               x:CompileBindings="False"
               AutoGenerateColumns="False"
               SelectionMode="Single"
