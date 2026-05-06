@@ -41,7 +41,6 @@ namespace Kasir.CloudSync.Tests.Mappers
 
             p.ProductCode.Should().Be("P1");
             p.Name.Should().Be("Sampo");
-            p.Barcode.Should().BeNull("barcode column dropped from products schema");
             p.DeptCode.Should().Be("D1");
             p.Status.Should().Be("A");
             p.IsConsignment.Should().Be("N");
@@ -80,7 +79,6 @@ namespace Kasir.CloudSync.Tests.Mappers
             reader.Read().Should().BeTrue();
 
             var p = ProductMapper.FromReader(reader, out _);
-            p.Barcode.Should().BeNull();
             p.VendorCode.Should().BeNull();
             p.ChangedAt.Should().BeNull("changed_at not provided");
             p.Price.Should().Be(0L, "DEFAULT 0 applies");

@@ -28,7 +28,7 @@ namespace Kasir.CloudSync.Generation
             new[]
             {
                 Pk("product_code"),
-                T("name"), T("barcode"), T("dept_code"), T("account_code"),
+                T("name"), T("dept_code"), T("account_code"),
                 T("category_code"), T("type_sub"), T("product_type"),
                 T("unit"), T("unit1"), T("unit2"),
                 T("status"), T("vendor_code"), T("alt_vendor"), T("location"), T("shelf_location"),
@@ -140,17 +140,6 @@ namespace Kasir.CloudSync.Generation
                 Ts("created_at")
             });
 
-        public static readonly TableMapping ProductBarcodes = new TableMapping(
-            "product_barcodes",
-            new[]
-            {
-                new ColumnMapping("barcode", ColumnKind.Text, isPrimaryKey: true),
-                T("product_code"), T("product_name"),
-                Q("qty_per_scan"),
-                M("price_override"),
-                T("customer_code")
-            });
-
         public static readonly TableMapping Locations = new TableMapping(
             "locations",
             new[]
@@ -234,7 +223,7 @@ namespace Kasir.CloudSync.Generation
                 T("tax_invoice1"), T("tax_invoice"), Ts("tax_inv_date"),
                 T("ref_no"), T("remark"),
                 T("sales_code"), Ts("due_date"),
-                I("disc_pct"), M("disc2"),
+                I("disc_pct"), I("disc2_pct"), T("received_date"), T("terms"),
                 T("warehouse"),
                 I("commission_pct"),
                 T("vat_flag"),
@@ -339,7 +328,6 @@ namespace Kasir.CloudSync.Generation
             new Dictionary<string, TableMapping>
             {
                 { "products", Products },
-                { "product_barcodes", ProductBarcodes },
                 { "departments", Departments },
                 { "subsidiaries", Subsidiaries },
                 { "members", Members },

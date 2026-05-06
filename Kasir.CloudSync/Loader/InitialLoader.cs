@@ -42,7 +42,7 @@ namespace Kasir.CloudSync.Loader
         {
             "departments", "accounts", "locations", "credit_cards",
             "subsidiaries", "members",
-            "products", "product_barcodes",
+            "products",
             "discounts", "discount_partners",
             "purchases",
             "sales", "sale_items",

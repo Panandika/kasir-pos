@@ -44,7 +44,7 @@ namespace Kasir.CloudSync.Sinks
         {
             var columns = new[]
             {
-                "product_code","name","barcode","dept_code","account_code","category_code",
+                "product_code","name","dept_code","account_code","category_code",
                 "unit","unit1","unit2","status","vendor_code","location",
                 "is_consignment","open_price",
                 "price","price1","price2","price3","price4","buying_price",
@@ -87,7 +87,6 @@ namespace Kasir.CloudSync.Sinks
             {
                 AddParam(cmd, "product_code", row, NpgsqlDbType.Text, p.ProductCode);
                 AddParam(cmd, "name", row, NpgsqlDbType.Text, p.Name);
-                AddParam(cmd, "barcode", row, NpgsqlDbType.Text, (object)p.Barcode ?? System.DBNull.Value);
                 AddParam(cmd, "dept_code", row, NpgsqlDbType.Text, (object)p.DeptCode ?? System.DBNull.Value);
                 AddParam(cmd, "account_code", row, NpgsqlDbType.Text, (object)p.AccountCode ?? System.DBNull.Value);
                 AddParam(cmd, "category_code", row, NpgsqlDbType.Text, (object)p.CategoryCode ?? System.DBNull.Value);

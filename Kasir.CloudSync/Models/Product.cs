@@ -14,7 +14,6 @@ namespace Kasir.CloudSync.Models
     {
         public string ProductCode { get; set; }
         public string Name { get; set; }
-        public string Barcode { get; set; }
         public string DeptCode { get; set; }
         public string AccountCode { get; set; }
         public string CategoryCode { get; set; }

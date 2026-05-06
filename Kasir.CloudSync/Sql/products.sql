@@ -10,7 +10,6 @@
 CREATE TABLE IF NOT EXISTS products (
     product_code    TEXT        PRIMARY KEY,
     name            TEXT        NOT NULL,
-    barcode         TEXT,
     dept_code       TEXT,
     account_code    TEXT,
     category_code   TEXT,
@@ -65,8 +64,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 ALTER TABLE products
     ADD COLUMN IF NOT EXISTS search_text TEXT GENERATED ALWAYS AS (
         coalesce(product_code, '') || ' ' ||
-        coalesce(name, '')         || ' ' ||
-        coalesce(barcode, '')
+        coalesce(name, '')
     ) STORED;
 
 CREATE INDEX IF NOT EXISTS idx_products_search_trgm
@@ -75,4 +73,3 @@ CREATE INDEX IF NOT EXISTS idx_products_search_trgm
 -- Conventional lookups
 CREATE INDEX IF NOT EXISTS idx_products_dept ON products (dept_code);
 CREATE INDEX IF NOT EXISTS idx_products_vendor ON products (vendor_code);
-CREATE INDEX IF NOT EXISTS idx_products_barcode ON products (barcode);
