@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -48,12 +49,12 @@ public partial class FirstRunView : UserControl
         if (files.Count == 0) return;
 
         LblStatus.Text = "Memvalidasi database...";
-        LblStatus.Foreground = Brush.Parse("#008800");
+        LblStatus.Foreground = Application.Current?.FindResource("SuccessBrush") as IBrush;
 
         var validation = DatabaseValidator.Validate(files[0].Path.LocalPath, runIntegrityCheck: true);
         if (!validation.IsValid)
         {
-            LblStatus.Foreground = Brush.Parse("#ff5050");
+            LblStatus.Foreground = Application.Current?.FindResource("DangerBrush") as IBrush;
             LblStatus.Text = "Database tidak valid:\n - " + string.Join("\n - ", validation.Errors);
             return;
         }
