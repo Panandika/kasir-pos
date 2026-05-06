@@ -1,0 +1,582 @@
+# NEXT STEPS — Cloud Sync (Windows 10 gateway operator handoff)
+
+**Target audience:** an agent or operator with shell access on the
+Windows 10 gateway machine (Register 01, by default). Steps that were
+doable from a dev laptop are already done; everything below requires
+the actual gateway hardware + the kasir.db files on the registers.
+
+---
+
+## What's already done (don't redo)
+
+| | Status | Evidence |
+|---|---|---|
+| Supabase project provisioned | ✅ | Project ref `mnatezzsysmadvrosnad`, region `ap-southeast-1` (Singapore), free tier |
+| All 19 mirror tables + 3 capacity views + `_sync_health` table | ✅ | Created via `Kasir.CloudSync/Sql/*.sql` over the Supavisor pooler |
+| Initial bulk load | ✅ | 89,608 rows in 35 seconds (24,560 products / 26,407 cash_transactions / 25,146 stock_movements / 12,421 purchases / 754 subsidiaries / etc.) — all parity OK |
+| `pg_trgm` extension + GIN index on `products.search_text` | ✅ | Verified live: `word_similarity('NIVEA', search_text)` returns 5 NIVEA products in <50 ms |
+| FK constraints (4 of 6) | ✅ | `fk_product_barcodes_product`, `fk_sale_items_journal`, `fk_sale_items_product`, `fk_orders_sub`. Two deferred (see "Known caveats" below). |
+| Code (PR #15) | ✅ | 17 commits on `feat/cloud-sync-and-local-api`, 298 + 38 = 336 tests passing |
+
+If you re-run any of these, you'll truncate and re-load the cloud
+mirror — disruptive, not catastrophic. Recovery recipe is at the
+bottom of `docs/LIVE-LOAD-RESULTS.md`. Better to leave them alone.
+
+---
+
+## Prerequisites on the Windows 10 gateway
+
+Run through this list once before doing anything below. It's mostly
+already true on a typical store register, but verify.
+
+### Hardware / OS
+
+- [ ] **Windows 10, build 1903 or later** (released April 2019). Run
+      `winver` from the Run dialog. 1903 is the cutoff because earlier
+      builds don't support TLS 1.3 by default in SChannel — Step 1
+      will fail. Anything from late 2019 onwards is fine; 22H2 is
+      best.
+- [ ] **Local administrator rights** for the operator account. Needed
+      for `sc create`, `icacls`, machine-scope env vars, and NSSM
+      install.
+- [ ] **At least 2 GB free disk** on `C:\`. Litestream + Kasir.CloudSync
+      + WAL working space adds up to ~250 MB; the rest is breathing
+      room for log files and Windows updates.
+- [ ] **System time synced** (`w32tm /query /status` shows a recent
+      sync). Postgres TLS handshake is forgiving but Cloudflare R2
+      signature checks can reject requests with >15 min clock skew.
+
+### Network
+
+- [ ] **Outbound HTTPS (port 443)** to `*.supabase.co`,
+      `*.cloudflarestorage.com`, `github.com`. Used for Supabase
+      REST/Studio, Cloudflare R2, and the Litestream binary download.
+- [ ] **Outbound TCP 5432 + 6543** to
+      `aws-1-ap-southeast-1.pooler.supabase.com`. The Supabase pooler.
+      Verify with:
+      ```cmd
+      Test-NetConnection -ComputerName aws-1-ap-southeast-1.pooler.supabase.com -Port 6543
+      ```
+      Expect `TcpTestSucceeded : True`. If a corporate firewall blocks
+      either port, work with IT before proceeding.
+- [ ] **IPv4 connectivity is sufficient.** The Supabase free-tier
+      direct DB host (`db.<ref>.supabase.co`) is IPv6-only — we
+      deliberately use the pooler to avoid that. You do NOT need IPv6
+      on the gateway.
+
+### Software to install (one-time)
+
+These are NOT bundled with the Kasir.CloudSync publish. Install them
+once before running Step 2.
+
+- [ ] **`sqlite3` CLI** — needed for Step 2 (the `sync_queue`
+      migration uses `sqlite3 kasir.db < script.sql`).
+      Easiest install via winget:
+      ```cmd
+      winget install --id SQLite.SQLite --accept-package-agreements --accept-source-agreements
+      ```
+      Or download `sqlite-tools-win-x64-*.zip` from
+      https://www.sqlite.org/download.html and put `sqlite3.exe` on
+      `PATH`. Verify: `sqlite3 -version` (expect `3.40.x` or newer).
+- [ ] **NSSM (Non-Sucking Service Manager)** — recommended for
+      registering Litestream as a Windows service in Step 3 (Litestream
+      is a console app, not a native Windows service binary).
+      ```cmd
+      choco install nssm
+      ```
+      Or download from https://nssm.cc/download (5 MB, no installer —
+      drop `nssm.exe` on `PATH`). Verify: `nssm version` (expect
+      `2.24` or newer).
+
+### Software that's already there or auto-bundled
+
+These are built into Windows 10 or shipped with the Kasir.CloudSync
+publish. You shouldn't need to install them, but verify:
+
+- [ ] **PowerShell 5.1** (built-in on Win10). `$PSVersionTable.PSVersion`
+      shows `5.1.x`. Step 3 uses `Invoke-WebRequest`, `Get-FileHash`,
+      and `Expand-Archive` — all standard cmdlets.
+- [ ] **`cmd.exe`** with `setx`, `sc`, `icacls`, `copy`, `Test-NetConnection`,
+      `winver`, `w32tm` — all built into Windows 10.
+- [ ] **`.NET 10 runtime`** — NOT needed as a separate install. The
+      `dotnet publish ... --self-contained true` step on the dev
+      laptop bundles the runtime into the published folder. The two
+      executables you'll run on the gateway (`TlsSmokeTest.exe` and
+      `Kasir.CloudSync.exe`) are self-contained and >50 MB each
+      because they include the runtime.
+- [ ] **Litestream binary** — downloaded fresh in Step 3. Don't
+      pre-install.
+- [ ] **`gh` CLI / `git`** — only needed if you want to interact with
+      PR #15 from the gateway. Not strictly required; everything
+      below uses files copied from the dev laptop.
+
+### Files you need on the gateway before starting
+
+The dev laptop produces these via `dotnet publish` and you copy them
+across (USB stick, network share, whatever). They are **not** built
+on the gateway directly.
+
+| What | Source on dev laptop | Used in step |
+|---|---|---|
+| `TlsSmokeTest/` folder (self-contained publish) | `kasir-pos/Tools/TlsSmokeTest/publish/` after `dotnet publish -c Release -r win-x64 --self-contained true -o ./publish` | Step 1 |
+| `001_sync_queue_recreate.sql` | `kasir-pos/Kasir.CloudSync/Sql/001_sync_queue_recreate.sql` | Step 2 |
+| `Kasir.Core.dll` (new build) — only if you choose to deploy it | output of `dotnet build Kasir.Core` | Step 2 (optional) |
+| `Kasir.CloudSync/` folder (self-contained publish) | `kasir-pos/publish-cloudsync/` after `dotnet publish Kasir.CloudSync -c Release -r win-x64 --self-contained true -o ./publish-cloudsync` | Step 4 |
+| `Tools/LitestreamDrill/restore-and-verify.ps1` | `kasir-pos/Tools/LitestreamDrill/restore-and-verify.ps1` | Step 3 verification + Step 7 monthly drill |
+| This `NEXT-STEPS.md` (or print a copy) | `kasir-pos/docs/NEXT-STEPS.md` | Reference |
+
+A clean "scp this folder" recipe from the dev laptop:
+
+```bash
+# On the dev laptop
+cd kasir-pos
+dotnet publish Tools/TlsSmokeTest -c Release -r win-x64 --self-contained true -o ./gateway-handoff/TlsSmokeTest
+dotnet publish Kasir.CloudSync     -c Release -r win-x64 --self-contained true -o ./gateway-handoff/Kasir.CloudSync
+cp Kasir.CloudSync/Sql/001_sync_queue_recreate.sql                         ./gateway-handoff/
+cp -r Tools/LitestreamDrill                                                 ./gateway-handoff/
+cp docs/NEXT-STEPS.md docs/LIVE-LOAD-RESULTS.md                            ./gateway-handoff/
+# Then zip ./gateway-handoff/ and copy via USB / SMB / etc.
+```
+
+---
+
+## Credentials (handle with care)
+
+> **⚠️ Rotate these immediately if this file leaks publicly.**
+> The repo is private (`Panandika/kasir-pos`) so values are inlined
+> here for the Win10 agent's convenience. If you ever publish the
+> repo or share this doc beyond the operator, regenerate the
+> Supabase DB password (`Settings → Database → Reset password`)
+> and the service-role key (`Settings → API → service_role → Reset`).
+
+```ini
+# Postgres URL — Supavisor pooler, SESSION mode (port 5432).
+# Use this for: DDL, ad-hoc psql sessions, --initial-load.
+# Session mode supports SET session_replication_role and other
+# session-scoped commands the loader needs.
+CONNECTION_STRING=postgresql://postgres.mnatezzsysmadvrosnad:lMwhcS5aXiVr49eb@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+
+# Postgres URL — Supavisor pooler, TRANSACTION mode (port 6543).
+# Use this for: the steady-state Kasir.CloudSync worker (Step 4).
+# Transaction mode is more efficient for the worker's many short
+# UPSERT round-trips but does NOT keep session state across queries.
+CONNECTION_STRING_TX=postgresql://postgres.mnatezzsysmadvrosnad:lMwhcS5aXiVr49eb@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require
+
+# Same hostname/user split out for tools that want fields, not URLs.
+POOLER_HOST=aws-1-ap-southeast-1.pooler.supabase.com
+POOLER_USER=postgres.mnatezzsysmadvrosnad
+DB_PASSWORD=lMwhcS5aXiVr49eb
+
+# Supabase service-role key (JWT). Used by Supabase REST/Studio/etc.
+# at the API level — NOT used by the Postgres connection above.
+# Required if you ever script via the Supabase Management API or
+# PostgREST. Treat as equally sensitive as the DB password.
+SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uYXRlenpzeXNtYWR2cm9zbmFkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzA1MzgzNywiZXhwIjoyMDkyNjI5ODM3fQ.AOiDXzguKgK331wOmjTw3oAMFDKOpGUFUOXrzhR2t2I
+```
+
+The Npgsql key=value form (used in `setx` and `appsettings.json`):
+
+```text
+# Session mode (Step 1 TLS smoke test, Step 2 if you ever re-load):
+Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.mnatezzsysmadvrosnad;Password=lMwhcS5aXiVr49eb;SslMode=Require
+
+# Transaction mode (Step 4 service env var KASIR_CLOUDSYNC_SUPABASE):
+Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.mnatezzsysmadvrosnad;Password=lMwhcS5aXiVr49eb;SslMode=Require
+```
+
+A copy of these also lives at `kasir-pos/.env` on the dev laptop
+(gitignored there). Either source is authoritative.
+
+The file `kasir-pos/appsettings.json` (also gitignored) contains an
+older **direct-connection** format pointing at
+`db.mnatezzsysmadvrosnad.supabase.co`. **Do not use it.** That host
+is IPv6-only on the Supabase free tier and most gateways are
+IPv4-only. Always use the pooler URLs above.
+
+---
+
+## Known caveats (read before doing anything)
+
+1. **IPv6-only direct connection.** `db.mnatezzsysmadvrosnad.supabase.co`
+   has no A record, only AAAA. If the gateway has IPv6 connectivity,
+   direct works. If not, **always use the Supavisor pooler at
+   `aws-1-ap-southeast-1.pooler.supabase.com`**:
+   - port 5432 = session mode (use for DDL / one-shot queries)
+   - port 6543 = transaction mode (use for the steady-state worker)
+   - Username on the pooler is `postgres.mnatezzsysmadvrosnad`, NOT
+     plain `postgres`.
+2. **Two FK constraints intentionally deferred:**
+   - `fk_purchases_sub` — some legacy purchases have empty-string
+     `sub_code`. Postgres treats `''` as a non-null value missing
+     from the parent table, so the FK rejects them. Do not retry this
+     constraint without first cleaning or NULL-ifying empty strings.
+   - `fk_stock_movements_product` — 13,075 history rows reference
+     deleted products (FoxPro migration leftover). Acceptable to leave
+     unenforced; this is historical immutable data.
+3. **`sales` table is empty in the source `data/kasir.db`.** The
+   live-load run used a development snapshot. Once the worker starts
+   shipping real LAN-sync rows, `sales` and `sale_items` populate
+   naturally.
+4. **The drift CI guard** (`scripts/check-schema-drift.sh`) runs in CI
+   on every PR — if you alter a `Sql/*.sql` file, expect the check to
+   complain unless you also adjust `Generation/TableMappings.cs` to
+   match.
+
+---
+
+## Sequence (do these in order, with checklists)
+
+### 1. Run Gate A0.1 TLS smoke test [~5 min]
+
+Confirms the gateway can negotiate TLS to Supabase before we commit to
+any of the heavier work.
+
+- [ ] On the **dev laptop** (already done if you got the build from
+      git): build the smoke test for win-x64
+  ```bash
+  cd kasir-pos/Tools/TlsSmokeTest
+  dotnet publish -c Release -r win-x64 --self-contained true -o ./publish
+  ```
+- [ ] Copy `./publish/` to the Windows 10 gateway. The folder contains
+      `TlsSmokeTest.exe` plus the .NET 10 runtime — nothing to install.
+- [ ] On the gateway, set the **pooler** connection string (not the
+      direct one) and run:
+  ```cmd
+  setx SUPABASE_CONN_STRING "Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.mnatezzsysmadvrosnad;Password=<paste from .env>;SslMode=Require"
+  :: open a NEW cmd window so setx takes effect
+  cd publish
+  TlsSmokeTest.exe
+  ```
+- [ ] Confirm the last line of output is `GATE A0.1: PASS`. If
+      it isn't, see `Tools/TlsSmokeTest/README.md` for failure
+      triage. Most common failure on Windows 10 is firewall egress
+      blocked on port 5432; not a TLS issue.
+- [ ] Capture the negotiated TLS protocol + cipher (last query in the
+      output) and append to `plans/phase-a-preflight-results.md`.
+      Stop here and ping the human if the test fails — don't proceed.
+
+### 2. Apply Gate A0.3 sync_queue migration [~30 min, plan a downtime window]
+
+The cloud worker queries `sync_queue` for rows with `cloud_synced = 0`,
+a column that doesn't exist on the current registers. The migration
+adds that column plus a sibling timestamp, and expands the
+`table_name` CHECK constraint to allow `discount_partners` and
+`credit_cards` (which `SyncConfig.SyncedTables` already lists in code).
+
+#### Minimum-viable scope (recommended)
+
+The cloud worker only reads from the **gateway's local kasir.db**
+(Register 01 in this deployment). You only have to migrate that one
+file for cloud sync to function. The other two registers can keep
+their old 11-column `sync_queue` indefinitely:
+
+- The new `Kasir.Core.dll` reads `cloud_synced` defensively via
+  `SqlHelper.GetInt`, which returns `0` when the column is missing.
+  No crash on Reg 02/03.
+- `GetPendingCloud` and `MarkCloudSynced` would fail at SQL parse on
+  the old schema, but those methods are only called by the cloud
+  worker, which only runs on Register 01.
+- LAN sync code paths (`GetPending`, `MarkSynced`, `MarkFailed`,
+  `GetMaxId`, `PruneSynced`) work unchanged on the old schema.
+- There are no triggers in the codebase for `discount_partners` or
+  `credit_cards`, so the unexpanded CHECK constraint on Reg 02/03
+  isn't currently exercised. If you ever add such a trigger later,
+  you must migrate Reg 02/03 first.
+
+So the minimum recipe is: migrate Register 01 only. Defer the other
+two indefinitely. Ask the human if they prefer the full 4-DB recipe;
+both are documented.
+
+#### Full recipe (Register 01 first; Reg 02/03 same way later when convenient)
+
+Find Register 01's `kasir.db`. Default location is
+`C:\kasir\data\kasir.db`. If unsure, check the running POS for the
+DB path in `Help → About` or run:
+```cmd
+sqlite3 C:\kasir\data\kasir.db "SELECT 1;"
+```
+to confirm the file.
+
+- [ ] **Backup the file.** Plug a USB stick or pick a recovery folder:
+  ```cmd
+  copy C:\kasir\data\kasir.db D:\backup\kasir-PRE-MIGRATION-%date:~0,4%%date:~5,2%%date:~8,2%.db
+  ```
+  This is your only rollback path. Do not skip.
+- [ ] Drain pre-condition. The migration needs `sync_queue` empty of
+      pending or failed work:
+  ```cmd
+  sqlite3 C:\kasir\data\kasir.db "SELECT COUNT(*) FROM sync_queue WHERE status IN ('pending','failed');"
+  ```
+  Expect `0`. If non-zero, you have two options:
+  - Wait for the next LAN sync cycle to drain `pending` rows.
+  - For old `failed` rows that will never resolve: capture them
+    first, then delete:
+    ```cmd
+    sqlite3 C:\kasir\data\kasir.db ".dump sync_queue" > D:\backup\sync_queue-failed-rows.sql
+    sqlite3 C:\kasir\data\kasir.db "DELETE FROM sync_queue WHERE status='failed';"
+    ```
+  Document the disposition in `plans/phase-a-preflight-results.md`
+  and continue.
+- [ ] Stop the POS application on Register 01. The migration runs
+      while no SQLite writer is active.
+- [ ] Apply the migration:
+  ```cmd
+  sqlite3 C:\kasir\data\kasir.db < kasir-pos\Kasir.CloudSync\Sql\001_sync_queue_recreate.sql
+  ```
+  The script wraps everything in `BEGIN/COMMIT`. Either it all lands
+  or none of it does.
+- [ ] Verify column count (expected: 13):
+  ```cmd
+  sqlite3 C:\kasir\data\kasir.db "PRAGMA table_info(sync_queue);"
+  ```
+- [ ] Verify the new CHECK accepts `discount_partners`:
+  ```cmd
+  sqlite3 C:\kasir\data\kasir.db "INSERT INTO sync_queue (register_id, table_name, record_key, operation) VALUES ('TEST','discount_partners','X','I'); DELETE FROM sync_queue WHERE register_id='TEST';"
+  ```
+  No error = success.
+- [ ] Restart the POS app. Make a test sale and confirm it syncs to
+      the hub via the existing SMB outbox (Reg 02/03 should see it
+      via their normal Pull cycle).
+
+If anything goes wrong, restore from the USB backup file. The local
+POS doesn't depend on the cloud at any point during this.
+
+### 3. Install Litestream on the gateway [~15 min]
+
+Litestream streams the SQLite WAL to Cloudflare R2 for byte-level
+disaster recovery. Independent of `Kasir.CloudSync` — runs as its own
+Windows service.
+
+- [ ] Provision a Cloudflare R2 bucket (free tier — 10 GB):
+  - Create bucket named `kasir-litestream` (or any name; record it).
+  - Create an API token scoped to **only this bucket**, with
+    `Workers R2 Storage:Edit` permission.
+  - Save access key id + secret in your password manager.
+  - Note the **account ID** from the R2 dashboard URL.
+- [ ] Download the pinned binary on the gateway:
+  ```powershell
+  $url = "https://github.com/benbjohnson/litestream/releases/download/v0.5.11/litestream-0.5.11-windows-x86_64.zip"
+  Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\litestream.zip"
+  (Get-FileHash "$env:TEMP\litestream.zip" -Algorithm SHA256).Hash
+  # Expect: 9116E8605D4B479E15044CCBCCF2AA756BE7A8A64B9237F67A074EC1742444A3
+  ```
+- [ ] Extract:
+  ```powershell
+  Expand-Archive -Path "$env:TEMP\litestream.zip" -DestinationPath "C:\Program Files\Litestream"
+  ```
+- [ ] Create `C:\ProgramData\Litestream\litestream.yml`:
+  ```yaml
+  dbs:
+    - path: C:\kasir\data\kasir.db
+      replicas:
+        - type: s3
+          bucket: kasir-litestream
+          path: kasir
+          endpoint: https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
+          access-key-id: ${R2_ACCESS_KEY_ID}
+          secret-access-key: ${R2_SECRET_ACCESS_KEY}
+          force-path-style: true
+  ```
+  Replace `<R2_ACCOUNT_ID>`. Lock the file ACL to the service account
+  only (otherwise any user could read R2 credentials):
+  ```powershell
+  icacls "C:\ProgramData\Litestream\litestream.yml" /inheritance:r /grant:r "SYSTEM:(R)" "Administrators:(R)"
+  ```
+- [ ] Set the env vars on the service account (system-wide):
+  ```powershell
+  [Environment]::SetEnvironmentVariable("R2_ACCESS_KEY_ID", "...", "Machine")
+  [Environment]::SetEnvironmentVariable("R2_SECRET_ACCESS_KEY", "...", "Machine")
+  ```
+- [ ] Register as a Windows service via NSSM (recommended) or
+      `sc create`. NSSM is easier:
+  ```powershell
+  # download NSSM if not present, then:
+  nssm install Litestream "C:\Program Files\Litestream\litestream.exe" "replicate -config C:\ProgramData\Litestream\litestream.yml"
+  nssm set Litestream Start SERVICE_AUTO_START
+  nssm start Litestream
+  ```
+- [ ] Tail the log briefly to confirm it's replicating:
+  ```cmd
+  nssm get Litestream AppStdout
+  type <whatever-path-it-tells-you>
+  ```
+  Expect lines like `replica is up to date` within a minute.
+- [ ] Verify a restore round-trip BEFORE moving on. Use the script:
+  ```powershell
+  cd kasir-pos\Tools\LitestreamDrill
+  powershell -ExecutionPolicy Bypass -File .\restore-and-verify.ps1
+  ```
+  Exit 0 = the backup actually round-trips. If it fails, fix
+  Litestream before continuing — a backup that has never been
+  restored is not a backup.
+
+### 4. Install + start `Kasir.CloudSync` service [~10 min]
+
+The cloud sync worker. Runs as a Windows service on the gateway.
+Polls `sync_queue` for `cloud_synced=0 AND status='synced'` rows
+every 30s, ships them to Supabase via parameterised UPSERT.
+
+- [ ] On the dev laptop, publish self-contained for Windows:
+  ```bash
+  cd kasir-pos
+  dotnet publish Kasir.CloudSync -c Release -r win-x64 --self-contained true -o ./publish-cloudsync
+  ```
+- [ ] Copy `./publish-cloudsync/` to the gateway, e.g.
+      `C:\Program Files\Kasir.CloudSync\`.
+- [ ] Provide the Supabase **transaction-mode** pooler URL (port 6543)
+      via env var or `appsettings.json`. The transaction pooler is more
+      efficient for the worker's many short queries:
+  ```powershell
+  [Environment]::SetEnvironmentVariable(
+      "KASIR_CLOUDSYNC_SUPABASE",
+      "Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.mnatezzsysmadvrosnad;Password=<from .env>;SslMode=Require",
+      "Machine")
+  [Environment]::SetEnvironmentVariable(
+      "KASIR_CLOUDSYNC_DBPATH",
+      "C:\kasir\data\kasir.db",
+      "Machine")
+  ```
+  (For a real production deploy, prefer DPAPI-encrypted credentials
+  via `ProtectedData.Protect` — wire that in once before merging.
+  For initial testing, env vars are fine.)
+- [ ] Register as Windows service:
+  ```cmd
+  sc create Kasir.CloudSync binPath= "\"C:\Program Files\Kasir.CloudSync\Kasir.CloudSync.exe\"" start= auto
+  sc start Kasir.CloudSync
+  ```
+- [ ] Verify health from the gateway browser:
+      `http://localhost:5080/health`
+      Expected: JSON with `"status": "healthy"`, an `outbox_depth`
+      number, per-table `last_sync_utc`, and (if Supabase is
+      reachable) `supabase_db_size_mb`.
+- [ ] Tail the Windows Event Log under `Application` for source
+      `Kasir.CloudSync`. First lines should be:
+      ```
+      CloudSync worker started
+      ```
+
+### 5. End-to-end pipeline verification [~5 min]
+
+- [ ] Make a sale on Register 02 (or Register 01 directly).
+- [ ] Within 60 seconds, query Supabase from the dev laptop or
+      anywhere with the connection string:
+  ```sql
+  SELECT id, journal_no, doc_date, total_value, register_id
+  FROM sales
+  ORDER BY id DESC
+  LIMIT 5;
+  ```
+  Your test sale should be there.
+- [ ] Query the remote health row:
+  ```sql
+  SELECT updated_at, payload->>'status' AS status,
+         payload->>'outbox_depth' AS outbox_depth
+  FROM _sync_health WHERE id='current';
+  ```
+  `updated_at` should be within the last minute, `status` healthy.
+- [ ] Verify pg_trgm search works:
+  ```sql
+  -- Use word_similarity (<%>), not full-string (%); see CAPACITY.md
+  SELECT product_code, name, word_similarity('NIVEA', search_text) AS ws
+  FROM products
+  WHERE 'NIVEA' <% search_text
+  ORDER BY ws DESC
+  LIMIT 5;
+  ```
+  Expect 5 NIVEA products in <50 ms.
+
+### 6. security-reviewer sign-off [~30 min]
+
+The cloud-sync plan requires a security review before first
+production deploy. From a Claude Code session on the dev laptop with
+the branch checked out:
+
+```
+@oh-my-claudecode:security-reviewer review the cloud-sync changes on
+this branch. Scope: credential storage (DPAPI vs env-var fallback),
+TLS configuration (pooler SslMode=Require), connection-string
+handling, error messages (no leaked secrets in logs), HMAC invariance
+on sync_queue, R2 IAM token scoping, and the service-role key
+exposure surface.
+```
+
+Address any flagged issues before running unattended for a week. The
+existing tests cover HMAC invariance (`PushServiceHmacInvarianceTests`)
+and the sink/loader correctness — what the security reviewer adds
+is the credential-handling adversarial pass.
+
+### 7. 1-week stability watch [7 days]
+
+- [ ] Daily: glance at `_sync_health` from your phone:
+  ```sql
+  SELECT updated_at, payload->>'status', payload->>'alerts'
+  FROM _sync_health WHERE id='current';
+  ```
+  `status` should be `healthy`. Empty `alerts` array.
+- [ ] If any `CRITICAL` alert fires, follow the per-code response in
+      `Kasir.CloudSync/docs/RUNBOOK.md`.
+- [ ] At the end of week 1, run the Litestream drill again to make
+      sure WAL replication is still healthy:
+      `Tools/LitestreamDrill/restore-and-verify.ps1`
+- [ ] After 7 days of green and a successful drill: ready to merge
+      PR #15 to `main`.
+
+### 8. Track B (later, separate PR)
+
+The local read-only `Kasir.WebApi` project mentioned in the master
+plan is **not in PR #15**. It's deliberately deferred until after
+this 1-week stability watch because it adds another workload to
+Register 01. When ready, open a follow-up PR; the plan section
+"Track B" describes the scope.
+
+---
+
+## Quick reference
+
+| Need to... | Doc |
+|---|---|
+| See exactly what was done in the live load | `docs/LIVE-LOAD-RESULTS.md` |
+| Understand the full architecture | `Kasir.CloudSync/docs/PHASE-A-PROOF.md` |
+| Decode an alert code | `Kasir.CloudSync/docs/RUNBOOK.md` |
+| Drill the disaster recovery | `Kasir.CloudSync/docs/LITESTREAM-DRILL.md` |
+| Check capacity / pg_trgm tips | `Kasir.CloudSync/docs/CAPACITY.md` |
+| Add a new column to a synced table | `docs/SCHEMA-DRIFT.md` |
+| Decide on Litestream install path | `plans/gate-a0-2-litestream-decision.md` |
+| Re-run the bulk load | `Kasir.CloudSync/docs/INITIAL-LOAD.md` |
+
+---
+
+## Rollback (if anything goes wrong in steps 2–4)
+
+The local POS keeps working at every step — selling never depends on
+any of this. Recovery sequence:
+
+1. `sc stop Kasir.CloudSync` (if the service is running)
+2. `sc stop Litestream` (if installed)
+3. Restore Register 01's `kasir.db` from your USB backup (step 2)
+4. Restart the POS app on Register 01 and confirm LAN sync still
+   works (make a sale on Reg 02, see it appear on Reg 01)
+5. Either drop the Supabase project (Settings → General → Delete
+   project) or just leave it — the data isn't authoritative for
+   anything
+
+The `Kasir.Core.dll` you deployed in step 2 is forward- and backward-
+compatible: it works against both the old and new `sync_queue`
+schemas. You can leave the new DLL in place and re-migrate later, or
+roll it back to the previous DLL — neither breaks anything.
+
+---
+
+## Surprises / questions
+
+If any step fails in a way the runbook doesn't cover, capture:
+
+- The exact command + full stdout/stderr
+- `sc query Kasir.CloudSync` output
+- `curl http://localhost:5080/health` output
+- The current `kasir.db` schema: `sqlite3 kasir.db "PRAGMA table_info(sync_queue);"`
+- `gh pr view 15 --json title,body | jq` for the PR context
+
+…and ping the human or open an issue against PR #15. The pipeline is
+designed so partial failures don't compound — a broken cloud sync
+never breaks selling.

@@ -18,5 +18,9 @@ data/*
 .omc/sessions/
 .omc/project-memory.json
 graphify-out/*
+# Local credentials — NEVER commit
 .env
+.env.local
 appsettings.json
+appsettings.*.json
+!**/appsettings.example.json
