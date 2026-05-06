@@ -51,6 +51,7 @@
       </StackPanel>
     </Border>
     <DataGrid x:Name="DgvItems"
+              Classes="compact"
               AutoGenerateColumns="False"
               Background="{DynamicResource Bg1Brush}"
               Foreground="{DynamicResource FgPrimaryBrush}"

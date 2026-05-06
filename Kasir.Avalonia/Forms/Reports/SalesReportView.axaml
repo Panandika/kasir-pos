@@ -65,6 +65,7 @@
       </StackPanel>
     </Border>
     <DataGrid x:Name="DgvReport"
+              Classes="compact"
               AutoGenerateColumns="False"
               IsReadOnly="True"
               x:CompileBindings="False"

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -9,10 +10,13 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Kasir.Data;
+using Lucide.Avalonia;
 using Kasir.Data.Repositories;
 using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 using Kasir.Auth;
+using Kasir.Services;
 using Kasir.Avalonia.Forms.Master;
 using Kasir.Avalonia.Forms.Admin;
 using Kasir.Avalonia.Forms.POS;
@@ -21,6 +25,7 @@ using Kasir.Avalonia.Forms.Inventory;
 using Kasir.Avalonia.Forms.Accounting;
 using Kasir.Avalonia.Forms.Bank;
 using Kasir.Avalonia.Forms.Reports;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms;
 
@@ -35,6 +40,7 @@ public partial class MainMenuView : UserControl, INavigationAware
     private Level _level = Level.Main;
     private string? _openCategory;
     private TopLevel? _registeredTopLevel;
+    private string? _updateBadgeVersion;
 
     public MainMenuView(int userId = 1)
     {
@@ -48,8 +54,10 @@ public partial class MainMenuView : UserControl, INavigationAware
         LblStoreName.Text = _configRepo.Get("store_name") ?? "KASIR POS";
         LblGreeting.Text = $"Selamat datang — {DateTime.Now:dddd, dd MMMM yyyy}";
 
+        FooterStatus.RegisterDefault(StatusLabel, "F12=Sync  Esc=Kembali  F10=Menu");
         ShowMainTiles();
         RefreshStatus();
+        _ = CheckForUpdateAsync();
     }
 
     public void OnNavigatedTo()
@@ -73,15 +81,17 @@ public partial class MainMenuView : UserControl, INavigationAware
         public Key Hotkey { get; init; }
         public Action Activate { get; init; } = () => { };
         public bool IsDanger { get; init; }
+        public LucideIconKind? Icon { get; init; }
     }
 
     private IReadOnlyList<TileSpec> MainTiles() => new[]
     {
-        new TileSpec { Label = "Master",    UnderlineIndex = 0, Hotkey = Key.M, Activate = () => DrillInto("Master") },
-        new TileSpec { Label = "Transaksi", UnderlineIndex = 0, Hotkey = Key.T, Activate = () => DrillInto("Transaksi") },
-        new TileSpec { Label = "Akuntansi", UnderlineIndex = 1, Hotkey = Key.K, Activate = () => DrillInto("Akuntansi") },
-        new TileSpec { Label = "Laporan",   UnderlineIndex = 0, Hotkey = Key.L, Activate = () => DrillInto("Laporan") },
-        new TileSpec { Label = "Utility",   UnderlineIndex = 0, Hotkey = Key.U, Activate = () => DrillInto("Utility") },
+        new TileSpec { Label = "Master",    UnderlineIndex = 0, Hotkey = Key.M, Icon = LucideIconKind.Database,  Activate = () => DrillInto("Master") },
+        new TileSpec { Label = "Transaksi", UnderlineIndex = 0, Hotkey = Key.T, Icon = LucideIconKind.ShoppingCart, Activate = () => DrillInto("Transaksi") },
+        new TileSpec { Label = "Akuntansi", UnderlineIndex = 1, Hotkey = Key.K, Icon = LucideIconKind.BookOpen,  Activate = () => DrillInto("Akuntansi") },
+        new TileSpec { Label = "Laporan",   UnderlineIndex = 0, Hotkey = Key.L, Icon = LucideIconKind.ChartBar,  Activate = () => DrillInto("Laporan") },
+        new TileSpec { Label = "Bank",      UnderlineIndex = 0, Hotkey = Key.B, Icon = LucideIconKind.Landmark,  Activate = () => DrillInto("Bank") },
+        new TileSpec { Label = "Utility",   UnderlineIndex = 0, Hotkey = Key.U, Icon = LucideIconKind.Settings,  Activate = () => DrillInto("Utility") },
         new TileSpec { Label = "Keluar",    UnderlineIndex = 1, Hotkey = Key.E, IsDanger = true,
                        Activate = () => NavigationService.ReplaceRoot(new LoginView()) },
     };
@@ -124,13 +134,18 @@ public partial class MainMenuView : UserControl, INavigationAware
             new TileSpec { Label = "Stok Barang",           UnderlineIndex = 2,  Hotkey = Key.O, Activate = () => NavigationService.Navigate(new InventoryReportView()) },
             new TileSpec { Label = "Laporan Keuangan",      UnderlineIndex = 0,  Hotkey = Key.L, Activate = () => NavigationService.Navigate(new FinancialReportView()) },
         },
+        "Bank" => new[]
+        {
+            new TileSpec { Label = "Input Tabel Bank",        UnderlineIndex = 12, Hotkey = Key.B, Activate = () => NavigationService.Navigate(new BankView()) },
+            new TileSpec { Label = "Input Giro Tolakan/Cair", UnderlineIndex = 6,  Hotkey = Key.G, Activate = () => NavigationService.Navigate(new BankGiroView()) },
+        },
         "Utility" => new[]
         {
             new TileSpec { Label = "User Management",  UnderlineIndex = 5, Hotkey = Key.M, Activate = () => NavigationService.Navigate(new UserView()) },
             new TileSpec { Label = "Printer Config",   UnderlineIndex = 0, Hotkey = Key.P, Activate = () => NavigationService.Navigate(new PrinterConfigView()) },
             new TileSpec { Label = "Backup",           UnderlineIndex = 0, Hotkey = Key.B, Activate = () => NavigationService.Navigate(new BackupView()) },
             new TileSpec { Label = "Shift Management", UnderlineIndex = 0, Hotkey = Key.S, Activate = () => NavigationService.Navigate(new ShiftView(_userId)) },
-            new TileSpec { Label = "Periksa Update",   UnderlineIndex = 8, Hotkey = Key.U, Activate = () => NavigationService.Navigate(new UpdateView()) },
+            new TileSpec { Label = "Periksa Update" + (_updateBadgeVersion != null ? $"  ● v{_updateBadgeVersion}" : ""), UnderlineIndex = 8, Hotkey = Key.U, Activate = () => NavigationService.Navigate(new UpdateView()) },
             new TileSpec { Label = "Tentang",          UnderlineIndex = 0, Hotkey = Key.T, Activate = () => NavigationService.Navigate(new AboutView()) },
         },
         _ => Array.Empty<TileSpec>(),
@@ -217,8 +232,8 @@ public partial class MainMenuView : UserControl, INavigationAware
         var label = new TextBlock
         {
             FontSize = 24,
-            FontFamily = (FontFamily)Application.Current!.FindResource("PlexSansFont")!,
-            Foreground = (IBrush)Application.Current!.FindResource("FgPrimaryBrush")!,
+            FontFamily = ThemeResources.Resource<FontFamily>("PlexSansFont")!,
+            Foreground = ThemeResources.Brush("FgPrimaryBrush")!,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         // Build inline runs: before-letter + underlined-letter + after-letter
@@ -237,13 +252,22 @@ public partial class MainMenuView : UserControl, INavigationAware
         var hint = new TextBlock
         {
             Text = $"[{keyLabel}]",
-            FontSize = (double)Application.Current!.FindResource("FontSizeLabel")!,
-            FontFamily = (FontFamily)Application.Current!.FindResource("JetBrainsMonoFont")!,
-            Foreground = (IBrush)Application.Current!.FindResource("FgSecondaryBrush")!,
+            FontSize = ThemeResources.Number("FontSizeLabel", 11),
+            FontFamily = ThemeResources.Resource<FontFamily>("JetBrainsMonoFont")!,
+            Foreground = ThemeResources.Brush("FgSecondaryBrush")!,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
 
         var stack = new StackPanel { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
+        if (spec.Icon.HasValue)
+        {
+            stack.Children.Add(new LucideIcon
+            {
+                Kind = spec.Icon.Value,
+                Size = 32,
+                Foreground = ThemeResources.Brush("FgPrimaryBrush")!,
+            });
+        }
         stack.Children.Add(label);
         stack.Children.Add(hint);
 
@@ -257,12 +281,12 @@ public partial class MainMenuView : UserControl, INavigationAware
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             BorderThickness = new Thickness(1),
-            FontFamily = (FontFamily)Application.Current!.FindResource("PlexSansFont")!,
+            FontFamily = ThemeResources.Resource<FontFamily>("PlexSansFont")!,
             Background = spec.IsDanger
-                ? (IBrush)Application.Current!.FindResource("AccentBgBrush")!
-                : (IBrush)Application.Current!.FindResource("Bg1Brush")!,
-            Foreground = (IBrush)Application.Current!.FindResource("FgPrimaryBrush")!,
-            BorderBrush = (IBrush)Application.Current!.FindResource("BorderStrongBrush")!,
+                ? ThemeResources.Brush("AccentBgBrush")!
+                : ThemeResources.Brush("Bg1Brush")!,
+            Foreground = ThemeResources.Brush("FgPrimaryBrush")!,
+            BorderBrush = ThemeResources.Brush("BorderStrongBrush")!,
         };
         btn.Click += (_, _) => spec.Activate();
         return btn;
@@ -328,7 +352,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         if (KeyboardRouter.IsF12(e))
         {
             e.Handled = true;
-            SetStatus("Sync tidak tersedia.");
+            FooterStatus.Show(StatusLabel, "Sync tidak tersedia.");
             return;
         }
 
@@ -370,6 +394,31 @@ public partial class MainMenuView : UserControl, INavigationAware
         buttons[next].Focus();
     }
 
+    // ── Update check ──────────────────────────────────────────────────────
+
+    private async Task CheckForUpdateAsync()
+    {
+        try
+        {
+            var svc = new UpdateService(DbConnection.GetConnection());
+            var result = await svc.CheckForUpdateAsync();
+            if (!result.Available || string.IsNullOrEmpty(result.NewVersion)) return;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                // (b) Footer toast — 10 seconds
+                FooterStatus.Show(StatusLabel, $"● Update v{result.NewVersion} tersedia — Utility → U", 10);
+
+                // (a) Badge — store version so tile builder picks it up on next Utility navigation
+                _updateBadgeVersion = result.NewVersion;
+            });
+        }
+        catch
+        {
+            // Silent — update check is best-effort, no UI surprise on offline / 404
+        }
+    }
+
     // ── Status helpers ────────────────────────────────────────────────────
 
     private void RefreshStatus()
@@ -384,8 +433,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         int count = _saleRepo.GetDailyCount(today);
         LblDailyCount.Text = $"Transaksi hari ini: {count}";
 
-        SetStatus("F12=Sync  Esc=Kembali  F10=Menu");
+        FooterStatus.Reset(StatusLabel);
     }
 
-    private void SetStatus(string t) => StatusLabel.Text = t;
 }

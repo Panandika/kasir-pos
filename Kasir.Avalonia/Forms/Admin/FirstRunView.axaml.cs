@@ -1,10 +1,12 @@
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Kasir.Avalonia.Navigation;
 using Kasir.Data;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -48,12 +50,12 @@ public partial class FirstRunView : UserControl
         if (files.Count == 0) return;
 
         LblStatus.Text = "Memvalidasi database...";
-        LblStatus.Foreground = Brush.Parse("#008800");
+        LblStatus.Foreground = ThemeResources.Brush("SuccessBrush");
 
         var validation = DatabaseValidator.Validate(files[0].Path.LocalPath, runIntegrityCheck: true);
         if (!validation.IsValid)
         {
-            LblStatus.Foreground = Brush.Parse("#ff5050");
+            LblStatus.Foreground = ThemeResources.Brush("DangerBrush");
             LblStatus.Text = "Database tidak valid:\n - " + string.Join("\n - ", validation.Errors);
             return;
         }

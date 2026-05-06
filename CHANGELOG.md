@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.4.0](https://github.com/Panandika/kasir-pos/compare/v2.3.0...v2.4.0) (2026-04-25)
+
+
+### Features
+
+* **printer:** improve NullRawPrinter error message with config hint ([fd86933](https://github.com/Panandika/kasir-pos/commit/fd8693326f01f57fe0b56fb4d1e7e6f673a2547d))
+* **printer:** improve NullRawPrinter error message with config hint ([5479f2f](https://github.com/Panandika/kasir-pos/commit/5479f2f62ea87fca4d60299bba183134f3747f94))
+
+## [2.3.0](https://github.com/Panandika/kasir-pos/compare/v2.2.3...v2.3.0) (2026-04-25)
+
+
+### Features
+
+* **printer:** add picker UI, Windows spooler driver, and error surfacing ([763eeae](https://github.com/Panandika/kasir-pos/commit/763eeae7711be6b01639f653c011efc249cb1ac1))
+* **printer:** picker UI, Windows spooler driver, error surfacing ([d0786b8](https://github.com/Panandika/kasir-pos/commit/d0786b8afbebfb820a6d4b14e272925a044c6fd7))
+
+## [2.2.3](https://github.com/Panandika/kasir-pos/compare/v2.2.2...v2.2.3) (2026-04-18)
+
+
+### Bug Fixes
+
+* **release:** use PAT so release events trigger downstream workflows ([65eaa18](https://github.com/Panandika/kasir-pos/commit/65eaa180792c617d066453aefa603d8e3a3a17d1))
+
 ## [2.2.2](https://github.com/Panandika/kasir-pos/compare/v2.2.1...v2.2.2) (2026-04-18)
 
 
@@ -115,3 +138,4 @@
 ### Performance
 
 * **reports:** defer ProductReport initial load off navigation path ([6647202](https://github.com/Panandika/kasir-pos/commit/66472021406d02f9fa17212053023893d29cbb41))
+<!-- trigger -->

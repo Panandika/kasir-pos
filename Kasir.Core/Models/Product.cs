@@ -6,7 +6,6 @@ namespace Kasir.Models
         public string ProductCode { get; set; }
         public string AccountCode { get; set; }
         public string DeptCode { get; set; }
-        public string Barcode { get; set; }
         public string Name { get; set; }
         public string Status { get; set; }
         public string Unit { get; set; }
@@ -22,7 +21,11 @@ namespace Kasir.Models
         public int QtyBreak3 { get; set; }
         public string OpenPrice { get; set; }
         public int DiscPct { get; set; }
+        public int MarginPct { get; set; }
         public long CostPrice { get; set; }
+        public int QtyMin { get; set; }
+        public int QtyMax { get; set; }
+        public int QtyOrder { get; set; }
         public string VatFlag { get; set; }
         public string LuxuryTaxFlag { get; set; }
         public string IsConsignment { get; set; }

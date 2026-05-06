@@ -6,6 +6,7 @@ using Avalonia;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Avalonia.Utils;
 using Kasir.Data;
 using Kasir.Services;
 using Kasir.Utils;
@@ -29,7 +30,7 @@ public partial class OpnameView : UserControl
         DgvOpname.ItemsSource = _rows;
         ViewShortcuts.WireGridEnter(DgvOpname, EditPhysical);
         ViewShortcuts.AutoFocusOnAttach(this, DgvOpname);
-        SetStatus("Stock Opname — F3: Load Sheet, Enter: Edit Fisik, F10: Save, Esc: Close");
+        FooterStatus.RegisterDefault(StatusLabel, "Stock Opname — F3: Load Sheet, Enter: Edit Fisik, F10: Save, Esc: Close");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -115,11 +116,8 @@ public partial class OpnameView : UserControl
 
         _lines.Clear();
         _rows.Clear();
-        SetStatus("Stock Opname — F3: Load Sheet, Enter: Edit Fisik, F10: Save, Esc: Close");
+        FooterStatus.Reset(StatusLabel);
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

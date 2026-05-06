@@ -10,6 +10,7 @@ using Kasir.Services;
 using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
+using Kasir.Avalonia.Utils;
 
 namespace Kasir.Avalonia.Forms.Accounting;
 
@@ -52,7 +53,7 @@ public partial class JournalView : UserControl
         string action = _readOnly
             ? "Info Jurnal — Esc=Keluar"
             : "Jurnal Memorial — F5=Simpan  Ins=Tambah Baris  Del=Hapus Baris  Esc=Keluar";
-        SetStatus(action);
+        FooterStatus.RegisterDefault(StatusLabel, action);
         UpdateTotals();
     }
 
@@ -80,8 +81,8 @@ public partial class JournalView : UserControl
         long td = 0, tc = 0;
         foreach (var r in _rows)
         {
-            long.TryParse(r.Debit,  out long d);
-            long.TryParse(r.Credit, out long c);
+            Formatting.TryParseRupiah(r.Debit,  out long d);
+            Formatting.TryParseRupiah(r.Credit, out long c);
             td += d;
             tc += c;
         }
@@ -148,8 +149,8 @@ public partial class JournalView : UserControl
         foreach (var r in _rows)
         {
             if (string.IsNullOrEmpty(r.AccCode)) continue;
-            long.TryParse(r.Debit,  out long d);
-            long.TryParse(r.Credit, out long c);
+            Formatting.TryParseRupiah(r.Debit,  out long d);
+            Formatting.TryParseRupiah(r.Credit, out long c);
             entry.Lines.Add(new JournalLine
             {
                 AccountCode = r.AccCode,
@@ -173,8 +174,5 @@ public partial class JournalView : UserControl
         }
     }
 
-    private void SetStatus(string text)
-    {
-        StatusLabel.Text = text;
-    }
+    private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }

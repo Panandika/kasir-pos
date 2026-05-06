@@ -14,6 +14,7 @@
                  Margin="8,0" />
     </Border>
     <DataGrid x:Name="DgvOpname"
+              Classes="compact"
               AutoGenerateColumns="False"
               Background="{DynamicResource Bg1Brush}"
               Foreground="{DynamicResource FgPrimaryBrush}"

@@ -1,92 +1,242 @@
-<!-- Specificity smoke test: DataGrid Background override verified by App.axaml include order (BaseTheme last wins). -->
+<!-- DS-V2 Phase P1: Dual-variant tokens (Dark/Light) + density/radius/font tokens -->
+<!-- Brush key names preserved from v1 — only colors and structure change. -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+  <!-- ============================================================ -->
+  <!-- VARIANT-INDEPENDENT RESOURCES                                 -->
+  <!-- Fonts, density, radius, spacing, font-size tokens             -->
+  <!-- ============================================================ -->
   <Styles.Resources>
     <ResourceDictionary>
 
       <!-- ============================================================ -->
-      <!-- COLOR TOKENS — 17 semantic tokens (DESIGN-SYSTEM.md §5.1)   -->
-      <!-- Each token emitted as Color + SolidColorBrush                -->
+      <!-- COLOR / BRUSH TOKENS — Dual-variant via ThemeDictionaries    -->
+      <!-- 20 dark tokens + 20 light tokens. Same key names — only      -->
+      <!-- the underlying Color resolves differently per ThemeVariant.  -->
       <!-- ============================================================ -->
+      <ResourceDictionary.ThemeDictionaries>
 
-      <!-- Background surfaces -->
-      <Color x:Key="Bg0Color">#FF000000</Color>
-      <SolidColorBrush x:Key="Bg0Brush" Color="{StaticResource Bg0Color}"/>
+        <!-- ================ DARK VARIANT ================ -->
+        <ResourceDictionary x:Key="Dark">
+          <!-- Background surfaces -->
+          <Color x:Key="Bg0Color">#FF0F1419</Color>
+          <SolidColorBrush x:Key="Bg0Brush" Color="{StaticResource Bg0Color}"/>
 
-      <Color x:Key="Bg1Color">#FF001400</Color>
-      <SolidColorBrush x:Key="Bg1Brush" Color="{StaticResource Bg1Color}"/>
+          <Color x:Key="Bg1Color">#FF161B22</Color>
+          <SolidColorBrush x:Key="Bg1Brush" Color="{StaticResource Bg1Color}"/>
 
-      <Color x:Key="Bg2Color">#FF002800</Color>
-      <SolidColorBrush x:Key="Bg2Brush" Color="{StaticResource Bg2Color}"/>
+          <Color x:Key="Bg2Color">#FF1C232C</Color>
+          <SolidColorBrush x:Key="Bg2Brush" Color="{StaticResource Bg2Color}"/>
 
-      <Color x:Key="BgHoverColor">#FF003800</Color>
-      <SolidColorBrush x:Key="BgHoverBrush" Color="{StaticResource BgHoverColor}"/>
+          <Color x:Key="BgHoverColor">#FF222A34</Color>
+          <SolidColorBrush x:Key="BgHoverBrush" Color="{StaticResource BgHoverColor}"/>
 
-      <Color x:Key="BgSelectedColor">#FF004400</Color>
-      <SolidColorBrush x:Key="BgSelectedBrush" Color="{StaticResource BgSelectedColor}"/>
+          <Color x:Key="BgSelectedColor">#FF133127</Color>
+          <SolidColorBrush x:Key="BgSelectedBrush" Color="{StaticResource BgSelectedColor}"/>
 
-      <!-- AccentBg: dark amber/danger background for destructive actions -->
-      <Color x:Key="AccentBgColor">#FF440000</Color>
-      <SolidColorBrush x:Key="AccentBgBrush" Color="{StaticResource AccentBgColor}"/>
+          <Color x:Key="AccentBgColor">#FF2A1414</Color>
+          <SolidColorBrush x:Key="AccentBgBrush" Color="{StaticResource AccentBgColor}"/>
 
-      <!-- Border tokens -->
-      <Color x:Key="BorderSubtleColor">#FF00A000</Color>
-      <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}"/>
+          <!-- Borders -->
+          <Color x:Key="BorderSubtleColor">#FF232B36</Color>
+          <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}"/>
 
-      <Color x:Key="BorderStrongColor">#FF006400</Color>
-      <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}"/>
+          <Color x:Key="BorderStrongColor">#FF2E3744</Color>
+          <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}"/>
 
-      <!-- Foreground tokens -->
-      <Color x:Key="FgPrimaryColor">#FF00DC00</Color>
-      <SolidColorBrush x:Key="FgPrimaryBrush" Color="{StaticResource FgPrimaryColor}"/>
+          <!-- Foregrounds -->
+          <Color x:Key="FgPrimaryColor">#FFE6EDF3</Color>
+          <SolidColorBrush x:Key="FgPrimaryBrush" Color="{StaticResource FgPrimaryColor}"/>
 
-      <Color x:Key="FgNumericColor">#FFFFC800</Color>
-      <SolidColorBrush x:Key="FgNumericBrush" Color="{StaticResource FgNumericColor}"/>
+          <Color x:Key="FgSecondaryColor">#FF9BA7B4</Color>
+          <SolidColorBrush x:Key="FgSecondaryBrush" Color="{StaticResource FgSecondaryColor}"/>
 
-      <Color x:Key="FgSecondaryColor">#FF008800</Color>
-      <SolidColorBrush x:Key="FgSecondaryBrush" Color="{StaticResource FgSecondaryColor}"/>
+          <Color x:Key="FgDimColor">#FF6B7480</Color>
+          <SolidColorBrush x:Key="FgDimBrush" Color="{StaticResource FgDimColor}"/>
 
-      <Color x:Key="FgDimColor">#FF006400</Color>
-      <SolidColorBrush x:Key="FgDimBrush" Color="{StaticResource FgDimColor}"/>
+          <Color x:Key="FgNumericColor">#FFE6EDF3</Color>
+          <SolidColorBrush x:Key="FgNumericBrush" Color="{StaticResource FgNumericColor}"/>
 
-      <!-- Semantic state tokens -->
-      <Color x:Key="AccentColor">#FFFFC800</Color>
-      <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+          <Color x:Key="FgOnBrandColor">#FFFFFFFF</Color>
+          <SolidColorBrush x:Key="FgOnBrandBrush" Color="{StaticResource FgOnBrandColor}"/>
 
-      <Color x:Key="SuccessColor">#FF00DC00</Color>
-      <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+          <!-- Brand -->
+          <Color x:Key="BrandColor">#FF2DBA8E</Color>
+          <SolidColorBrush x:Key="BrandBrush" Color="{StaticResource BrandColor}"/>
 
-      <Color x:Key="WarningColor">#FFFF9900</Color>
-      <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+          <Color x:Key="BrandStrongColor">#FF56D3A8</Color>
+          <SolidColorBrush x:Key="BrandStrongBrush" Color="{StaticResource BrandStrongColor}"/>
 
-      <Color x:Key="DangerColor">#FFFF5050</Color>
-      <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+          <Color x:Key="BrandSoftColor">#FF133127</Color>
+          <SolidColorBrush x:Key="BrandSoftBrush" Color="{StaticResource BrandSoftColor}"/>
 
-      <Color x:Key="FocusRingColor">#FF00DC00</Color>
-      <SolidColorBrush x:Key="FocusRingBrush" Color="{StaticResource FocusRingColor}"/>
+          <!-- Semantic states -->
+          <Color x:Key="SuccessColor">#FF4ADE80</Color>
+          <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+
+          <Color x:Key="WarningColor">#FFF59E0B</Color>
+          <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+
+          <Color x:Key="DangerColor">#FFF87171</Color>
+          <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+
+          <Color x:Key="FocusRingColor">#FF2DBA8E</Color>
+          <SolidColorBrush x:Key="FocusRingBrush" Color="{StaticResource FocusRingColor}"/>
+
+          <!-- Legacy alias preserved for v1 callsites still using AccentBrush -->
+          <Color x:Key="AccentColor">#FF2DBA8E</Color>
+          <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+        </ResourceDictionary>
+
+        <!-- ================ LIGHT VARIANT ================ -->
+        <ResourceDictionary x:Key="Light">
+          <!-- Background surfaces -->
+          <Color x:Key="Bg0Color">#FFF7F8FA</Color>
+          <SolidColorBrush x:Key="Bg0Brush" Color="{StaticResource Bg0Color}"/>
+
+          <Color x:Key="Bg1Color">#FFFFFFFF</Color>
+          <SolidColorBrush x:Key="Bg1Brush" Color="{StaticResource Bg1Color}"/>
+
+          <Color x:Key="Bg2Color">#FFF1F3F6</Color>
+          <SolidColorBrush x:Key="Bg2Brush" Color="{StaticResource Bg2Color}"/>
+
+          <Color x:Key="BgHoverColor">#FFEEF1F4</Color>
+          <SolidColorBrush x:Key="BgHoverBrush" Color="{StaticResource BgHoverColor}"/>
+
+          <Color x:Key="BgSelectedColor">#FFE6F4EF</Color>
+          <SolidColorBrush x:Key="BgSelectedBrush" Color="{StaticResource BgSelectedColor}"/>
+
+          <Color x:Key="AccentBgColor">#FFFDECEC</Color>
+          <SolidColorBrush x:Key="AccentBgBrush" Color="{StaticResource AccentBgColor}"/>
+
+          <!-- Borders -->
+          <Color x:Key="BorderSubtleColor">#FFE4E7EC</Color>
+          <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}"/>
+
+          <Color x:Key="BorderStrongColor">#FFCFD4DA</Color>
+          <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}"/>
+
+          <!-- Foregrounds -->
+          <Color x:Key="FgPrimaryColor">#FF111827</Color>
+          <SolidColorBrush x:Key="FgPrimaryBrush" Color="{StaticResource FgPrimaryColor}"/>
+
+          <Color x:Key="FgSecondaryColor">#FF4B5563</Color>
+          <SolidColorBrush x:Key="FgSecondaryBrush" Color="{StaticResource FgSecondaryColor}"/>
+
+          <Color x:Key="FgDimColor">#FF8A93A0</Color>
+          <SolidColorBrush x:Key="FgDimBrush" Color="{StaticResource FgDimColor}"/>
+
+          <Color x:Key="FgNumericColor">#FF111827</Color>
+          <SolidColorBrush x:Key="FgNumericBrush" Color="{StaticResource FgNumericColor}"/>
+
+          <Color x:Key="FgOnBrandColor">#FFFFFFFF</Color>
+          <SolidColorBrush x:Key="FgOnBrandBrush" Color="{StaticResource FgOnBrandColor}"/>
+
+          <!-- Brand -->
+          <Color x:Key="BrandColor">#FF0F8B6C</Color>
+          <SolidColorBrush x:Key="BrandBrush" Color="{StaticResource BrandColor}"/>
+
+          <Color x:Key="BrandStrongColor">#FF0B6E55</Color>
+          <SolidColorBrush x:Key="BrandStrongBrush" Color="{StaticResource BrandStrongColor}"/>
+
+          <Color x:Key="BrandSoftColor">#FFE6F4EF</Color>
+          <SolidColorBrush x:Key="BrandSoftBrush" Color="{StaticResource BrandSoftColor}"/>
+
+          <!-- Semantic states -->
+          <Color x:Key="SuccessColor">#FF15803D</Color>
+          <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+
+          <Color x:Key="WarningColor">#FFB45309</Color>
+          <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+
+          <Color x:Key="DangerColor">#FFB91C1C</Color>
+          <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+
+          <Color x:Key="FocusRingColor">#FF0F8B6C</Color>
+          <SolidColorBrush x:Key="FocusRingBrush" Color="{StaticResource FocusRingColor}"/>
+
+          <!-- Legacy alias preserved for v1 callsites still using AccentBrush -->
+          <Color x:Key="AccentColor">#FF0F8B6C</Color>
+          <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+        </ResourceDictionary>
+
+      </ResourceDictionary.ThemeDictionaries>
 
       <!-- ============================================================ -->
-      <!-- FONT FAMILY RESOURCES                                         -->
-      <!-- Using system-available fallbacks (font embedding = follow-up) -->
+      <!-- FONT FAMILIES                                                 -->
+      <!-- Inter is registered via Program.cs WithInterFont() — use      -->
+      <!-- avares URI. JetBrains Mono is not bundled; fall back to       -->
+      <!-- system monospace stack.                                        -->
+      <!-- PlexSansFont / PlexMonoFont are aliases preserved for v1      -->
+      <!-- form bindings (now resolve to Inter / mono fallback).         -->
       <!-- ============================================================ -->
-      <FontFamily x:Key="PlexSansFont">Segoe UI,Inter,sans-serif</FontFamily>
-      <FontFamily x:Key="JetBrainsMonoFont">Consolas,JetBrains Mono,Cascadia Mono,monospace</FontFamily>
-      <FontFamily x:Key="PlexMonoFont">Consolas,JetBrains Mono,Cascadia Mono,monospace</FontFamily>
+      <FontFamily x:Key="InterFont">avares://Avalonia.Fonts.Inter#Inter</FontFamily>
+      <FontFamily x:Key="JetBrainsMonoFont">avares://Kasir.Avalonia/Assets/Fonts#JetBrains Mono</FontFamily>
+      <FontFamily x:Key="PlexSansFont">avares://Avalonia.Fonts.Inter#Inter</FontFamily>
+      <FontFamily x:Key="PlexMonoFont">JetBrains Mono,Cascadia Mono,Consolas,Menlo,monospace</FontFamily>
 
       <!-- ============================================================ -->
-      <!-- DENSITY TOKENS — Compact defaults (DESIGN-SYSTEM.md §4)      -->
+      <!-- FONT SIZE TOKENS                                              -->
       <!-- ============================================================ -->
-      <system:Double x:Key="RowHeight">22</system:Double>
-      <system:Double x:Key="ControlHeight">24</system:Double>
-      <system:Double x:Key="FontSizeBody">12</system:Double>
+      <system:Double x:Key="FontSizeXs">11</system:Double>
+      <system:Double x:Key="FontSizeSm">12</system:Double>
+      <system:Double x:Key="FontSizeBase">14</system:Double>
+      <system:Double x:Key="FontSizeMd">15</system:Double>
+      <system:Double x:Key="FontSizeLg">18</system:Double>
+      <system:Double x:Key="FontSizeXl">22</system:Double>
+      <system:Double x:Key="FontSize2xl">28</system:Double>
+      <system:Double x:Key="FontSize3xl">40</system:Double>
+      <system:Double x:Key="FontSize4xl">56</system:Double>
+
+      <!-- Aliases used by SaleView and other big-numeric displays -->
+      <system:Double x:Key="Fs3xl">40</system:Double>
+      <system:Double x:Key="Fs4xl">56</system:Double>
+
+      <!-- Legacy aliases preserved for v1 callsites — same values as v1 mapped to v2 scale -->
+      <system:Double x:Key="FontSizeBody">14</system:Double>
       <system:Double x:Key="FontSizeLabel">11</system:Double>
-      <system:Double x:Key="FontSizeNumeric">13</system:Double>
-      <system:Double x:Key="FontSizeHeading">14</system:Double>
-      <system:Double x:Key="CellPaddingX">6</system:Double>
+      <system:Double x:Key="FontSizeNumeric">14</system:Double>
+      <system:Double x:Key="FontSizeHeading">18</system:Double>
+
+      <!-- ============================================================ -->
+      <!-- DENSITY TOKENS                                                -->
+      <!-- ============================================================ -->
+      <system:Double x:Key="RowHeight">32</system:Double>
+      <system:Double x:Key="RowHeightCompact">28</system:Double>
+      <system:Double x:Key="RowHeightComfortable">40</system:Double>
+      <system:Double x:Key="ControlHeight">36</system:Double>
+      <system:Double x:Key="ControlHeightLg">44</system:Double>
+
+      <!-- ============================================================ -->
+      <!-- RADIUS TOKENS                                                 -->
+      <!-- ============================================================ -->
+      <system:Double x:Key="RadiusSm">4</system:Double>
+      <system:Double x:Key="Radius">6</system:Double>
+      <system:Double x:Key="RadiusMd">8</system:Double>
+      <system:Double x:Key="RadiusLg">12</system:Double>
+
+      <!-- ============================================================ -->
+      <!-- SPACING TOKENS                                                -->
+      <!-- ============================================================ -->
+      <system:Double x:Key="Space1">4</system:Double>
+      <system:Double x:Key="Space2">8</system:Double>
+      <system:Double x:Key="Space3">12</system:Double>
+      <system:Double x:Key="Space4">16</system:Double>
+      <system:Double x:Key="Space5">24</system:Double>
+      <system:Double x:Key="Space6">32</system:Double>
+      <system:Double x:Key="Space7">48</system:Double>
+
+      <!-- Legacy spacing aliases preserved for v1 callsites -->
+      <system:Double x:Key="CellPaddingX">8</system:Double>
       <system:Double x:Key="CellPaddingY">4</system:Double>
-      <system:Double x:Key="SectionGap">8</system:Double>
-      <system:Double x:Key="FormPadding">8</system:Double>
+      <system:Double x:Key="SectionGap">16</system:Double>
+      <system:Double x:Key="FormPadding">16</system:Double>
+
+      <!-- ============================================================ -->
+      <!-- BORDER WIDTHS                                                 -->
+      <!-- ============================================================ -->
       <system:Double x:Key="BorderWidth">1</system:Double>
       <system:Double x:Key="FocusRingWidth">2</system:Double>
 
@@ -94,32 +244,31 @@
   </Styles.Resources>
 
   <!-- ============================================================ -->
-  <!-- SHARED STYLES — Baseline overrides over FluentTheme defaults  -->
-  <!-- DS-3 batches will fine-tune per-form needs                   -->
+  <!-- SHARED WIDGET STYLES — point at new tokens                    -->
   <!-- ============================================================ -->
 
   <Style Selector="TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
-    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
-    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource InterFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
   </Style>
 
   <Style Selector="TextBox">
     <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
     <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
-    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
-    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource InterFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
     <Setter Property="Height" Value="{DynamicResource ControlHeight}"/>
-    <Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource BrandBrush}"/>
   </Style>
 
   <Style Selector="Button">
     <Setter Property="Background" Value="{DynamicResource Bg2Brush}"/>
     <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
-    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
-    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource InterFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
     <Setter Property="Height" Value="{DynamicResource ControlHeight}"/>
   </Style>
 
@@ -129,32 +278,146 @@
 
   <Style Selector="MenuItem">
     <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
-    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
-    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource InterFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
   </Style>
 
-  <!-- Specificity smoke test: DataGrid Background override.
-       This Setter wins because App.axaml includes BaseTheme AFTER FluentTheme. -->
+  <!-- ============================================================ -->
+  <!-- STYLE CLASSES — opt-in helpers (DS-V2 plan §P1)              -->
+  <!-- ============================================================ -->
+
+  <Style Selector="DataGrid.compact">
+    <Setter Property="RowHeight" Value="{DynamicResource RowHeightCompact}"/>
+  </Style>
+
+  <Style Selector="DataGrid.comfortable">
+    <Setter Property="RowHeight" Value="{DynamicResource RowHeightComfortable}"/>
+  </Style>
+
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource BrandBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgOnBrandBrush}"/>
+  </Style>
+
+  <Style Selector="Button.danger">
+    <Setter Property="Background" Value="{DynamicResource AccentBgBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+  </Style>
+
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderBrush" Value="Transparent"/>
+  </Style>
+
+  <Style Selector="Button.lg">
+    <Setter Property="Height" Value="{DynamicResource ControlHeightLg}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeMd}"/>
+  </Style>
+
+  <Style Selector="TextBlock.numeric">
+    <Setter Property="FontFamily" Value="{DynamicResource JetBrainsMonoFont}"/>
+  </Style>
+
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeXs}"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgSecondaryBrush}"/>
+  </Style>
+
+  <!-- ============================================================ -->
+  <!-- DATAGRID — density overrides                                  -->
+  <!-- ============================================================ -->
+
   <Style Selector="DataGrid">
     <Setter Property="Background" Value="{DynamicResource Bg0Brush}"/>
     <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
-    <Setter Property="GridLinesVisibility" Value="All"/>
+    <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+    <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderSubtleBrush}"/>
     <Setter Property="RowHeight" Value="{DynamicResource RowHeight}"/>
     <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
   </Style>
 
   <Style Selector="DataGridRow">
     <Setter Property="Background" Value="{DynamicResource Bg0Brush}"/>
     <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
-    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
-    <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource InterFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
+  </Style>
+
+  <Style Selector="DataGridRow:selected /template/ Border#BackgroundBorder">
+    <Setter Property="Background" Value="{DynamicResource BgSelectedBrush}"/>
+  </Style>
+
+  <Style Selector="DataGridRow:pointerover /template/ Border#BackgroundBorder">
+    <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+  </Style>
+
+  <Style Selector="DataGridRow:pointerover:selected /template/ Border#BackgroundBorder">
+    <Setter Property="Background" Value="{DynamicResource BgSelectedBrush}"/>
+  </Style>
+
+  <Style Selector="DataGridCell">
+    <Setter Property="Padding" Value="8,4"/>
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource InterFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+  </Style>
+
+  <Style Selector="DataGridCell:selected">
+    <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}"/>
   </Style>
 
   <Style Selector="DataGridColumnHeader">
     <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
     <Setter Property="Foreground" Value="{DynamicResource FgSecondaryBrush}"/>
-    <Setter Property="FontFamily" Value="{DynamicResource PlexMonoFont}"/>
-    <Setter Property="FontSize" Value="{DynamicResource FontSizeLabel}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource InterFont}"/>
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeXs}"/>
+    <Setter Property="Padding" Value="8,4"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+  </Style>
+
+  <Style Selector="DataGridColumnHeader:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Bg2Brush}"/>
+  </Style>
+
+  <!-- ============================================================ -->
+  <!-- DATAGRID SCROLLBAR                                            -->
+  <!-- ============================================================ -->
+
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:vertical">
+    <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
+    <Setter Property="Width" Value="10"/>
+  </Style>
+
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:vertical /template/ Thumb">
+    <Setter Property="Background" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:vertical /template/ Thumb:pointerover">
+    <Setter Property="Background" Value="{DynamicResource FgSecondaryBrush}"/>
+  </Style>
+
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:horizontal">
+    <Setter Property="Background" Value="{DynamicResource Bg1Brush}"/>
+    <Setter Property="Height" Value="10"/>
+  </Style>
+
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:horizontal /template/ Thumb">
+    <Setter Property="Background" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar:horizontal /template/ Thumb:pointerover">
+    <Setter Property="Background" Value="{DynamicResource FgSecondaryBrush}"/>
+  </Style>
+
+  <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar Button">
+    <Setter Property="Width" Value="0"/>
+    <Setter Property="Height" Value="0"/>
   </Style>
 
 </Styles>
