@@ -32,6 +32,23 @@ namespace Kasir.CloudSync
                     cfg.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
                     cfg.AddEnvironmentVariables(prefix: "KASIR_CLOUDSYNC_");
                     cfg.AddCommandLine(args);
+
+                    // Fallback: read the in-app creds JSON written by
+                    // CloudSyncSetupView (LocalAppData/Kasir/cloudsync.json).
+                    // Lowest priority — only fills CloudSync:SupabaseConnectionString
+                    // if no other source provided one.
+                    var credsConn = TryBuildConnFromCredsJson();
+                    if (!string.IsNullOrWhiteSpace(credsConn))
+                    {
+                        var built = cfg.Build();
+                        if (string.IsNullOrWhiteSpace(built["CloudSync:SupabaseConnectionString"]))
+                        {
+                            cfg.AddInMemoryCollection(new System.Collections.Generic.Dictionary<string, string>
+                            {
+                                ["CloudSync:SupabaseConnectionString"] = credsConn,
+                            });
+                        }
+                    }
                 })
                 .ConfigureServices((ctx, services) =>
                 {
@@ -70,6 +87,11 @@ namespace Kasir.CloudSync
         var configuration = cfgBuilder.Build();
         var conn = configuration["CloudSync:SupabaseConnectionString"]
                    ?? Environment.GetEnvironmentVariable("KASIR_CLOUDSYNC_SUPABASE");
+        if (string.IsNullOrWhiteSpace(conn))
+        {
+            var fromCreds = TryBuildConnFromCredsJson();
+            if (!string.IsNullOrWhiteSpace(fromCreds)) conn = fromCreds;
+        }
         var dbPath = configuration["CloudSync:KasirDbPath"]
                    ?? Environment.GetEnvironmentVariable("KASIR_CLOUDSYNC_DBPATH");
         if (string.IsNullOrWhiteSpace(conn) || string.IsNullOrWhiteSpace(dbPath))
@@ -100,6 +122,41 @@ namespace Kasir.CloudSync
             foreach (var a in args)
                 if (string.Equals(a, flag, StringComparison.OrdinalIgnoreCase)) return true;
             return false;
+        }
+
+        // Reads the in-app creds JSON (LocalAppData/Kasir/cloudsync.json on Windows;
+        // ~/Library/Application Support/Kasir/cloudsync.json on macOS) and builds
+        // a Postgres connection string. Returns null if the file is absent,
+        // unreadable, or has empty fields. Used as the lowest-priority config
+        // source so the in-app setup screen can configure the worker without
+        // touching appsettings.json.
+        internal static string TryBuildConnFromCredsJson()
+        {
+            try
+            {
+                var path = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Kasir",
+                    "cloudsync.json");
+                if (!System.IO.File.Exists(path)) return "";
+                using var doc = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(path));
+                var root = doc.RootElement;
+                string Get(string k) => root.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() ?? "" : "";
+                int GetInt(string k, int dflt) => root.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.Number ? v.GetInt32() : dflt;
+                var host = Get("Host");
+                var db = Get("Database");
+                var user = Get("Username");
+                var pwd = Get("Password");
+                var port = GetInt("Port", 6543);
+                if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(db)
+                    || string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pwd))
+                    return "";
+                return $"Host={host};Port={port};Database={db};Username={user};Password={pwd};SslMode=Require";
+            }
+            catch
+            {
+                return "";
+            }
         }
     }
 

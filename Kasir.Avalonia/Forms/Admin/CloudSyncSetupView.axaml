@@ -1,0 +1,196 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Admin.CloudSyncSetupView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Panel>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel HorizontalAlignment="Center"
+                  VerticalAlignment="Top"
+                  Spacing="12"
+                  Width="620"
+                  Margin="0,16,0,16">
+
+        <TextBlock Text="CLOUD SYNC"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
+                   HorizontalAlignment="Center"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" />
+
+        <!-- STATUS panel -->
+        <Border Background="{DynamicResource Bg1Brush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                Padding="12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="STATUS"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       FontSize="12" />
+            <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="2">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="State:"
+                         Foreground="{DynamicResource FgSecondaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBlock Grid.Row="0" Grid.Column="1" x:Name="LblState"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Antrian:"
+                         Foreground="{DynamicResource FgSecondaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBlock Grid.Row="1" Grid.Column="1" x:Name="LblQueue"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="Heartbeat:"
+                         Foreground="{DynamicResource FgSecondaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBlock Grid.Row="2" Grid.Column="1" x:Name="LblHeartbeat"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBlock Grid.Row="3" Grid.Column="0" Text="Pesan:"
+                         Foreground="{DynamicResource FgSecondaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBlock Grid.Row="3" Grid.Column="1" x:Name="LblTestResult"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- KONEKSI form -->
+        <Border Background="{DynamicResource Bg1Brush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                Padding="12">
+          <StackPanel Spacing="8">
+            <TextBlock Text="KONEKSI"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       FontSize="12" />
+
+            <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Host:"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtHost"
+                       PlaceholderText="aws-1-ap-southeast-1.pooler.supabase.com"
+                       Background="{DynamicResource Bg0Brush}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Port:"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtPort"
+                       Text="6543"
+                       Background="{DynamicResource Bg0Brush}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="Database:"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBox Grid.Row="2" Grid.Column="1" x:Name="TxtDatabase"
+                       Text="postgres"
+                       Background="{DynamicResource Bg0Brush}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Text="Username:"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBox Grid.Row="3" Grid.Column="1" x:Name="TxtUsername"
+                       PlaceholderText="postgres.xxxxxxxxxxxx"
+                       Background="{DynamicResource Bg0Brush}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+
+              <TextBlock Grid.Row="4" Grid.Column="0" Text="Password:"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBox Grid.Row="4" Grid.Column="1" x:Name="TxtPassword"
+                       PasswordChar="•"
+                       Background="{DynamicResource Bg0Brush}"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+
+              <TextBlock Grid.Row="5" Grid.Column="0" Text="SSL Mode:"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <TextBlock Grid.Row="5" Grid.Column="1" Text="Require (kunci)"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource FgDimBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Buttons -->
+        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+          <Button x:Name="BtnTest"
+                  Content="F5 Uji Koneksi"
+                  Width="170" Height="34"
+                  Background="{DynamicResource BgSelectedBrush}"
+                  Foreground="{DynamicResource FgPrimaryBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+          <Button x:Name="BtnSave"
+                  Content="F10 Simpan"
+                  Width="170" Height="34"
+                  Background="{DynamicResource BgSelectedBrush}"
+                  Foreground="{DynamicResource FgPrimaryBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+          <Button x:Name="BtnBack"
+                  Content="Esc Kembali"
+                  Width="170" Height="34"
+                  Background="{DynamicResource Bg1Brush}"
+                  Foreground="{DynamicResource FgSecondaryBrush}"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+        </StackPanel>
+
+        <!-- Note -->
+        <Border Background="{DynamicResource Bg1Brush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                Padding="12">
+          <StackPanel Spacing="4">
+            <TextBlock Text="CATATAN DEV"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="11" />
+            <TextBlock Text="Buka dua terminal untuk dev:"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="  Terminal 1: dotnet run --project Kasir.Avalonia"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" />
+            <TextBlock Text="  Terminal 2: dotnet run --project Kasir.CloudSync"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" />
+            <TextBlock Text="Produksi (Win10 gateway): lihat docs/NEXT-STEPS.md"
+                       Foreground="{DynamicResource FgDimBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>
