@@ -29,12 +29,14 @@ namespace Kasir.Data.Repositories
 
         public void CloseShift(int id, long closingCash, long expectedCash)
         {
+            long variance = closingCash - expectedCash;
             SqlHelper.ExecuteNonQuery(_db,
                 @"UPDATE shifts SET status = 'C', closed_at = datetime('now','localtime'),
-                  closing_cash = @closing, expected_cash = @expected
+                  closing_cash = @closing, expected_cash = @expected, cash_variance = @variance
                   WHERE id = @id",
                 SqlHelper.Param("@closing", closingCash),
                 SqlHelper.Param("@expected", expectedCash),
+                SqlHelper.Param("@variance", variance),
                 SqlHelper.Param("@id", id));
         }
 
@@ -65,6 +67,23 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@to", dateTo + " 23:59:59"));
         }
 
+        /// <summary>
+        /// Returns the next shift_number for the given register on the given date
+        /// (yyyy-MM-dd). Counts shifts opened on that date and returns count+1.
+        /// </summary>
+        public string NextShiftNumber(string registerId, string dateYmd)
+        {
+            long n = SqlHelper.ExecuteScalar<long>(_db,
+                @"SELECT COUNT(*) FROM shifts
+                  WHERE register_id = @reg
+                    AND opened_at >= @start
+                    AND opened_at <  @end",
+                SqlHelper.Param("@reg", registerId),
+                SqlHelper.Param("@start", dateYmd + " 00:00:00"),
+                SqlHelper.Param("@end", dateYmd + " 23:59:59"));
+            return ((int)n + 1).ToString();
+        }
+
         private static Shift MapShift(SqliteDataReader reader)
         {
             return new Shift
@@ -78,6 +97,7 @@ namespace Kasir.Data.Repositories
                 OpeningCash = SqlHelper.GetLong(reader, "opening_cash"),
                 ClosingCash = SqlHelper.GetLong(reader, "closing_cash"),
                 ExpectedCash = SqlHelper.GetLong(reader, "expected_cash"),
+                CashVariance = SqlHelper.GetNullableLong(reader, "cash_variance"),
                 Status = SqlHelper.GetString(reader, "status")
             };
         }

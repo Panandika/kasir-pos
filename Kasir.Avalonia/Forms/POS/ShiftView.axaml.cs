@@ -80,10 +80,11 @@ public partial class ShiftView : UserControl
             return;
         }
 
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
         var shift = new Shift
         {
             RegisterId = regId,
-            ShiftNumber = "1",
+            ShiftNumber = _shiftRepo.NextShiftNumber(regId, today),
             CashierId = _cashierId,
             OpenedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
             OpeningCash = openingCash * 100
@@ -101,9 +102,8 @@ public partial class ShiftView : UserControl
             return;
         }
 
-        string today = DateTime.Now.ToString("yyyy-MM-dd");
-        long dailyCash = _saleRepo.GetDailyTotal(today);
-        long expected = CurrentShift.OpeningCash + dailyCash;
+        long shiftCash = _saleRepo.GetCashSinceShift(CurrentShift.RegisterId, CurrentShift.ShiftNumber);
+        long expected = CurrentShift.OpeningCash + shiftCash;
 
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner,
             "Tutup Shift",
