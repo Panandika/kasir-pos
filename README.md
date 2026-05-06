@@ -194,6 +194,28 @@ On first run a setup dialog appears — choose **Seed** for a fresh database or 
 dotnet test Kasir.Core.Tests/Kasir.Core.Tests.csproj
 ```
 
+## Development on macOS / Linux
+
+The cloud sync worker runs as a separate process. Two terminals:
+
+**Terminal 1 — POS UI**
+
+```bash
+dotnet run --project Kasir.Avalonia
+```
+
+**Terminal 2 — Cloud sync worker** (only needed if you want to test cloud push)
+
+```bash
+dotnet run --project Kasir.CloudSync
+```
+
+The worker reads creds from `~/Library/Application Support/Kasir/cloudsync.json` (macOS) or `%LocalAppData%\Kasir\cloudsync.json` (Windows). Configure via in-app screen: F8 Admin → Cloud Sync.
+
+## Production deployment (Windows 10 gateway)
+
+See `docs/NEXT-STEPS.md` for the NSSM-wrapped service deployment.
+
 ### Deploy to Windows Register
 
 ```bash

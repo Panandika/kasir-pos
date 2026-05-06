@@ -2,6 +2,9 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Data;
+using Kasir.Data.Repositories;
+using Kasir.Hardware;
 
 namespace Kasir.Avalonia;
 
@@ -22,6 +25,25 @@ public partial class App : Application
             desktop.MainWindow = new ShellWindow();
         }
 
+        // Footer status models — best-effort, must not block UI thread.
+        PrinterStatusModel.Current.Start(BuildPrinter);
+        UpdateStatusModel.Current.Start();
+        CloudSyncStatusModel.Current.Start();
+
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static IReceiptPrinter? BuildPrinter()
+    {
+        try
+        {
+            // Background timer thread — must not call GetConnection() (UI-thread-only).
+            var conn = DbConnection.CreateConnection();
+            return new ReceiptPrinter(new ConfigRepository(conn));
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
