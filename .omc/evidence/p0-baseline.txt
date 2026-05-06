@@ -1,0 +1,34 @@
+P0 Baseline — DS-V2 Migration
+Date: 2026-05-06
+Worktree: /Users/anan/Code/kasir-worktrees/ds-v2
+Branch: feat/design-system-v2 (from main)
+
+# SDK
+dotnet 10.0.103
+
+# Build
+ok dotnet build: 4 projects, 0 errors, 0 warnings
+
+# Tests (Kasir.Core.Tests)
+Passed!  - Failed: 0, Passed: 313, Skipped: 0, Total: 313
+
+# Grep punch list
+
+## #1 ThemeConstants.*Brush usage (excluding declarations) -- 7 callsites
+Forms/Shared/InputDialogWindow.axaml.cs:28  ThemeConstants.DisabledBrush
+Forms/Shared/InputDialogWindow.axaml.cs:36  ThemeConstants.InputBackBrush
+Forms/Shared/InputDialogWindow.axaml.cs:37  ThemeConstants.ForegroundBrush
+Converters/StockColorConverter.cs:15  ThemeConstants.ErrorBrush
+Converters/StockColorConverter.cs:17  ThemeConstants.DisabledBrush
+Converters/StockColorConverter.cs:18  ThemeConstants.ForegroundBrush
+Converters/StockColorConverter.cs:20  ThemeConstants.ForegroundBrush
+
+## #3 Hardcoded colors (excluding ThemeConstants.cs declarations) -- 5 callsites
+Forms/Admin/FirstRunView.axaml.cs:51  Brush.Parse("#008800")
+Forms/Admin/FirstRunView.axaml.cs:56  Brush.Parse("#ff5050")
+Forms/POS/SaleView.axaml.cs:331       new SolidColorBrush(Colors.LimeGreen)
+Forms/POS/SaleView.axaml.cs:332       new SolidColorBrush(Colors.OrangeRed)
+Forms/POS/SaleView.axaml.cs:372       new SolidColorBrush(Colors.LimeGreen)
+
+## #6 Form file count
+40 .axaml files under Forms/

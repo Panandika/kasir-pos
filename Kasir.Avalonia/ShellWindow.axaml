@@ -3,7 +3,7 @@
         xmlns:lucide="clr-namespace:Lucide.Avalonia;assembly=Lucide.Avalonia"
         x:Class="Kasir.Avalonia.ShellWindow"
         CanResize="True"
-        Background="#000000"
+        Background="{DynamicResource Bg0Brush}"
         Focusable="True">
   <DockPanel>
 
