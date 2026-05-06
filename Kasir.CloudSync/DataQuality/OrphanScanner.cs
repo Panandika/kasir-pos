@@ -29,7 +29,6 @@ namespace Kasir.CloudSync.DataQuality
         // expected when adding a constraint.
         public static readonly IReadOnlyList<OrphanCheck> Checks = new[]
         {
-            new OrphanCheck("product_barcodes", "product_code", "products", "product_code"),
             new OrphanCheck("sale_items", "journal_no", "sales", "journal_no"),
             new OrphanCheck("sale_items", "product_code", "products", "product_code"),
             new OrphanCheck("stock_movements", "product_code", "products", "product_code"),

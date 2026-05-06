@@ -65,7 +65,7 @@ extract_columns_from_create_block() {
 }
 
 declare -a TABLES=(
-    products product_barcodes departments subsidiaries members
+    products departments subsidiaries members
     discounts discount_partners accounts locations credit_cards
     sales sale_items purchases cash_transactions memorial_journals
     orders stock_transfers stock_adjustments stock_movements
@@ -84,7 +84,6 @@ declare -i DRIFT=0
 # stock_movements, discounts, discount_partners) keep `id` visible to the
 # diff and have it declared in their DDL.
 EXCLUDED_PER_TABLE_products="id"
-EXCLUDED_PER_TABLE_product_barcodes="id"
 EXCLUDED_PER_TABLE_departments="id"
 EXCLUDED_PER_TABLE_subsidiaries="id"
 EXCLUDED_PER_TABLE_members="id"

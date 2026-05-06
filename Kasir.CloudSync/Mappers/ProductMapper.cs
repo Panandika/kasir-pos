@@ -22,7 +22,6 @@ namespace Kasir.CloudSync.Mappers
             {
                 ProductCode = GetString(r, "product_code"),
                 Name = GetString(r, "name"),
-                Barcode = GetString(r, "barcode"),
                 DeptCode = GetString(r, "dept_code"),
                 AccountCode = GetString(r, "account_code"),
                 CategoryCode = GetString(r, "category_code"),
@@ -73,7 +72,6 @@ namespace Kasir.CloudSync.Mappers
             {
                 ProductCode = DictString(data, "product_code"),
                 Name = DictString(data, "name"),
-                Barcode = DictString(data, "barcode"),
                 DeptCode = DictString(data, "dept_code"),
                 AccountCode = DictString(data, "account_code"),
                 CategoryCode = DictString(data, "category_code"),
