@@ -324,6 +324,23 @@ namespace Kasir.CloudSync.Generation
                 I("changed_by"), Ts("changed_at")
             });
 
+        public static readonly TableMapping Shifts = new TableMapping(
+            "shifts",
+            new[]
+            {
+                IntPk("id"),
+                T("register_id"),
+                T("shift_number"),
+                I("cashier_id"),
+                T("opened_at"),
+                T("closed_at"),
+                M("opening_cash"),
+                M("closing_cash"),
+                M("expected_cash"),
+                M("cash_variance"),
+                T("status")
+            });
+
         public static IReadOnlyDictionary<string, TableMapping> All { get; } =
             new Dictionary<string, TableMapping>
             {
@@ -344,7 +361,8 @@ namespace Kasir.CloudSync.Generation
                 { "orders", Orders },
                 { "stock_transfers", StockTransfers },
                 { "stock_adjustments", StockAdjustments },
-                { "stock_movements", StockMovements }
+                { "stock_movements", StockMovements },
+                { "shifts", Shifts }
             };
 
         public static TableMapping Get(string tableName)

@@ -1745,6 +1745,7 @@ CREATE TABLE IF NOT EXISTS shifts (
     opening_cash    INTEGER NOT NULL DEFAULT 0,
     closing_cash    INTEGER,
     expected_cash   INTEGER,
+    cash_variance   INTEGER,
     status          TEXT    NOT NULL DEFAULT 'O' CHECK(status IN ('O','C')),
     UNIQUE(register_id, shift_number, opened_at)
 );

@@ -146,5 +146,12 @@ namespace Kasir.Data
             if (ordinal < 0) return 0L;
             return reader.IsDBNull(ordinal) ? 0L : reader.GetInt64(ordinal);
         }
+
+        public static long? GetNullableLong(SqliteDataReader reader, string column)
+        {
+            int ordinal = FindOrdinal(reader, column);
+            if (ordinal < 0) return null;
+            return reader.IsDBNull(ordinal) ? (long?)null : reader.GetInt64(ordinal);
+        }
     }
 }
