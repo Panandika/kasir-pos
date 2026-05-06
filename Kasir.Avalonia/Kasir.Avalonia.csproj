@@ -27,5 +27,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets/Fonts/**" />
+    <AvaloniaResource Include="Assets/icon-256.png" />
+    <AvaloniaResource Include="Assets/icon.svg" />
   </ItemGroup>
 </Project>

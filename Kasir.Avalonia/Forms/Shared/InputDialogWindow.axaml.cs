@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -5,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Kasir.Avalonia.Infrastructure;
+using Kasir.Utils;
 
 namespace Kasir.Avalonia.Forms.Shared;
 
@@ -18,6 +21,7 @@ public partial class InputDialogWindow : Window
     {
         InitializeComponent();
         Title = title;
+        TitleBlock.Text = title.ToUpperInvariant();
         Height = 80 + (labels.Length * 58) + 60;
         _inputs = new TextBox[labels.Length];
 
@@ -46,12 +50,44 @@ public partial class InputDialogWindow : Window
             };
             _inputs[i] = tb;
 
+            bool isRupiah = labels[i].Contains("Rp", StringComparison.OrdinalIgnoreCase);
+            if (isRupiah)
+            {
+                bool reentry = false;
+                tb.TextChanged += (_, _) =>
+                {
+                    if (reentry) return;
+                    var raw = tb.Text ?? "";
+                    var digits = new string(raw.Where(char.IsDigit).ToArray());
+                    if (string.IsNullOrEmpty(digits))
+                    {
+                        reentry = true; tb.Text = ""; reentry = false; return;
+                    }
+                    if (!long.TryParse(digits, out long val)) return;
+                    var formatted = Formatting.FormatRupiahInput(val);
+                    if (formatted == raw) return;
+                    reentry = true;
+                    tb.Text = formatted;
+                    tb.CaretIndex = formatted.Length;
+                    reentry = false;
+                };
+            }
+
             FieldPanel.Children.Add(lbl);
             FieldPanel.Children.Add(tb);
         }
 
         BtnOk.Click += (_, _) => Accept();
         BtnCancel.Click += (_, _) => { Accepted = false; Close(); };
+
+        this.Opened += (_, _) =>
+        {
+            if (_inputs.Length > 0)
+            {
+                _inputs[0].Focus();
+                _inputs[0].SelectAll();
+            }
+        };
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
