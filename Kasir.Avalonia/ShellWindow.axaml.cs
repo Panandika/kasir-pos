@@ -1,12 +1,16 @@
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Kasir.Data;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Forms;
 using Kasir.Avalonia.Forms.Admin;
 using Kasir.Avalonia.Diagnostics;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia;
 
@@ -18,6 +22,32 @@ public partial class ShellWindow : Window
     {
         InitializeComponent();
         NavigationService.Initialize(this, ContentArea);
+        UpdateThemeGlyph();
+    }
+
+    private void OnThemeTogglePressed(object? sender, RoutedEventArgs e)
+    {
+        ThemeService.Current.Toggle();
+        UpdateThemeGlyph();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        // Check Ctrl+Shift+L BEFORE base so it isn't shadowed by other handlers.
+        if (KeyboardRouter.IsCtrlShiftL(e))
+        {
+            ThemeService.Current.Toggle();
+            UpdateThemeGlyph();
+            e.Handled = true;
+            return;
+        }
+        base.OnKeyDown(e);
+    }
+
+    private void UpdateThemeGlyph()
+    {
+        if (ThemeToggleGlyph is null) return;
+        ThemeToggleGlyph.Text = ThemeService.Current.ActiveVariant == ThemeVariant.Dark ? "☾" : "☀";
     }
 
     protected override async void OnOpened(EventArgs e)

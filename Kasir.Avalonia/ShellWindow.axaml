@@ -4,7 +4,19 @@
         CanResize="True"
         Background="#000000"
         Focusable="True">
-  <ContentControl x:Name="ContentArea"
-                  HorizontalContentAlignment="Stretch"
-                  VerticalContentAlignment="Stretch" />
+  <Grid>
+    <ContentControl x:Name="ContentArea"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch" />
+    <Button x:Name="ThemeToggleBtn"
+            Classes="ghost"
+            ToolTip.Tip="Toggle theme (Ctrl+Shift+L)"
+            Width="36" Height="36"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="0,8,8,0"
+            Click="OnThemeTogglePressed">
+      <TextBlock x:Name="ThemeToggleGlyph" Text="◐" FontSize="18"/>
+    </Button>
+  </Grid>
 </Window>
