@@ -42,34 +42,3 @@ jobs:
         name: kasir-avalonia-win-x64
         path: publish/win-x64/
         retention-days: 14
-
-  build-winforms-legacy:
-    runs-on: windows-latest
-    # Legacy WinForms project is unmaintained per CLAUDE.md — Avalonia is the
-    # active build. Keep job for visibility but don't block merges on it.
-    continue-on-error: true
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
-
-    - name: Restore packages
-      run: msbuild Kasir.sln /t:Restore /p:Configuration=Release /p:Platform=x86
-
-    - name: Build legacy WinForms solution
-      run: msbuild Kasir.sln /p:Configuration=Release /p:Platform=x86 /p:TreatWarningsAsErrors=true
-
-    - name: Setup VSTest
-      uses: darenm/Setup-VSTest@v1.3
-
-    - name: Run legacy tests
-      run: vstest.console.exe Kasir.Tests\bin\Release\Kasir.Tests.dll
-
-    - name: Upload legacy artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: kasir-winforms-legacy
-        path: Kasir/bin/Release/
-        retention-days: 5
