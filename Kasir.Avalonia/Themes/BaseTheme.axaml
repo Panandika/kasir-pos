@@ -173,7 +173,7 @@
       <!-- form bindings (now resolve to Inter / mono fallback).         -->
       <!-- ============================================================ -->
       <FontFamily x:Key="InterFont">avares://Avalonia.Fonts.Inter#Inter</FontFamily>
-      <FontFamily x:Key="JetBrainsMonoFont">JetBrains Mono,Cascadia Mono,Consolas,Menlo,monospace</FontFamily>
+      <FontFamily x:Key="JetBrainsMonoFont">avares://Kasir.Avalonia/Assets/Fonts#JetBrains Mono</FontFamily>
       <FontFamily x:Key="PlexSansFont">avares://Avalonia.Fonts.Inter#Inter</FontFamily>
       <FontFamily x:Key="PlexMonoFont">JetBrains Mono,Cascadia Mono,Consolas,Menlo,monospace</FontFamily>
 
