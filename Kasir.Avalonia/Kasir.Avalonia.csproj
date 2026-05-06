@@ -23,4 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Kasir.Core\Kasir.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/Fonts/**" />
+  </ItemGroup>
 </Project>
