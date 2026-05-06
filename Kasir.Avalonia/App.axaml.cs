@@ -37,7 +37,8 @@ public partial class App : Application
     {
         try
         {
-            var conn = DbConnection.GetConnection();
+            // Background timer thread — must not call GetConnection() (UI-thread-only).
+            var conn = DbConnection.CreateConnection();
             return new ReceiptPrinter(new ConfigRepository(conn));
         }
         catch
