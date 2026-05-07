@@ -88,6 +88,25 @@
                        Foreground="{DynamicResource FgSecondaryBrush}"/>
           </StackPanel>
         </Border>
+
+        <!-- Bantuan hint (G4): pre-trigger affordance, brand-teal, always visible -->
+        <Border x:Name="BantuanHintBadge"
+                Background="{DynamicResource BgSelectedBrush}"
+                BorderBrush="{DynamicResource BrandBrush}"
+                BorderThickness="1"
+                CornerRadius="999"
+                Padding="8,2"
+                VerticalAlignment="Center"
+                ToolTip.Tip="Tekan Ctrl+/ untuk buka Bantuan dari mana saja">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <lucide:LucideIcon Kind="LifeBuoy" Size="10"
+                               Foreground="{DynamicResource BrandBrush}"/>
+            <TextBlock Text="Ctrl+/ Bantuan"
+                       FontSize="{DynamicResource FontSizeXs}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource BrandBrush}"/>
+          </StackPanel>
+        </Border>
       </StackPanel>
     </Border>
 
