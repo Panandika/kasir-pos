@@ -1,0 +1,246 @@
+{
+  "project": "kasir-pos Avalonia Design System Consolidation",
+  "branch": "feature/avalonia-migration",
+  "specRef": "plans/DESIGN-SYSTEM.md (v2)",
+  "notes": "Design-system phase following successful PRD phases 0-4 in .omc/prd.json. Ralph executes DS-0 (blocking gate) sequentially; team skill executes DS-1..DS-5 with dependency ordering. 482 hardcoded values (238 #00dc00 + 244 FontFamily=Consolas) across 39 AXAML files to centralize.",
+  "stories": [
+    {
+      "id": "US-DS-0",
+      "title": "DS-0: Avalonia 12.x Compatibility Checkpoint (BLOCKING GATE)",
+      "passes": true,
+      "executor": "ralph",
+      "dependsOn": [],
+      "acceptanceCriteria": [
+        "dotnet build Kasir.Avalonia.slnx passes on Avalonia 12.x",
+        "dotnet publish -c Release -r win-x64 --self-contained produces a runnable .exe with embedded fonts",
+        "plans/DS-0-COMPATIBILITY.md exists with go/no-go verdict and evidence",
+        "FluentTheme + Avalonia.Controls.DataGrid/Themes/Fluent.xaml verified working on Avalonia 12.x (documented in DS-0-COMPATIBILITY.md)",
+        "Semi.Avalonia / Ursa.Avalonia 12.x compatibility status recorded with links to GitHub issues/releases",
+        "Verdict is GO (proceed with Option B: FluentTheme + BaseTheme layered overrides) or PIVOT (fall back to Option C: SimpleTheme + hand-built ControlTemplates) with documented justification",
+        "git commit with message 'ds-0: avalonia 12.x compatibility checkpoint'"
+      ]
+    },
+    {
+      "id": "US-DS-1",
+      "title": "DS-1: Audit All 39 AXAML Files \u2014 Catalog Hardcoded Values and Patterns",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-0"
+      ],
+      "acceptanceCriteria": [
+        "plans/DS-1-AUDIT.md exists with per-file inventory of every .axaml under kasir-pos/Kasir.Avalonia/Forms/",
+        "Audit includes hardcoded color counts (every unique hex value listed), hardcoded FontFamily count, hardcoded FontSize count, recurring layout patterns, and missing CompiledBindings/x:DataType markers",
+        "Consolidated token mapping table present: each unique hardcoded color mapped to proposed semantic token from DESIGN-SYSTEM.md \u00a75, or explicitly marked 'remove'",
+        "grep -rc '#[0-9a-fA-F]\\{6\\}' Forms/**/*.axaml total matches audit total",
+        "grep -c 'FontFamily=' Forms/**/*.axaml count matches audit total (currently 244)",
+        "grep -c '#00dc00' Forms/**/*.axaml count matches audit total (currently 238)",
+        "git commit with message 'ds-1: audit hardcoded values across 39 axaml files'"
+      ]
+    },
+    {
+      "id": "US-DS-2",
+      "title": "DS-2: Create BaseTheme.axaml \u2014 Shared Styles and Semantic Tokens",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-1"
+      ],
+      "acceptanceCriteria": [
+        "kasir-pos/Kasir.Avalonia/Themes/BaseTheme.axaml exists with all 17 semantic color tokens from DESIGN-SYSTEM.md \u00a75.1 as <Color> and <SolidColorBrush> resources",
+        "BaseTheme.axaml contains font family resources: PlexSansFont (UI), JetBrainsMonoFont (numeric), PlexMonoFont (receipt preview)",
+        "BaseTheme.axaml contains density tokens from DESIGN-SYSTEM.md \u00a74 (row-height, control-height, font-size-body, font-size-numeric, cell-padding-x, cell-padding-y, section-gap, form-padding) as resources",
+        "BaseTheme.axaml contains shared <Style> definitions for TextBlock, TextBox, Button, Menu, MenuItem, DataGrid, DataGridRow, DataGridColumnHeader based on DS-1 audit findings",
+        "App.axaml includes <FluentTheme /> followed by <StyleInclude Source='avares://Kasir.Avalonia/Themes/BaseTheme.axaml' /> (Option B per FluentTheme Migration Decision)",
+        "ThemeConstants.cs color values match BaseTheme.axaml token values",
+        "Font files embedded as AvaloniaResource in Kasir.Avalonia.csproj",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "Specificity smoke test documented: at least one Fluent DataGrid style override verified to apply correctly (per Architect synthesis)",
+        "git commit with message 'ds-2: create BaseTheme.axaml with semantic tokens and shared styles'"
+      ]
+    },
+    {
+      "id": "US-DS-3a",
+      "title": "DS-3a: Migration Batch \u2014 Forms/Shared/ + Forms/ (Login, MainMenu)",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-2"
+      ],
+      "acceptanceCriteria": [
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Shared/*.axaml returns 0",
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Login*.axaml returns 0",
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/MainMenu*.axaml returns 0",
+        "grep -c 'FontFamily=\"Consolas' in batch files returns 0",
+        "CompiledBindings=\"True\" present on every Window/UserControl in batch",
+        "All hardcoded colors replaced with {DynamicResource <TokenName>} per DS-1 token mapping",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "Visual spot check: login form and main menu render correctly on manual launch",
+        "git commit with message 'ds-3a: migrate Shared + Login + MainMenu to semantic tokens'"
+      ]
+    },
+    {
+      "id": "US-DS-3b",
+      "title": "DS-3b: Migration Batch \u2014 Forms/POS/",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3a"
+      ],
+      "acceptanceCriteria": [
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/POS/*.axaml returns 0",
+        "grep -c 'FontFamily=\"Consolas' kasir-pos/Kasir.Avalonia/Forms/POS/*.axaml returns 0",
+        "CompiledBindings=\"True\" and x:DataType present on every view in Forms/POS/",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "Visual spot check: SaleView, PaymentView, ShiftView, CalculatorDialog render and keyboard navigation works (F3/F7/F8/F9/F11/F12)",
+        "git commit with message 'ds-3b: migrate POS forms to semantic tokens'"
+      ]
+    },
+    {
+      "id": "US-DS-3c",
+      "title": "DS-3c: Migration Batch \u2014 Forms/Admin/",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3a"
+      ],
+      "acceptanceCriteria": [
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Admin/*.axaml returns 0",
+        "grep -c 'FontFamily=\"Consolas' kasir-pos/Kasir.Avalonia/Forms/Admin/*.axaml returns 0",
+        "CompiledBindings=\"True\" and x:DataType present on every view in Forms/Admin/",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "git commit with message 'ds-3c: migrate Admin forms to semantic tokens'"
+      ]
+    },
+    {
+      "id": "US-DS-3d",
+      "title": "DS-3d: Migration Batch \u2014 Forms/Master/",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3a"
+      ],
+      "acceptanceCriteria": [
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Master/*.axaml returns 0",
+        "grep -c 'FontFamily=\"Consolas' kasir-pos/Kasir.Avalonia/Forms/Master/*.axaml returns 0",
+        "CompiledBindings=\"True\" and x:DataType present on every view in Forms/Master/",
+        "DataGrid in Master/ views stretches full width with no column truncation at 1366x768 (ui-improvements.md item 5)",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "git commit with message 'ds-3d: migrate Master forms to semantic tokens'"
+      ]
+    },
+    {
+      "id": "US-DS-3e",
+      "title": "DS-3e: Migration Batch \u2014 Forms/Purchasing/",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3a"
+      ],
+      "acceptanceCriteria": [
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Purchasing/*.axaml returns 0",
+        "grep -c 'FontFamily=\"Consolas' kasir-pos/Kasir.Avalonia/Forms/Purchasing/*.axaml returns 0",
+        "CompiledBindings=\"True\" and x:DataType present on every view in Forms/Purchasing/",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "git commit with message 'ds-3e: migrate Purchasing forms to semantic tokens'"
+      ]
+    },
+    {
+      "id": "US-DS-3f",
+      "title": "DS-3f: Migration Batch \u2014 Forms/Accounting/",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3a"
+      ],
+      "acceptanceCriteria": [
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Accounting/*.axaml returns 0",
+        "grep -c 'FontFamily=\"Consolas' kasir-pos/Kasir.Avalonia/Forms/Accounting/*.axaml returns 0",
+        "CompiledBindings=\"True\" and x:DataType present on every view in Forms/Accounting/",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "git commit with message 'ds-3f: migrate Accounting forms to semantic tokens'"
+      ]
+    },
+    {
+      "id": "US-DS-3g",
+      "title": "DS-3g: Migration Batch \u2014 Forms/Inventory/",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3a"
+      ],
+      "acceptanceCriteria": [
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Inventory/*.axaml returns 0",
+        "grep -c 'FontFamily=\"Consolas' kasir-pos/Kasir.Avalonia/Forms/Inventory/*.axaml returns 0",
+        "CompiledBindings=\"True\" and x:DataType present on every view in Forms/Inventory/",
+        "DataGrid in Opname view stretches full width (ui-improvements.md item 5)",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "git commit with message 'ds-3g: migrate Inventory forms to semantic tokens'"
+      ]
+    },
+    {
+      "id": "US-DS-3h",
+      "title": "DS-3h: Migration Batch \u2014 Forms/Bank/ + Forms/Reports/",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3a"
+      ],
+      "acceptanceCriteria": [
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Bank/*.axaml returns 0",
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/Reports/*.axaml returns 0",
+        "grep -c 'FontFamily=\"Consolas' in batch files returns 0",
+        "CompiledBindings=\"True\" and x:DataType present on every view in batch",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "Global regression gate: grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/**/*.axaml returns 0 (all batches complete)",
+        "Global regression gate: grep -c 'FontFamily=\"Consolas' kasir-pos/Kasir.Avalonia/Forms/**/*.axaml returns 0",
+        "git commit with message 'ds-3h: migrate Bank + Reports forms; all DS-3 batches complete'"
+      ]
+    },
+    {
+      "id": "US-DS-4",
+      "title": "DS-4: Main Menu Redesign \u2014 Bento Tiles + Shortcut Underlines (app-wide)",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3h"
+      ],
+      "acceptanceCriteria": [
+        "MainMenuView.axaml renders 8 tiles filling the main area below the status bar",
+        "Tile order matches current menu-bar order exactly: Transaksi \u2192 Master \u2192 Pembelian \u2192 Gudang \u2192 Akuntansi \u2192 Bank \u2192 Laporan \u2192 Admin",
+        "Every Alt+letter shortcut from the previous menu bar works identically on the new bento layout (manual test documented)",
+        "Sub-menu structure and sub-menu shortcut keys are untouched (diff check against pre-change sub-menu AXAML)",
+        "Arrow keys move focus between tiles; Enter or shortcut letter opens the tile's sub-menu; Esc returns to previous state",
+        "F10 focuses the main menu (preserved from current behavior)",
+        "Shortcut letters visibly underlined on all bento tiles AND on all sub-menu items app-wide (TextDecorations=\"Underline\" or AccessText with ShowAccessKey)",
+        "grep -c '#00dc00' kasir-pos/Kasir.Avalonia/Forms/MainMenuView.axaml returns 0",
+        "Every file containing MenuItem with _ access key also contains underline styling (regression gate)",
+        "F10 \u2192 bento visible \u2264 100ms (logged via DS-5 perf instrumentation)",
+        "dotnet build Kasir.Avalonia.slnx passes",
+        "git commit with message 'ds-4: bento main menu with shortcut underlines'"
+      ]
+    },
+    {
+      "id": "US-DS-5",
+      "title": "DS-5: Performance Instrumentation + CI Gates",
+      "passes": true,
+      "executor": "team",
+      "dependsOn": [
+        "US-DS-3h"
+      ],
+      "acceptanceCriteria": [
+        "kasir-pos/Kasir.Avalonia/Diagnostics/PerfMetrics.cs exists and uses Stopwatch for all measurements",
+        "7 perf budgets from DESIGN-SYSTEM.md \u00a78 instrumented: keypress echo, barcode scan to line added, F8 to payment visible, sale commit, FTS5 search, form open (cold/warm), app startup",
+        "Each metric emits PASS or FAIL (vs budget) per interaction in structured log output (console + file)",
+        "CI script exists (e.g., ci/grep-assertions.sh) that runs on every build and fails on violation",
+        "CI script asserts: grep -rc 'DropShadowEffect\\|BlurEffect\\|OpacityMask\\|Acrylic' Forms/**/*.axaml returns 0",
+        "CI script asserts: grep -c '#00dc00' Forms/**/*.axaml returns 0 (regression gate for DS-3)",
+        "CI script asserts: grep -c 'FontFamily=\"Consolas' Forms/**/*.axaml returns 0 (regression gate for DS-3)",
+        "CI script asserts: every Window/UserControl has CompiledBindings=\"True\" and x:DataType",
+        "build.yml updated to run CI script as part of standard build job",
+        "dotnet build Kasir.Avalonia.slnx passes with CI gates enabled",
+        "git commit with message 'ds-5: perf instrumentation + CI regression gates'"
+      ]
+    }
+  ]
+}
