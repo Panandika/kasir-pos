@@ -1,5 +1,7 @@
 # Supabase — Bantuan Help Assistant
 
+> **Note:** Schema migrations have moved to `sinar-makmur-dashboard/supabase/migrations/0031_*` and `0032_*`. This directory now contains only Edge Functions; the `001_*.sql` and `002_*.sql` files here are stub redirects, not active migrations.
+
 Server-side artefacts for the Bantuan feature: schema, RPC, Edge Functions.
 Registers never run any of this — they call the Edge Functions over HTTPS.
 
