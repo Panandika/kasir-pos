@@ -1,9 +1,11 @@
 using System;
+using System.Net.Http;
 using Avalonia.Threading;
 using Microsoft.Data.Sqlite;
 using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Help;
+using Kasir.Help.Auth;
 using Kasir.Help.KnowledgeBase;
 
 namespace Kasir.Avalonia.Forms.Help;
@@ -24,6 +26,9 @@ public sealed class BantuanOverlayHost
 {
     private static BantuanOverlayHost? _instance;
     public static BantuanOverlayHost Current => _instance ??= new BantuanOverlayHost();
+
+    // Shared HttpClient — one per process, reused for all Bantuan HTTPS calls.
+    private static readonly HttpClient _http = new HttpClient();
 
     private BantuanGlassStrip? _strip;
     private bool _open;
@@ -49,7 +54,24 @@ public sealed class BantuanOverlayHost
         var db = DbConnection.GetConnection();
 
         var faqRepo = new HelpFaqRepository(db);
-        var retriever = new HybridRetriever(faqRepo, null!); // null remote → offline-only v1
+
+        // Build remote IHelpAskClient when machine-auth config is available.
+        // When config is missing or load fails, retriever falls back to FTS5-only.
+        var config = HelpConfigLoader.TryLoad();
+        IHelpAskClient? askClient = null;
+        if (config != null)
+        {
+            var auth = SupabaseMachineAuth.Current;
+            askClient = new HttpHelpAskClient(
+                _http,
+                $"{config.SupabaseUrl.TrimEnd('/')}/functions/v1/help-ask",
+                config.AnonKey,
+                auth.GetAccessTokenAsync)
+            {
+                Timeout = TimeSpan.FromSeconds(5) // PM3: cold-start budget
+            };
+        }
+        var retriever = new HybridRetriever(faqRepo, askClient);
         var ticketGen = new TicketNumberGenerator(db, StoreShort, RegisterId);
         var collector = new ContextCollector(new PiiScrubber());
         var service = new HelpService(db, retriever, collector, ticketGen, StoreId);

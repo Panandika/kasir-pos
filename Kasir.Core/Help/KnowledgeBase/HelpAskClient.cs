@@ -25,7 +25,9 @@ namespace Kasir.Help.KnowledgeBase
         private readonly string _anonKey;
         private readonly Func<CancellationToken, Task<string>> _accessTokenProvider;
 
-        public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(1);
+        // PM3 mitigation: Edge Function cold-start (~800ms) + OpenAI embed (~300ms)
+        // routinely exceeds 1s. 5s gives headroom while UI shows a spinner.
+        public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
 
         public HttpHelpAskClient(
             HttpClient http,

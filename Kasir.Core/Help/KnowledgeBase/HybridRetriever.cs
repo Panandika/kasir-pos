@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,9 +34,9 @@ namespace Kasir.Help.KnowledgeBase
         private const double AmbiguousThreshold = 0.4;
 
         private readonly HelpFaqRepository _localRepo;
-        private readonly IHelpAskClient _remoteClient;
+        private readonly IHelpAskClient? _remoteClient;
 
-        public HybridRetriever(HelpFaqRepository localRepo, IHelpAskClient remoteClient)
+        public HybridRetriever(HelpFaqRepository localRepo, IHelpAskClient? remoteClient)
         {
             _localRepo = localRepo;
             _remoteClient = remoteClient;
