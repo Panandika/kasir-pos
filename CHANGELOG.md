@@ -1,5 +1,67 @@
 # Changelog
 
+## [2.5.0](https://github.com/Panandika/kasir-pos/compare/v2.4.0...v2.5.0) (2026-05-11)
+
+
+### Features
+
+* **chrome:** cloud sync setup screen + creds service + dev README ([5960c94](https://github.com/Panandika/kasir-pos/commit/5960c949843256bc0f31268511bebaf0d53c9806))
+* **chrome:** footer status badges — printer + cloud + version ([cee97cf](https://github.com/Panandika/kasir-pos/commit/cee97cfbc2635382b5973ec493f97eaac602bde9))
+* **chrome:** footer status badges — printer + cloud sync + version ([3951bcd](https://github.com/Panandika/kasir-pos/commit/3951bcd8d9ab8568392697d5582a5a3413db3d0c))
+* **help:** add Ctrl+/ Bantuan hint to status bar (G4) ([3184210](https://github.com/Panandika/kasir-pos/commit/3184210c64047919d38555376bb838547fe8b1a7))
+* **help:** Bantuan glass strip overlay + 15 states (Phases 6-8) ([5f825bb](https://github.com/Panandika/kasir-pos/commit/5f825bb7b781b498213534cf6ae184190240d09f))
+* **help:** Bantuan inline-glass help assistant (15 states) ([49c51e8](https://github.com/Panandika/kasir-pos/commit/49c51e88f8bc741fc44d52218ce2289f080319b8))
+* **help:** Bantuan schema + repos + plan (Phase 1) ([81fdc95](https://github.com/Panandika/kasir-pos/commit/81fdc9525f4854310255e72c66c5b3dae9084811))
+* **help:** DocIngester + HelpIngest CLI + starter FAQ (Phase 2) ([1d28ac6](https://github.com/Panandika/kasir-pos/commit/1d28ac6b5e9d371b5489e4a7218182fd53e1e6de))
+* **help:** retrieval + PII scrub + ticket numbering + service (Phase 5) ([56678bc](https://github.com/Panandika/kasir-pos/commit/56678bc076e946bec2306d5367648a0e716ece3e))
+* **help:** standalone sync drainer + Edge Function client (Phase 4) ([fbca82a](https://github.com/Panandika/kasir-pos/commit/fbca82a071d7d515c8cdaaed8f268e0629aa6910))
+* **help:** Supabase schema + Edge Functions (Phase 3) ([81bafad](https://github.com/Panandika/kasir-pos/commit/81bafada88c1e9b5d102ebdd5aaf64b8bc030e5f))
+* **help:** SupabaseMachineAuth + wire HttpHelpAskClient + auto-start sync ([6b40b1f](https://github.com/Panandika/kasir-pos/commit/6b40b1f5946e7ef4cbccaca3766f72bc076fd1a3))
+* legacy gap closure (sisyphus plan) — POS density, purchase invoice fields, theme polish ([da73d1c](https://github.com/Panandika/kasir-pos/commit/da73d1c9bdabd5368ffe69a48d6129020e8c1140))
+* **migration:** add Migration_004 for purchases.terms and received_date ([43bf2dd](https://github.com/Panandika/kasir-pos/commit/43bf2dd492c4f62c9e38572418446cfb0dfc8447))
+* **pos:** add kembalian banner, + quick-cash, numeric input behavior ([499e365](https://github.com/Panandika/kasir-pos/commit/499e365d5a9c2a8544401b573dab61c3adbf0817))
+* **pos:** improve SaleView density, add Bank tile, add stock columns ([033d389](https://github.com/Panandika/kasir-pos/commit/033d389610e58159c7970b574a73ca6c41c11709))
+* **pos:** P5b SaleView SUBTOTAL via tokens + footer Auto rows ([6872029](https://github.com/Panandika/kasir-pos/commit/6872029f1164c8fa256aef8bab5a2bc5fe7a257c))
+* **purchase:** add missing invoice fields, negative stock colors, search density ([1d91cb0](https://github.com/Panandika/kasir-pos/commit/1d91cb08dbff8bdebc508bfb9d45b659a8c262cb))
+* **release:** matrix-build 3 per-register ZIPs with baked help.json ([95de7ed](https://github.com/Panandika/kasir-pos/commit/95de7edc28d6e2c2ca5f74ede0b9532326bb350b))
+* **release:** matrix-build 3 per-register ZIPs with baked help.json ([cfd147c](https://github.com/Panandika/kasir-pos/commit/cfd147cbf0fcccd22fb34842518a8edd9d4633f3))
+* **schema,master:** drop barcode, single-screen ProductView, F8 wholesale tiers ([360c5bd](https://github.com/Panandika/kasir-pos/commit/360c5bdd48123e212102759bfb0a19156ef4be2b))
+* **theme:** Design System v2 — modern retail-POS migration ([1d95c69](https://github.com/Panandika/kasir-pos/commit/1d95c698353b7ad14c0c35b92bb59bc36537c8b9))
+* **theme:** improve DataGrid terminal density and POS footer ([839df4b](https://github.com/Panandika/kasir-pos/commit/839df4b3c008e52792831aa340948b32a00b1f89))
+* **theme:** P1 dual-variant tokens — 20 colors x Dark/Light + density/radius/font tokens ([6bc20f6](https://github.com/Panandika/kasir-pos/commit/6bc20f6e524e091f5b86816a58dd0443dff576d8))
+* **theme:** P2 bundle JetBrains Mono TTF as AvaloniaResource ([5d656a2](https://github.com/Panandika/kasir-pos/commit/5d656a258e49f1c38bd2533f32394e01f6f4399c))
+* **theme:** P3 ThemeService + Ctrl+Shift+L toggle + persistence ([0016389](https://github.com/Panandika/kasir-pos/commit/00163897c697df67862c64342ef5a39964be8eeb))
+* **theme:** P4 Lucide.Avalonia icons — theme toggle + main menu tiles ([df00f07](https://github.com/Panandika/kasir-pos/commit/df00f07d668dfcf49ba3c01980f3831b813c44c6))
+* **theme:** P5c apply Classes="compact" to Reports/Master/Inventory grids ([3fa0824](https://github.com/Panandika/kasir-pos/commit/3fa08241adb2e50453b191c66dccbe709ff7b7f8))
+* **theme:** P6 sync status badge + hint bar in ShellWindow ([18e73da](https://github.com/Panandika/kasir-pos/commit/18e73dabd1fd027c3cd1fd7f3546b7544a877cb7))
+* **ui:** global footer status helper with auto-revert ([60bbd60](https://github.com/Panandika/kasir-pos/commit/60bbd6000fc68c128ad6ecf1eef82d4c02a85309))
+* **ui:** show update badge and footer toast on main menu ([36fd68f](https://github.com/Panandika/kasir-pos/commit/36fd68f77c61e7391932aad718f9d4e94180db74))
+* user_review[#1](https://github.com/Panandika/kasir-pos/issues/1) — POS payment flow, footer hints, ProductView redesign ([9c7b74e](https://github.com/Panandika/kasir-pos/commit/9c7b74eefd373210bf96ee48267abc2b654ad164))
+
+
+### Bug Fixes
+
+* **chrome:** PrinterStatusModel use CreateConnection (background-thread-safe) ([c00f033](https://github.com/Panandika/kasir-pos/commit/c00f03389a475d9c00d0b9aa708fb842eaac5755))
+* **cloudsync:** align cloud schema with main (drop barcode + product_barcodes, update purchases cols) ([ad49c1d](https://github.com/Panandika/kasir-pos/commit/ad49c1de869fadedd561731420ed6da69703e7cd))
+* **master:** use location codes T/G not display names in ProductView stok grid ([6ccfee0](https://github.com/Panandika/kasir-pos/commit/6ccfee0db5e19533a1e62563b7a263dd781328f6))
+* **money:** accept id-ID rupiah format (100.000) in currency inputs ([fb0359b](https://github.com/Panandika/kasir-pos/commit/fb0359bcc03bfe65b51534f2810a752e16f68b45))
+* **pos:** address Slice 1 review findings ([2609388](https://github.com/Panandika/kasir-pos/commit/26093886780148b697bc9f8701a49b73e6d5dbbc))
+* **purchase:** widen UnitPrice cast to long, set GrossAmount in Save() ([f7dad82](https://github.com/Panandika/kasir-pos/commit/f7dad82041c430feabcd67fba4f0c7bde9036801))
+* **purchasing:** auto-size header borders to prevent DataGrid overlap ([614ca0f](https://github.com/Panandika/kasir-pos/commit/614ca0f395c16c0bb22494e02c81b824b2f5197e))
+* **theme:** remove redundant ShellWindow hint bar (forms own their own) ([2adbc09](https://github.com/Panandika/kasir-pos/commit/2adbc09c6ad170e53c8a729822ae6e309b83b7d7))
+* **theme:** ShellWindow Background uses Bg0Brush (was hardcoded [#000000](https://github.com/Panandika/kasir-pos/issues/000000)) ([7b74d4e](https://github.com/Panandika/kasir-pos/commit/7b74d4e4e2d1df0f82dda63d3cd194b38947461d))
+* **theme:** use variant-aware ThemeResources for FindResource calls ([e61aa19](https://github.com/Panandika/kasir-pos/commit/e61aa19e095d7c6bb05ee1624902f1daa6f91256))
+* **ui:** InputDialog full-screen scrim + add macOS .app bundle script ([c10d4ee](https://github.com/Panandika/kasir-pos/commit/c10d4eed87f78b80efd73106d6efce1a6c6617c1))
+* **ui:** InputDialog title + autofocus + live rupiah formatting; add app icon ([ecfaa1d](https://github.com/Panandika/kasir-pos/commit/ecfaa1d409540d331f3ecc902ae6054f74783bd1))
+* **ui:** use registered default in SaleView warning, remove dead field ([1d5c0c7](https://github.com/Panandika/kasir-pos/commit/1d5c0c789a7f89eb88c0b3a78dcef6016013c860))
+
+
+### Refactoring
+
+* **theme:** P5a migrate hardcoded brushes to DynamicResource ([78f0823](https://github.com/Panandika/kasir-pos/commit/78f082371bd6ff366c2c8b1730810b8447cab6d7))
+* **ui:** convert MsgBox/Calculator/Payment/Wholesale windows to overlays ([8b9c20f](https://github.com/Panandika/kasir-pos/commit/8b9c20f73b2be8fef8662f53faeee9e86b863963))
+* **ui:** InputDialog to in-window overlay (no separate OS window) ([7b6725e](https://github.com/Panandika/kasir-pos/commit/7b6725e451f9e42999235b30dab01233e123d343))
+
 ## [2.4.0](https://github.com/Panandika/kasir-pos/compare/v2.3.0...v2.4.0) (2026-04-25)
 
 
