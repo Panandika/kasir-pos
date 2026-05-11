@@ -24,13 +24,17 @@ namespace Kasir.Help.Auth
         /// Load HelpConfig from disk. Returns null when the file is missing,
         /// unreadable, or malformed. NEVER throws — caller treats null as
         /// "Bantuan operates in offline-only mode" (graceful degradation).
+        ///
+        /// Search order:
+        ///   1. %APPDATA%\Kasir\help.json (or ~/.kasir/help.json on non-Windows) — operator override
+        ///   2. {exe directory}/help.json — per-register baked into release ZIP
         /// </summary>
         public static HelpConfig? TryLoad()
         {
             try
             {
-                string path = ResolvePath();
-                if (!File.Exists(path)) return null;
+                string? path = ResolveExistingPath();
+                if (path is null) return null;
 
                 string raw = File.ReadAllText(path);
                 using var doc = JsonDocument.Parse(raw);
@@ -63,6 +67,7 @@ namespace Kasir.Help.Auth
 
         /// <summary>
         /// %APPDATA%\Kasir\help.json on Windows; ~/.kasir/help.json otherwise.
+        /// This is the OPERATOR OVERRIDE path — wins over the baked-in copy if present.
         /// </summary>
         public static string ResolvePath()
         {
@@ -73,6 +78,28 @@ namespace Kasir.Help.Auth
             }
             string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             return Path.Combine(home, ".kasir", "help.json");
+        }
+
+        /// <summary>
+        /// Path next to the running executable. Used by the release ZIP build —
+        /// release.yml writes per-register help.json into the publish dir so each
+        /// register's binary ships with its own machine credentials.
+        /// </summary>
+        public static string ResolveExePath()
+        {
+            return Path.Combine(AppContext.BaseDirectory, "help.json");
+        }
+
+        /// <summary>
+        /// Returns the first existing path from the search order, or null.
+        /// </summary>
+        private static string? ResolveExistingPath()
+        {
+            string overridePath = ResolvePath();
+            if (File.Exists(overridePath)) return overridePath;
+            string exePath = ResolveExePath();
+            if (File.Exists(exePath)) return exePath;
+            return null;
         }
 
         private static string ReadString(JsonElement root, string name)
