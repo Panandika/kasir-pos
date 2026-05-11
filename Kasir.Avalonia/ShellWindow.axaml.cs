@@ -1,5 +1,7 @@
 using System;
 using System.ComponentModel;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,6 +12,8 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Kasir.Data;
+using Kasir.Help;
+using Kasir.Help.Auth;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Forms;
 using Kasir.Avalonia.Forms.Admin;
@@ -22,6 +26,8 @@ namespace Kasir.Avalonia;
 public partial class ShellWindow : Window
 {
     private bool _firstOpen = true;
+    private readonly CancellationTokenSource _shellCts = new CancellationTokenSource();
+    private static readonly HttpClient _shellHttp = new HttpClient();
 
     public ShellWindow()
     {
@@ -63,6 +69,12 @@ public partial class ShellWindow : Window
         {
             ThemeService.Current.Toggle();
             UpdateThemeIcon();
+            e.Handled = true;
+            return;
+        }
+        if (KeyboardRouter.IsCtrlSlash(e))
+        {
+            Forms.Help.BantuanOverlayHost.Current.Toggle(this);
             e.Handled = true;
             return;
         }
@@ -193,6 +205,37 @@ public partial class ShellWindow : Window
         }
 
         await Task.Run(() => DbConnection.InitializeDatabase());
+
+        // Auto-start HelpSyncService to drain queued Bantuan tickets.
+        // Fire-and-forget: never block shell startup. Graceful degradation if
+        // help.json is missing — Bantuan still works offline (FTS5 + local queue).
+        try
+        {
+            var config = HelpConfigLoader.TryLoad();
+            if (config != null)
+            {
+                var auth = SupabaseMachineAuth.Current;
+                var reportClient = new HttpHelpReportClient(
+                    _shellHttp,
+                    $"{config.SupabaseUrl.TrimEnd('/')}/functions/v1/help-report",
+                    config.AnonKey,
+                    auth.GetAccessTokenAsync);
+                var syncService = new HelpSyncService(DbConnection.GetConnection(), reportClient);
+                _ = syncService.RunAsync(_shellCts.Token);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log but never block shell startup — graceful degradation principle.
+            Console.Error.WriteLine($"HelpSyncService startup failed: {ex.Message}");
+        }
+
         NavigationService.Navigate(new LoginView());
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        try { _shellCts.Cancel(); } catch { }
+        base.OnClosed(e);
     }
 }
