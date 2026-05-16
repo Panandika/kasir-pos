@@ -14,6 +14,7 @@ namespace Kasir.Services
         private readonly SaleRepository _saleRepo;
         private readonly CounterRepository _counterRepo;
         private readonly ConfigRepository _configRepo;
+        private readonly ShiftRepository _shiftRepo;
         private readonly PricingEngine _pricingEngine;
         private readonly DiscountEngine _discountEngine;
         private readonly DiscountRepository _discountRepo;
@@ -33,6 +34,7 @@ namespace Kasir.Services
             _saleRepo = new SaleRepository(db);
             _counterRepo = new CounterRepository(db);
             _configRepo = new ConfigRepository(db);
+            _shiftRepo = new ShiftRepository(db);
             _pricingEngine = new PricingEngine();
             _discountEngine = new DiscountEngine();
             _discountRepo = new DiscountRepository(db);
@@ -248,6 +250,10 @@ namespace Kasir.Services
             }
 
             string registerId = _configRepo.Get("register_id") ?? "01";
+            // Resolve active shift; fall back to _currentShift only when no shift
+            // has been opened (e.g. tests). Real prod path always opens a shift first.
+            var openShift = _shiftRepo.GetOpenShift(registerId);
+            string activeShift = openShift != null ? openShift.ShiftNumber : (_currentShift ?? "1");
             string journalNo = _counterRepo.GetNext("KLR", registerId);
             string today = _clock.Now.ToString("yyyy-MM-dd");
             string period = _clock.Now.ToString("yyyyMM");
@@ -264,7 +270,7 @@ namespace Kasir.Services
                 CardCode = cardCode ?? "",
                 CardType = cardType ?? "",
                 Cashier = _cashierAlias ?? "",
-                Shift = _currentShift ?? "1",
+                Shift = activeShift,
                 PaymentAmount = cashAmount + cardAmount + voucherAmount,
                 CashAmount = cashAmount,
                 NonCash = cardAmount,
