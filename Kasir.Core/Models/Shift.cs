@@ -11,6 +11,7 @@ namespace Kasir.Models
         public long OpeningCash { get; set; }
         public long ClosingCash { get; set; }
         public long ExpectedCash { get; set; }
+        public long? CashVariance { get; set; }
         public string Status { get; set; }
     }
 }

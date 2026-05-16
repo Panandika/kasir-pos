@@ -145,6 +145,32 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@date", date));
         }
 
+        /// <summary>
+        /// Net cash that should be in the drawer for a given register/shift.
+        /// Sums (cash_amount - change_amount) for SALE rows, subtracts the same
+        /// for SALE_RETURN. Excludes voided rows (control=3) and edited/replaced
+        /// rows (control IN (4,5)) to avoid double-counting. Card / credit /
+        /// voucher portions are not in cash_amount so do not inflate the result.
+        /// </summary>
+        public long GetCashSinceShift(string registerId, string shiftNumber)
+        {
+            return SqlHelper.ExecuteScalar<long>(_db,
+                @"SELECT COALESCE(SUM(
+                      CASE WHEN doc_type = 'SALE'
+                           THEN cash_amount - change_amount
+                           WHEN doc_type = 'SALE_RETURN'
+                           THEN -(cash_amount - change_amount)
+                           ELSE 0
+                      END
+                  ), 0)
+                  FROM sales
+                  WHERE register_id = @reg
+                    AND shift = @shift
+                    AND control NOT IN (3, 4, 5)",
+                SqlHelper.Param("@reg", registerId),
+                SqlHelper.Param("@shift", shiftNumber));
+        }
+
         public int GetDailyCount(string date)
         {
             return SqlHelper.ExecuteScalar<int>(_db,
