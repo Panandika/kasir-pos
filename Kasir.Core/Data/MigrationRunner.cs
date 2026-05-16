@@ -16,9 +16,10 @@ namespace Kasir.Data
             new Migration_003(),
             new Migration_004(),
             new Migration_005(),
-            new Migration_006()
+            new Migration_006(),
+            new Migration_007()
             // Add new migrations here in order:
-            // new Migration_007(),
+            // new Migration_008(),
         };
 
         /// <summary>
