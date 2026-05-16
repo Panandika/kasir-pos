@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.1](https://github.com/Panandika/kasir-pos/compare/v2.5.0...v2.5.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **shift:** correct expected drawer cash reconciliation ([dc98084](https://github.com/Panandika/kasir-pos/commit/dc980848ab66f91e7de9d55b161ff0776cb7f81b))
+* **shift:** tighten transaction isolation and date boundaries ([3e1e467](https://github.com/Panandika/kasir-pos/commit/3e1e467b34c9d9d464bf69bd47027dd5d511217e))
+
 ## [2.5.0](https://github.com/Panandika/kasir-pos/compare/v2.4.0...v2.5.0) (2026-05-11)
 
 
