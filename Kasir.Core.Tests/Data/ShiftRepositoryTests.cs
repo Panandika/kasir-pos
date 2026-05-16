@@ -117,5 +117,72 @@ namespace Kasir.Tests.Data
             var loaded = _repo.GetById(id);
             loaded.CashVariance.Should().BeNull();
         }
+
+        [Test]
+        public void NextShiftNumber_ShiftAt2359_CountedForThatDay()
+        {
+            OpenAt("2026-05-07 23:59:59");
+            _repo.NextShiftNumber("01", "2026-05-07").Should().Be("2");
+        }
+
+        [Test]
+        public void NextShiftNumber_ShiftAtMidnight_NotCountedForPreviousDay()
+        {
+            OpenAt("2026-05-08 00:00:00");
+            _repo.NextShiftNumber("01", "2026-05-07").Should().Be("1");
+        }
+
+        [Test]
+        public void OpenShiftAtomic_AssignsShiftNumberAndInserts()
+        {
+            var shift = new Shift
+            {
+                RegisterId = "01",
+                CashierId = 1,
+                OpenedAt = "2026-05-07 09:00:00",
+                OpeningCash = 5000000
+            };
+
+            int id = _repo.OpenShiftAtomic(shift, "2026-05-07");
+
+            id.Should().BeGreaterThan(0);
+            shift.ShiftNumber.Should().Be("1");
+            var loaded = _repo.GetById(id);
+            loaded.ShiftNumber.Should().Be("1");
+            loaded.RegisterId.Should().Be("01");
+            loaded.Status.Should().Be("O");
+        }
+
+        [Test]
+        public void OpenShiftAtomic_SecondCall_IncrementsShiftNumber()
+        {
+            var first = new Shift { RegisterId = "01", CashierId = 1, OpenedAt = "2026-05-07 08:00:00", OpeningCash = 5000000 };
+            _repo.OpenShiftAtomic(first, "2026-05-07");
+
+            var second = new Shift { RegisterId = "01", CashierId = 1, OpenedAt = "2026-05-07 14:00:00", OpeningCash = 5000000 };
+            _repo.OpenShiftAtomic(second, "2026-05-07");
+
+            second.ShiftNumber.Should().Be("2");
+        }
+
+        [Test]
+        public void CloseShift_ReturnsVariance()
+        {
+            int id = OpenAt("2026-05-07 08:00:00");
+
+            long variance = _repo.CloseShift(id, closingCash: 15500000, expectedCash: 14000000);
+
+            variance.Should().Be(1500000);
+        }
+
+        [Test]
+        public void GetByDateRange_IncludesShiftOpenedAt2359OnEndDate()
+        {
+            OpenAt("2026-05-07 23:59:59");
+
+            var shifts = _repo.GetByDateRange("2026-05-07 00:00:00", "2026-05-07");
+
+            shifts.Should().HaveCount(1);
+        }
     }
 }
