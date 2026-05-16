@@ -15,6 +15,11 @@ jobs:
     permissions:
       contents: write
 
+    strategy:
+      fail-fast: false
+      matrix:
+        register: ['01', '02', '03']
+
     steps:
     - uses: actions/checkout@v4
 
@@ -36,23 +41,49 @@ jobs:
       run: dotnet build Kasir.Avalonia.slnx -c Release
 
     - name: Test
+      if: matrix.register == '01'
       run: dotnet test Kasir.Core.Tests/Kasir.Core.Tests.csproj -c Release --no-build
 
     - name: Publish win-x64 self-contained
-      run: dotnet publish Kasir.Avalonia/Kasir.Avalonia.csproj -c Release -r win-x64 --self-contained -o publish/win-x64
+      run: dotnet publish Kasir.Avalonia/Kasir.Avalonia.csproj -c Release -r win-x64 --self-contained -o publish/win-x64-${{ matrix.register }}
+
+    - name: Write help.json (per-register machine credentials)
+      shell: pwsh
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        MACHINE_EMAIL: ${{ secrets[format('REGISTER_{0}_EMAIL', matrix.register)] }}
+        MACHINE_PASSWORD: ${{ secrets[format('REGISTER_{0}_PASSWORD', matrix.register)] }}
+      run: |
+        $releaseDir = "publish/win-x64-${{ matrix.register }}"
+        if ([string]::IsNullOrEmpty($env:MACHINE_EMAIL) -or [string]::IsNullOrEmpty($env:MACHINE_PASSWORD)) {
+          Write-Error "Missing REGISTER_${{ matrix.register }}_EMAIL or PASSWORD secret"
+          exit 1
+        }
+        $helpConfig = @{
+          SupabaseUrl     = $env:SUPABASE_URL
+          AnonKey         = $env:SUPABASE_ANON_KEY
+          MachineEmail    = $env:MACHINE_EMAIL
+          MachinePassword = $env:MACHINE_PASSWORD
+          StoreId         = "sinar-makmur"
+          RegisterId      = "${{ matrix.register }}"
+        }
+        $json = $helpConfig | ConvertTo-Json -Depth 3
+        # Drop into the publish dir; the installer copies this to %APPDATA%\Kasir\help.json on first run.
+        # Keeping it next to Kasir.Avalonia.exe avoids needing extra installer logic.
+        [System.IO.File]::WriteAllText("$releaseDir/help.json", $json, [System.Text.Encoding]::UTF8)
+        Write-Host "help.json written for register ${{ matrix.register }} (email: $env:MACHINE_EMAIL)"
 
     - name: Prepare release directory
       shell: pwsh
       run: |
-        $releaseDir = "publish/win-x64"
-
-        # Write version.txt
+        $releaseDir = "publish/win-x64-${{ matrix.register }}"
         "${{ steps.version.outputs.VERSION }}" | Set-Content "$releaseDir/version.txt" -NoNewline
 
     - name: Generate checksums
       shell: pwsh
       run: |
-        $releaseDir = "publish/win-x64"
+        $releaseDir = "publish/win-x64-${{ matrix.register }}"
         $checksumLines = @()
 
         Get-ChildItem $releaseDir -Recurse -File |
@@ -72,7 +103,7 @@ jobs:
       env:
         SYNC_HMAC_KEY: ${{ secrets.SYNC_HMAC_KEY }}
       run: |
-        $releaseDir = "publish/win-x64"
+        $releaseDir = "publish/win-x64-${{ matrix.register }}"
         $checksumContent = Get-Content "$releaseDir/checksum.sha256" -Raw
 
         if ([string]::IsNullOrEmpty($env:SYNC_HMAC_KEY)) {
@@ -91,21 +122,29 @@ jobs:
     - name: Create release ZIP
       shell: pwsh
       run: |
-        Push-Location "publish/win-x64"
-        Compress-Archive -Path "*" -DestinationPath "../../kasir-${{ steps.version.outputs.VERSION }}.zip"
+        Push-Location "publish/win-x64-${{ matrix.register }}"
+        Compress-Archive -Path "*" -DestinationPath "../../kasir-${{ steps.version.outputs.VERSION }}-register-${{ matrix.register }}.zip"
         Pop-Location
 
-    - name: Create GitHub Release
+    - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.version.outputs.TAG }}
         files: |
-          kasir-${{ steps.version.outputs.VERSION }}.zip
+          kasir-${{ steps.version.outputs.VERSION }}-register-${{ matrix.register }}.zip
         generate_release_notes: false
         body: |
           ## Cara Install (Windows)
 
-          1. Download file `kasir-${{ steps.version.outputs.VERSION }}.zip` di bawah
+          **PENTING:** ada 3 file ZIP berbeda. Setiap register harus pakai file yang sesuai nomornya.
+
+          | Register | File |
+          |----------|------|
+          | Register 01 | `kasir-${{ steps.version.outputs.VERSION }}-register-01.zip` |
+          | Register 02 | `kasir-${{ steps.version.outputs.VERSION }}-register-02.zip` |
+          | Register 03 | `kasir-${{ steps.version.outputs.VERSION }}-register-03.zip` |
+
+          1. Download file ZIP sesuai nomor register
           2. Klik kanan → **Extract All** → pilih folder tujuan (misal: `C:\Kasir`)
           3. Buka folder hasil ekstrak → double-click **`Kasir.Avalonia.exe`**
           4. Tidak perlu install .NET atau software tambahan
@@ -113,14 +152,28 @@ jobs:
           > **Upgrade dari versi lama?**
           > Ekstrak ke folder yang sama, timpa file lama. Data (`kasir.db`) tidak akan tertimpa.
 
+          > **Salah download nomor register?**
+          > Fitur Bantuan akan terdaftar dengan ID register yang salah. Hapus folder, download ulang yang benar.
+
           ---
 
           ## Installation (English)
 
-          1. Download `kasir-${{ steps.version.outputs.VERSION }}.zip` below
+          **IMPORTANT:** there are 3 different ZIP files. Each register MUST use the file matching its number.
+
+          | Register | File |
+          |----------|------|
+          | Register 01 | `kasir-${{ steps.version.outputs.VERSION }}-register-01.zip` |
+          | Register 02 | `kasir-${{ steps.version.outputs.VERSION }}-register-02.zip` |
+          | Register 03 | `kasir-${{ steps.version.outputs.VERSION }}-register-03.zip` |
+
+          1. Download the ZIP matching your register number
           2. Right-click → **Extract All** → choose a destination folder (e.g. `C:\Kasir`)
           3. Open the extracted folder → double-click **`Kasir.Avalonia.exe`**
           4. No .NET runtime or additional software required — everything is bundled
 
           > **Upgrading from an older version?**
           > Extract into the same folder and overwrite existing files. Your database (`kasir.db`) will not be affected.
+
+          > **Downloaded the wrong register number?**
+          > The Bantuan help feature will register tickets under the wrong register ID. Delete the folder and re-download the correct one.

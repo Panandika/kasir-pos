@@ -1749,3 +1749,62 @@ CREATE TABLE IF NOT EXISTS shifts (
     status          TEXT    NOT NULL DEFAULT 'O' CHECK(status IN ('O','C')),
     UNIQUE(register_id, shift_number, opened_at)
 );
+
+-- ============================================================
+-- Section 9: Bantuan Help Assistant (added in Migration_006)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS help_faq (
+    id          INTEGER PRIMARY KEY,
+    doc_path    TEXT    NOT NULL,
+    anchor      TEXT,
+    title       TEXT,
+    content     TEXT    NOT NULL,
+    tags        TEXT,
+    updated_at  TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS help_faq_fts USING fts5(
+    title, content, tags,
+    content=help_faq, content_rowid=id,
+    tokenize='unicode61'
+);
+
+CREATE TRIGGER IF NOT EXISTS help_faq_ai AFTER INSERT ON help_faq BEGIN
+    INSERT INTO help_faq_fts(rowid, title, content, tags)
+    VALUES (new.id, new.title, new.content, new.tags);
+END;
+
+CREATE TRIGGER IF NOT EXISTS help_faq_ad AFTER DELETE ON help_faq BEGIN
+    INSERT INTO help_faq_fts(help_faq_fts, rowid, title, content, tags)
+    VALUES ('delete', old.id, old.title, old.content, old.tags);
+END;
+
+CREATE TRIGGER IF NOT EXISTS help_faq_au AFTER UPDATE ON help_faq BEGIN
+    INSERT INTO help_faq_fts(help_faq_fts, rowid, title, content, tags)
+    VALUES ('delete', old.id, old.title, old.content, old.tags);
+    INSERT INTO help_faq_fts(rowid, title, content, tags)
+    VALUES (new.id, new.title, new.content, new.tags);
+END;
+
+CREATE TABLE IF NOT EXISTS help_tickets (
+    id                INTEGER PRIMARY KEY,
+    ticket_no         TEXT    UNIQUE NOT NULL,
+    store_id          TEXT    NOT NULL,
+    register_id       TEXT    NOT NULL,
+    cashier_id        TEXT,
+    category          TEXT    NOT NULL CHECK (category IN ('hardware','transaksi','aplikasi','saran')),
+    body              TEXT    NOT NULL CHECK (length(body) BETWEEN 3 AND 2000),
+    attachments_json  TEXT    NOT NULL CHECK (json_valid(attachments_json)),
+    status            TEXT    NOT NULL DEFAULT 'queued' CHECK (status IN ('queued','sent','failed')),
+    client_created_at TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
+    sent_at           TEXT,
+    sync_attempts     INTEGER NOT NULL DEFAULT 0,
+    last_error        TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_help_tickets_pending
+    ON help_tickets(status, client_created_at) WHERE status='queued';
+
+CREATE INDEX IF NOT EXISTS idx_help_tickets_dead
+    ON help_tickets(status, sync_attempts) WHERE status='queued' AND sync_attempts >= 5;

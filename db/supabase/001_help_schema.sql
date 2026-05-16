@@ -1,0 +1,3 @@
+-- MOVED: This migration now lives in sinar-makmur-dashboard/supabase/migrations/0031_help_schema.sql
+-- The dashboard repo owns the single Supabase migration tree.
+-- This file is retained as a redirect; do NOT apply it.
