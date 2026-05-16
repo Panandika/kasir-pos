@@ -84,12 +84,11 @@ public partial class ShiftView : UserControl
         var shift = new Shift
         {
             RegisterId = regId,
-            ShiftNumber = _shiftRepo.NextShiftNumber(regId, today),
             CashierId = _cashierId,
             OpenedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
             OpeningCash = openingCash * 100
         };
-        _shiftRepo.OpenShift(shift);
+        _shiftRepo.OpenShiftAtomic(shift, today);
         RefreshStatus();
         await MsgBox.Show(NavigationService.Owner, "Shift dibuka.");
     }
@@ -119,8 +118,7 @@ public partial class ShiftView : UserControl
         }
 
         closing *= 100;
-        _shiftRepo.CloseShift(CurrentShift.Id, closing, expected);
-        long variance = closing - expected;
+        long variance = _shiftRepo.CloseShift(CurrentShift.Id, closing, expected);
         string vtext = variance == 0
             ? "Tidak ada selisih."
             : $"Selisih: {(variance > 0 ? "+" : "")}{Formatting.FormatCurrency(variance)}";
