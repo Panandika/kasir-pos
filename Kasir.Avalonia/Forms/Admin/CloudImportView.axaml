@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Admin.CloudImportView"
+             Background="{DynamicResource Bg0Brush}">
+  <DockPanel>
+    <Panel DockPanel.Dock="Bottom" Height="50" Background="{DynamicResource Bg1Brush}">
+      <TextBlock x:Name="LblStatus"
+                 Foreground="{DynamicResource FgSecondaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 TextWrapping="Wrap"
+                 Margin="16,4" />
+    </Panel>
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Width="500"
+                Spacing="14">
+      <TextBlock Text="Daftarkan register dari cloud"
+                 FontSize="18"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 HorizontalAlignment="Center" />
+
+      <TextBlock Text="Masukkan 6 digit kode pairing dari dashboard:"
+                 Foreground="{DynamicResource FgSecondaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="13"
+                 HorizontalAlignment="Center" />
+
+      <TextBox x:Name="TxtCode"
+               MaxLength="6"
+               Width="240"
+               FontSize="32"
+               FontFamily="{DynamicResource JetBrainsMonoFont}"
+               TextAlignment="Center"
+               HorizontalAlignment="Center"
+               LetterSpacing="6"
+               PlaceholderText="••••••" />
+
+      <StackPanel x:Name="PnlProgress" Spacing="8" IsVisible="False">
+        <ProgressBar x:Name="PbDownload" Minimum="0" Maximum="100" Height="6" />
+        <TextBlock x:Name="LblStage"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="12"
+                   Foreground="{DynamicResource FgSecondaryBrush}"
+                   HorizontalAlignment="Center" />
+      </StackPanel>
+
+      <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+        <Button x:Name="BtnSubmit"
+                Content="Lanjutkan"
+                Width="160"
+                Height="40"
+                Background="{DynamicResource BgSelectedBrush}"
+                Foreground="{DynamicResource FgPrimaryBrush}"
+                FontSize="13"
+                FontFamily="{DynamicResource JetBrainsMonoFont}" />
+        <Button x:Name="BtnCancel"
+                Content="Batal"
+                Width="120"
+                Height="40"
+                Background="{DynamicResource AccentBgBrush}"
+                Foreground="{DynamicResource DangerBrush}"
+                FontSize="13"
+                FontFamily="{DynamicResource JetBrainsMonoFont}" />
+      </StackPanel>
+    </StackPanel>
+  </DockPanel>
+</UserControl>
