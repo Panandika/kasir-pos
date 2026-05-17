@@ -1,0 +1,113 @@
+# GHA fallback for snapshot building.
+#
+# Primary path: the in-store CloudSync hub polls snapshot_build_requests and
+# performs the build. If the hub is offline (power outage, hardware swap, etc.)
+# admin can trigger this workflow manually to rebuild the snapshot via GitHub
+# infrastructure instead.
+#
+# Required GH secrets:
+#   SUPABASE_CONN_STRING   — direct Postgres connection string (service role)
+#   SUPABASE_STORAGE_URL   — base URL for Supabase Storage (signed-URL upload target)
+#   SUPABASE_SERVICE_ROLE_KEY — for Storage upload + snapshot_metadata insert
+#   SUPABASE_API_URL       — https://<project>.supabase.co
+#
+# Plan: ../../../.omc/plans/cloud-import-pairing.md §6
+# PRD story: US-P4-1
+name: snapshot-fallback
+
+on:
+  workflow_dispatch:
+    inputs:
+      register_id:
+        description: "Register being commissioned (logged only; build is identical regardless)"
+        required: false
+        default: "n/a"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build + upload snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore + build
+        run: |
+          dotnet restore Kasir.CloudSync
+          dotnet build Kasir.CloudSync --configuration Release --no-restore
+
+      - name: Build snapshot from Postgres
+        env:
+          PGCONN: ${{ secrets.SUPABASE_CONN_STRING }}
+        run: |
+          mkdir -p ./out
+          dotnet run --project Kasir.CloudSync --configuration Release -- \
+            --build-snapshot \
+            --connection-string "$PGCONN" \
+            --output "./out/snapshot.db"
+
+      - name: Compute metadata
+        id: meta
+        run: |
+          SHA=$(shasum -a 256 ./out/snapshot.db | awk '{print $1}')
+          SIZE=$(stat -c%s ./out/snapshot.db)
+          UUID=$(cat /proc/sys/kernel/random/uuid)
+          BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "sha=$SHA"          >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE"        >> "$GITHUB_OUTPUT"
+          echo "uuid=$UUID"        >> "$GITHUB_OUTPUT"
+          echo "built_at=$BUILT_AT">> "$GITHUB_OUTPUT"
+          echo "::notice::Snapshot SHA $SHA size $SIZE bytes register ${{ inputs.register_id }}"
+
+      - name: Upload to Supabase Storage
+        env:
+          STORAGE_URL: ${{ secrets.SUPABASE_STORAGE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          UUID=${{ steps.meta.outputs.uuid }}
+          curl -sf -X POST \
+            "${STORAGE_URL%/}/object/snapshots/snapshot-${UUID}.db" \
+            -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@./out/snapshot.db"
+
+      - name: Insert snapshot_metadata row
+        env:
+          API_URL: ${{ secrets.SUPABASE_API_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          UUID=${{ steps.meta.outputs.uuid }}
+          SHA=${{ steps.meta.outputs.sha }}
+          SIZE=${{ steps.meta.outputs.size }}
+          BUILT_AT=${{ steps.meta.outputs.built_at }}
+          curl -sf -X POST "${API_URL%/}/rest/v1/snapshot_metadata" \
+            -H "apikey: $KEY" \
+            -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{
+              \"id\": \"$UUID\",
+              \"built_at\": \"$BUILT_AT\",
+              \"sha256\": \"$SHA\",
+              \"size_bytes\": $SIZE,
+              \"schema_version\": 1,
+              \"storage_path\": \"snapshots/snapshot-${UUID}.db\",
+              \"max_ids\": {},
+              \"build_trigger\": \"gha_fallback\"
+            }"
+
+      - name: Upload artifact (for debugging)
+        if: failure() || runner.debug == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-${{ steps.meta.outputs.uuid }}
+          path: ./out/snapshot.db
+          retention-days: 3
