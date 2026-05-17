@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kasir.Core\Kasir.Core.csproj" />
+    <ProjectReference Include="..\Kasir.CloudSync\Kasir.CloudSync.csproj" />
   </ItemGroup>
 
   <ItemGroup>

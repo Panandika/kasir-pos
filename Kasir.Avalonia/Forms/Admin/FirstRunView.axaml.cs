@@ -20,6 +20,19 @@ public partial class FirstRunView : UserControl
         BtnSeed.Click   += (_, _) => _tcs.TrySetResult(new FirstRunResult { Choice = "seed" });
         BtnCancel.Click += (_, _) => _tcs.TrySetResult(null);
         BtnImport.Click += (_, _) => _ = OnImport();
+        BtnCloud.Click  += (_, _) => _ = OnCloud();
+    }
+
+    private async Task OnCloud()
+    {
+        var view = new CloudImportView();
+        NavigationService.Navigate(view);
+        var result = await view.WaitForChoice();
+        NavigationService.GoBack();
+        if (result != null)
+        {
+            _tcs.TrySetResult(result);
+        }
     }
 
     public Task<FirstRunResult?> WaitForChoice() => _tcs.Task;

@@ -39,8 +39,16 @@
               HorizontalAlignment="Stretch"
               FontSize="13"
               FontFamily="{DynamicResource JetBrainsMonoFont}" />
+      <Button x:Name="BtnCloud"
+              Content="3. Daftarkan dari cloud (pair code)..."
+              Height="44"
+              Background="{DynamicResource Bg2Brush}"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              HorizontalAlignment="Stretch"
+              FontSize="13"
+              FontFamily="{DynamicResource JetBrainsMonoFont}" />
       <Button x:Name="BtnCancel"
-              Content="3. Batal (keluar)"
+              Content="4. Batal (keluar)"
               Height="44"
               Background="{DynamicResource AccentBgBrush}"
               Foreground="{DynamicResource DangerBrush}"
