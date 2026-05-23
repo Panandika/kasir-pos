@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.6.0](https://github.com/Panandika/kasir-pos/compare/v2.5.1...v2.6.0) (2026-05-17)
+
+
+### Features
+
+* Cloud Import via Pairing Code (POS side) ([e89ab0a](https://github.com/Panandika/kasir-pos/commit/e89ab0a73bce16288eb9fc1732e7b35840e1a907))
+* **cloud-import:** BootstrapTokenClient + CloudSnapshotRestorer (POS side) ([e030fce](https://github.com/Panandika/kasir-pos/commit/e030fcec91ea94006857087cf6ee927f16d9f2f0))
+* **cloud-import:** CI gates + GHA fallback workflow ([60f1329](https://github.com/Panandika/kasir-pos/commit/60f1329809cbd75959e1d41b25b2b2b7630dd7e5))
+* **cloud-import:** CloudImportView + FirstRunView 4th button ([38da841](https://github.com/Panandika/kasir-pos/commit/38da841cbf3c2f0a8c5059274d272152033affb8))
+* **cloud-import:** SnapshotBuilder + ReverseRowMapper (hub side) ([acaae25](https://github.com/Panandika/kasir-pos/commit/acaae25f5aa0240afbe0cfca49e99834f64321d5))
+
 ## [2.5.1](https://github.com/Panandika/kasir-pos/compare/v2.5.0...v2.5.1) (2026-05-16)
 
 
