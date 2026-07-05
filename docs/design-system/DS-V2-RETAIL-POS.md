@@ -32,7 +32,7 @@
 ### Decision Drivers
 
 1. **Theme-switch correctness**: every surface must respond to live variant change without restart
-2. **Regression safety**: 247+ existing tests must stay green; new theme-token test project catches resource resolution failures
+2. **Regression safety**: 410+ existing tests must stay green; new theme-token test project catches resource resolution failures
 3. **Form count accuracy**: all 40 forms must be swept, not 34
 
 ### Viable Options
@@ -79,7 +79,7 @@ git worktree add ~/Code/kasir-worktrees/ds-v2 -b feat/design-system-v2
 cd ~/Code/kasir-worktrees/ds-v2
 git branch --show-current   # expect: feat/design-system-v2
 dotnet build                # expect: clean build
-dotnet test Kasir.Core.Tests # expect: 247+ passing
+dotnet test Kasir.Core.Tests # expect: 410+ passing
 ```
 
 ### Punch List Grep Commands
