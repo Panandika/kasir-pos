@@ -156,6 +156,7 @@ namespace Kasir.CloudSync.Generation
                 Pk("card_code"),
                 T("name"), T("account_code"),
                 I("fee_pct"), M("min_value"),
+                T("card_type"),
                 I("changed_by"), Ts("changed_at")
             });
 
