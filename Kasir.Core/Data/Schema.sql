@@ -270,6 +270,7 @@ CREATE TABLE credit_cards (
     account_code   TEXT,                        -- ACC C(15) — GL account for card fees
     fee_pct        INTEGER DEFAULT 0,          -- DISC N(6,2) × 100 — card fee percentage
     min_value      INTEGER DEFAULT 0,          -- VAL N(15,2) × 100
+    card_type      TEXT    DEFAULT 'C',        -- D=debit, C=credit, Q=QRIS (no legacy field)
     changed_by     INTEGER,
     changed_at     TEXT
 );
@@ -564,7 +565,7 @@ CREATE TABLE sales (
     vat_amount      INTEGER DEFAULT 0,         -- PPN2 N(17,2) × 100
     change_amount   INTEGER DEFAULT 0,         -- CHANGE N(17,0) × 100
     total_disc      INTEGER DEFAULT 0,         -- TDISC N(17,0) × 100
-    card_type       TEXT    DEFAULT '',         -- J_CARD C(1): D=debit, C=credit
+    card_type       TEXT    DEFAULT '',         -- J_CARD C(1): D=debit, C=credit, Q=QRIS
     gross_amount    INTEGER DEFAULT 0,         -- BRUTO N(17,2) × 100
     voucher_amount  INTEGER DEFAULT 0,         -- VOUCHER N(17,0) × 100
     credit_amount   INTEGER DEFAULT 0,         -- CREDIT N(20,0) × 100

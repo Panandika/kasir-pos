@@ -99,7 +99,7 @@ public partial class PaymentOverlay : UserControl
         {
             var card = _cards[CboCardType.SelectedIndex - 1];
             CardCode = card.CardCode;
-            CardType = "C";
+            CardType = string.IsNullOrEmpty(card.CardType) ? "C" : card.CardType;
         }
         Accepted = true;
         _tcs.TrySetResult(true);
