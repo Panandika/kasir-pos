@@ -159,7 +159,7 @@ kasir-pos/
 |   |   +-- Reports/           # Sales, Inventory, Financial reports
 |   |   +-- Admin/             # Users, Printer, Backup, Update
 |   |   +-- Shared/            # MsgBox, InputDialog, KeyboardRouter, ThemeConstants
-+-- Kasir.Core.Tests/          # 247+ automated tests (NUnit)
++-- Kasir.Core.Tests/          # 410+ automated tests (NUnit); +80 in Kasir.CloudSync.Tests
 +-- Kasir/                     # Legacy WinForms app (kept for reference)
 +-- Kasir.Tests/               # Legacy WinForms tests
 ```
