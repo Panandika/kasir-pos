@@ -163,12 +163,18 @@ public partial class CloudImportView : UserControl
 
     private static string ResolveSupabaseUrl()
     {
-        // Priority: env var (dev) -> AppContext base relative config (prod).
-        // The hub/CloudSync stack stores its connection string elsewhere; this
-        // is just the public Supabase URL the register hits for pair/snapshot.
-        return Environment.GetEnvironmentVariable("KASIR_SUPABASE_URL")
-            ?? Environment.GetEnvironmentVariable("SUPABASE_URL")
-            ?? string.Empty;
+        // Priority:
+        //   1. env var (dev / explicit override)
+        //   2. help.json — same file Bantuan / SupabaseMachineAuth already reads.
+        //      Lives at %APPDATA%\Kasir\help.json or {exe}/help.json (ships in release).
+        var envUrl = Environment.GetEnvironmentVariable("KASIR_SUPABASE_URL")
+                     ?? Environment.GetEnvironmentVariable("SUPABASE_URL");
+        if (!string.IsNullOrWhiteSpace(envUrl)) return envUrl;
+
+        var cfg = Kasir.Help.Auth.HelpConfigLoader.TryLoad();
+        if (cfg != null && !string.IsNullOrWhiteSpace(cfg.SupabaseUrl)) return cfg.SupabaseUrl;
+
+        return string.Empty;
     }
 
     private static string ResolveStagingPath()
