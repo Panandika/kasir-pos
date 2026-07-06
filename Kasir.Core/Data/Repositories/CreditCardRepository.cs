@@ -31,13 +31,14 @@ namespace Kasir.Data.Repositories
         public int Insert(CreditCard card)
         {
             SqlHelper.ExecuteNonQuery(_db,
-                @"INSERT INTO credit_cards (card_code, name, account_code, fee_pct, min_value, changed_by, changed_at)
-                  VALUES (@code, @name, @acc, @fee, @min, @changedBy, datetime('now','localtime'))",
+                @"INSERT INTO credit_cards (card_code, name, account_code, fee_pct, min_value, card_type, changed_by, changed_at)
+                  VALUES (@code, @name, @acc, @fee, @min, @type, @changedBy, datetime('now','localtime'))",
                 SqlHelper.Param("@code", card.CardCode),
                 SqlHelper.Param("@name", card.Name),
                 SqlHelper.Param("@acc", card.AccountCode),
                 SqlHelper.Param("@fee", card.FeePct),
                 SqlHelper.Param("@min", card.MinValue),
+                SqlHelper.Param("@type", string.IsNullOrEmpty(card.CardType) ? "C" : card.CardType),
                 SqlHelper.Param("@changedBy", card.ChangedBy));
 
             return (int)SqlHelper.LastInsertRowId(_db);
@@ -47,12 +48,13 @@ namespace Kasir.Data.Repositories
         {
             SqlHelper.ExecuteNonQuery(_db,
                 @"UPDATE credit_cards SET name = @name, account_code = @acc, fee_pct = @fee,
-                  min_value = @min, changed_by = @changedBy, changed_at = datetime('now','localtime')
+                  min_value = @min, card_type = @type, changed_by = @changedBy, changed_at = datetime('now','localtime')
                   WHERE id = @id",
                 SqlHelper.Param("@name", card.Name),
                 SqlHelper.Param("@acc", card.AccountCode),
                 SqlHelper.Param("@fee", card.FeePct),
                 SqlHelper.Param("@min", card.MinValue),
+                SqlHelper.Param("@type", string.IsNullOrEmpty(card.CardType) ? "C" : card.CardType),
                 SqlHelper.Param("@changedBy", card.ChangedBy),
                 SqlHelper.Param("@id", card.Id));
         }
@@ -74,6 +76,7 @@ namespace Kasir.Data.Repositories
                 AccountCode = SqlHelper.GetString(reader, "account_code"),
                 FeePct = SqlHelper.GetInt(reader, "fee_pct"),
                 MinValue = SqlHelper.GetInt(reader, "min_value"),
+                CardType = SqlHelper.GetString(reader, "card_type"),
                 ChangedBy = SqlHelper.GetInt(reader, "changed_by"),
                 ChangedAt = SqlHelper.GetString(reader, "changed_at")
             };

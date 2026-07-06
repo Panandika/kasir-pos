@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS credit_cards (
     account_code   TEXT,
     fee_pct        INTEGER     NOT NULL DEFAULT 0,
     min_value      BIGINT      NOT NULL DEFAULT 0,
+    card_type      TEXT        DEFAULT 'C',
     changed_by     INTEGER,
     changed_at     TIMESTAMPTZ
 );

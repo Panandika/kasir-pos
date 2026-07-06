@@ -15,7 +15,7 @@ namespace Kasir.Avalonia.Forms.Master;
 
 public partial class CreditCardView : UserControl
 {
-    private record CreditCardRow(string Code, string Name, string Fee, string Account, CreditCard Tag);
+    private record CreditCardRow(string Code, string Name, string Fee, string Type, string Account, CreditCard Tag);
 
     private readonly ObservableCollection<CreditCardRow> _rows = new();
     private readonly List<CreditCardRow> _allRows = new();
@@ -49,6 +49,7 @@ public partial class CreditCardView : UserControl
                 card.CardCode,
                 card.Name,
                 card.FeePct.ToString() + "%",
+                FormatCardType(card.CardType),
                 card.AccountCode,
                 card));
         }
@@ -83,8 +84,8 @@ public partial class CreditCardView : UserControl
     {
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner,
             "Tambah Kartu Kredit",
-            new[] { "Kode", "Nama", "Fee (%)", "Kode Akun" },
-            new[] { "", "", "0", "" });
+            new[] { "Kode", "Nama", "Fee (%)", "Kode Akun", "Tipe (D/C/Q)" },
+            new[] { "", "", "0", "", "C" });
 
         if (!ok) return;
 
@@ -92,6 +93,7 @@ public partial class CreditCardView : UserControl
         string name = vals[1].Trim();
         string feeStr = vals[2].Trim();
         string acc = vals[3].Trim();
+        string type = vals[4].Trim().ToUpper();
 
         if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
         {
@@ -102,6 +104,12 @@ public partial class CreditCardView : UserControl
         if (!int.TryParse(feeStr, out int fee) || fee < 0)
         {
             await MsgBox.Show(NavigationService.Owner, "Fee harus berupa angka >= 0.");
+            return;
+        }
+
+        if (type != "D" && type != "C" && type != "Q")
+        {
+            await MsgBox.Show(NavigationService.Owner, "Tipe harus D (debit), C (kredit), atau Q (QRIS).");
             return;
         }
 
@@ -118,6 +126,7 @@ public partial class CreditCardView : UserControl
             Name = name,
             FeePct = fee,
             AccountCode = acc,
+            CardType = type,
             MinValue = 0,
             ChangedBy = _currentUserId
         };
@@ -138,14 +147,16 @@ public partial class CreditCardView : UserControl
         var card = row.Tag;
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner,
             "Edit Kartu Kredit",
-            new[] { "Nama", "Fee (%)", "Kode Akun" },
-            new[] { card.Name, card.FeePct.ToString(), card.AccountCode });
+            new[] { "Nama", "Fee (%)", "Kode Akun", "Tipe (D/C/Q)" },
+            new[] { card.Name, card.FeePct.ToString(), card.AccountCode,
+                    string.IsNullOrEmpty(card.CardType) ? "C" : card.CardType });
 
         if (!ok) return;
 
         string name = vals[0].Trim();
         string feeStr = vals[1].Trim();
         string acc = vals[2].Trim();
+        string type = vals[3].Trim().ToUpper();
 
         if (string.IsNullOrEmpty(name))
         {
@@ -159,9 +170,16 @@ public partial class CreditCardView : UserControl
             return;
         }
 
+        if (type != "D" && type != "C" && type != "Q")
+        {
+            await MsgBox.Show(NavigationService.Owner, "Tipe harus D (debit), C (kredit), atau Q (QRIS).");
+            return;
+        }
+
         card.Name = name;
         card.FeePct = fee;
         card.AccountCode = acc;
+        card.CardType = type;
         card.ChangedBy = _currentUserId;
         _cardRepo.Update(card);
         LoadData();
@@ -184,6 +202,13 @@ public partial class CreditCardView : UserControl
         LoadData();
         SetStatus($"Kartu '{row.Name}' dihapus.");
     }
+
+    private static string FormatCardType(string? type) => type switch
+    {
+        "D" => "Debit",
+        "Q" => "QRIS",
+        _ => "Kredit"
+    };
 
     private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);
 }
