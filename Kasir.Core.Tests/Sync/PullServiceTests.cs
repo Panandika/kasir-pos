@@ -161,6 +161,58 @@ namespace Kasir.Tests.Sync
             result.AppliedCount.Should().Be(0);
         }
 
+        [Test]
+        public void Pull_ApplyUpdate_FindsRow_ByJournalNo()
+        {
+            // F04 pull side: ApplyUpdate builds WHERE [keycol] = @key via
+            // PushService.GetKeyColumn. Pre-fix that was WHERE [id] = <journal_no>
+            // (TEXT vs INTEGER PK, 0 rows). Post-fix it is WHERE [journal_no] = @key.
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = @"
+                    INSERT INTO sales (doc_type, journal_no, doc_date, period_code, register_id, total_value)
+                    VALUES ('SALE', 'KLR01-2607-0001', '2026-07-07', '202607', '01', 100000);";
+                cmd.ExecuteNonQuery();
+            }
+
+            var batch = new SyncBatch
+            {
+                RegisterId = "01",
+                SchemaVersion = SyncConfig.SchemaVersion,
+                Timestamp = "2026-07-07 10:00:00",
+                BatchId = "f04pull01"
+            };
+            var evt = new SyncEvent
+            {
+                QueueId = 1,
+                TableName = "sales",
+                RecordKey = "KLR01-2607-0001",
+                Operation = "U"
+            };
+            // Omit the surrogate 'id' (that is F24's scope). Sync the business key
+            // plus the changed column.
+            evt.Data["journal_no"] = "KLR01-2607-0001";
+            evt.Data["doc_type"] = "SALE";
+            evt.Data["doc_date"] = "2026-07-07";
+            evt.Data["period_code"] = "202607";
+            evt.Data["total_value"] = 999999;
+            batch.Events.Add(evt);
+
+            string json = SignAndSerialize(batch);
+            _fileReader.Files["C:\\kasir\\sync\\outbox\\01_20260707_100000_f04pull01.json"] = json;
+
+            var result = _pullService.Pull();
+            result.AppliedCount.Should().Be(1);
+
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "SELECT total_value FROM sales WHERE journal_no = @j";
+                cmd.Parameters.AddWithValue("@j", "KLR01-2607-0001");
+                var total = Convert.ToInt64(cmd.ExecuteScalar());
+                total.Should().Be(999999, "ApplyUpdate must find the row by journal_no (F04)");
+            }
+        }
+
         private SyncBatch CreateValidBatch(string registerId)
         {
             var batch = new SyncBatch
