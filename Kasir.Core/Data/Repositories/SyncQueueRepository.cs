@@ -13,14 +13,22 @@ namespace Kasir.Data.Repositories
             _db = db;
         }
 
+        // Includes 'failed' rows that are still under the retry cap so a transient
+        // transport error (SMB share briefly unreachable) is retried on the next push
+        // instead of permanently stranding the events (F05/F14). Once retry_count reaches
+        // SyncConfig.MaxRetries the poison row drops out here (parked as failed with a
+        // maxed retry_count + last_error) so it no longer consumes batch slots.
         public List<SyncQueueEntry> GetPending(string registerId, int limit)
         {
             return SqlHelper.Query(_db,
                 @"SELECT * FROM sync_queue
-                  WHERE register_id = @reg AND status = 'pending'
+                  WHERE register_id = @reg
+                    AND (status = 'pending'
+                         OR (status = 'failed' AND retry_count < @maxRetries))
                   ORDER BY id ASC LIMIT @limit",
                 MapEntry,
                 SqlHelper.Param("@reg", registerId),
+                SqlHelper.Param("@maxRetries", Kasir.Sync.SyncConfig.MaxRetries),
                 SqlHelper.Param("@limit", limit));
         }
 
@@ -58,6 +66,11 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", id));
         }
 
+        // Marks the row failed and increments retry_count. Rows stay retryable via
+        // GetPending until retry_count reaches SyncConfig.MaxRetries, after which they are
+        // parked as failed-with-maxed-retry (poison rows) and surfaced by retry_count +
+        // last_error. Kept within the existing status CHECK ('pending','synced','failed')
+        // so no live-DB schema migration is required.
         public void MarkFailed(int id, string error)
         {
             SqlHelper.ExecuteNonQuery(_db,
@@ -67,6 +80,18 @@ namespace Kasir.Data.Repositories
                   WHERE id = @id",
                 SqlHelper.Param("@id", id),
                 SqlHelper.Param("@error", error));
+        }
+
+        // Poison rows: failed and past the retry cap — surfaced for manual attention.
+        public List<SyncQueueEntry> GetDead(string registerId)
+        {
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM sync_queue
+                  WHERE register_id = @reg AND status = 'failed' AND retry_count >= @maxRetries
+                  ORDER BY id ASC",
+                MapEntry,
+                SqlHelper.Param("@reg", registerId),
+                SqlHelper.Param("@maxRetries", Kasir.Sync.SyncConfig.MaxRetries));
         }
 
         // Phase 6 cloud-sync writer: invoked only after PostgresSink confirms the row

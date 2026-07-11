@@ -20,3 +20,9 @@
   - PullService.ApplyInsert: skips source `id` for natural-key tables (keyColumn != "id"), so cross-register PK collisions no longer drop rows via INSERT OR IGNORE; journal_no UNIQUE gives idempotency.
   - Tests: Kasir.Core.Tests/Sync/PushPullKeyColumnTests.cs (3 tests). Full suite 417/417 pass.
   - Note: sales/purchases/etc. require period_code NOT NULL + doc_date GLOB ????-??-?? when seeding.
+- S05 (F05+F14) DONE 2026-07-11:
+  - SyncConfig.MaxRetries = 5.
+  - SyncQueueRepository.GetPending now returns status='pending' OR ('failed' AND retry_count < MaxRetries), so a transient SMB outage is retried instead of stranding events.
+  - MarkFailed kept within existing status CHECK ('pending','synced','failed') — NO 'dead' status (avoids live-DB table migration). Poison rows = failed with retry_count >= MaxRetries, surfaced via new GetDead(registerId).
+  - Tests: Kasir.Core.Tests/Sync/SyncQueueRetryTests.cs (2). Full suite 419/419.
+  - IMPORTANT pattern: sync_queue.status has CHECK IN ('pending','synced','failed'). Do NOT introduce new status values without a table-rebuild migration.

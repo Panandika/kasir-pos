@@ -9,6 +9,10 @@ namespace Kasir.Sync
         public const int MaxInboxFiles = 50;
         public const int SchemaVersion = 2;
 
+        // Max transport retries before a queue row is parked as terminal 'dead'.
+        // Below the cap, failed rows are retried by the next Push (F05/F14).
+        public const int MaxRetries = 5;
+
         public static readonly HashSet<string> SyncedTables = new HashSet<string>
         {
             "products",
