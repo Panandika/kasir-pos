@@ -242,6 +242,37 @@ namespace Kasir.Tests.Services
             sale.DocDate.Should().Be("2026-04-04");
         }
 
+        // F36: an in-progress cart must survive a crash — a new SalesService on the same DB
+        // recovers the persisted draft instead of losing it.
+        [Test]
+        public void PendingCart_IsRecovered_ByNewSalesService()
+        {
+            _service.AddItem("P001", 2);
+            _service.AddItem("P002", 1);
+
+            // Simulate a crash + restart: brand-new service on the same database.
+            var recovered = new SalesService(_db, _clock);
+            recovered.SetCashier("ADM", 1);
+            int count = recovered.RecoverPendingSale();
+
+            count.Should().Be(2, "the two draft lines must be recovered");
+            recovered.CurrentItems.Should().HaveCount(2);
+            recovered.CurrentItems[0].ProductCode.Should().Be("P001");
+            recovered.CurrentItems[0].ProductName.Should().Be("MINYAK GORENG 2L", "product name is re-looked-up");
+        }
+
+        // F36: completing the sale clears the persisted draft so it is not recovered later.
+        [Test]
+        public void CompleteSale_ClearsPendingDraft()
+        {
+            _service.AddItem("P001", 1);
+            _service.CompleteSale(5000000, 0, 0, "", "", "");
+
+            var after = new SalesService(_db, _clock);
+            after.SetCashier("ADM", 1);
+            after.RecoverPendingSale().Should().Be(0, "a completed sale leaves no draft to recover");
+        }
+
         // F35: voiding a sale must return the sold stock to inventory — a plain control=3
         // flip left inventory permanently understated.
         [Test]

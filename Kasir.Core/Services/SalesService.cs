@@ -23,6 +23,8 @@ namespace Kasir.Services
         private readonly IClock _clock;
 
         private readonly List<SaleItem> _currentItems;
+        private readonly PendingSaleRepository _pendingRepo;
+        private readonly string _draftKey;
         private string _currentShift;
         private string _cashierAlias;
         private int _cashierUserId;
@@ -40,9 +42,32 @@ namespace Kasir.Services
             _discountRepo = new DiscountRepository(db);
             _paymentCalc = new PaymentCalculator();
             _inventoryService = new InventoryService(db);
+            _pendingRepo = new PendingSaleRepository(db);
             _clock = clock;
             _currentItems = new List<SaleItem>();
             _currentShift = "1";
+            _draftKey = "PENDING-" + (_configRepo.Get("register_id") ?? "01");
+        }
+
+        // Persist the current cart so a crash mid-sale can recover it (F36).
+        private void PersistCart()
+        {
+            _pendingRepo.Save(_draftKey, _currentItems);
+        }
+
+        // Recover a cart persisted by a previous (crashed) session. Product names are
+        // re-looked-up since pending_sales stores only product_code. Returns the item count.
+        public int RecoverPendingSale()
+        {
+            var recovered = _pendingRepo.Load(_draftKey);
+            _currentItems.Clear();
+            foreach (var it in recovered)
+            {
+                var product = _productRepo.GetByCode(it.ProductCode);
+                it.ProductName = product != null ? product.Name : it.ProductCode;
+                _currentItems.Add(it);
+            }
+            return _currentItems.Count;
         }
 
         public List<SaleItem> CurrentItems
@@ -90,6 +115,7 @@ namespace Kasir.Services
                 IsPriceOverridden = true,
             };
             _currentItems.Add(item);
+            PersistCart();
             return item;
         }
 
@@ -146,6 +172,7 @@ namespace Kasir.Services
             };
 
             _currentItems.Add(item);
+            PersistCart();
             return item;
         }
 
@@ -154,6 +181,7 @@ namespace Kasir.Services
             if (index >= 0 && index < _currentItems.Count)
             {
                 _currentItems.RemoveAt(index);
+                PersistCart();
             }
         }
 
@@ -202,6 +230,8 @@ namespace Kasir.Services
                 item.DiscValue = discResult.CalculateDiscount(lineGross);
                 item.Value = lineGross - item.DiscValue;
             }
+
+            PersistCart();
         }
 
         public SaleTotals GetTotals()
@@ -312,6 +342,10 @@ namespace Kasir.Services
                             _cashierUserId);
                     }
 
+                    // Clear the persisted draft cart atomically with the sale so a crash
+                    // right after commit does not recover an already-completed cart (F36).
+                    _pendingRepo.Clear(_draftKey);
+
                     txn.Commit();
                 }
                 catch
@@ -371,6 +405,7 @@ namespace Kasir.Services
         public void ClearCurrentSale()
         {
             _currentItems.Clear();
+            PersistCart(); // also clears the persisted draft (F36)
         }
     }
 
