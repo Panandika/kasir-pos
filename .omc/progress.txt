@@ -26,3 +26,10 @@
   - MarkFailed kept within existing status CHECK ('pending','synced','failed') — NO 'dead' status (avoids live-DB table migration). Poison rows = failed with retry_count >= MaxRetries, surfaced via new GetDead(registerId).
   - Tests: Kasir.Core.Tests/Sync/SyncQueueRetryTests.cs (2). Full suite 419/419.
   - IMPORTANT pattern: sync_queue.status has CHECK IN ('pending','synced','failed'). Do NOT introduce new status values without a table-rebuild migration.
+- S03 (F03) DONE 2026-07-11: GetCashSinceShift now takes openedAt/closedAt window, filters on changed_at. ShiftView passes CurrentShift.OpenedAt/ClosedAt. Test SameShiftNumber_DifferentDays_AreIsolatedByWindow.
+- S19 (F19) DONE 2026-07-11:
+  - PurchaseRepository: extracted InsertWithoutTransaction; Insert wraps it (mirrors SaleRepository).
+  - PurchasingService.CreateGoodsReceipt/CreatePurchaseInvoice/CreatePurchaseReturn wrap purchase+stock+AP in one _db.BeginTransaction.
+  - Test CreatePurchaseInvoice_APFailure_RollsBackPurchase (null sub_code fails AP after purchase insert -> full rollback).
+  - PATTERN: repos that own a BeginTransaction need an InsertWithoutTransaction variant for service-level atomic composition. Payables/StockMovement repos use plain ExecuteNonQuery so they auto-enlist in the ambient txn (Microsoft.Data.Sqlite).
+- Branch pushed; draft PR #56 open. Network needs dangerouslyDisableSandbox for git push/gh.

@@ -188,5 +188,32 @@ namespace Kasir.Tests.Services
             var ap = _payablesRepo.GetByJournalNo(invJnl);
             ap.PaymentAmount.Should().Be(1500000); // 5 × 300000 offset
         }
+
+        // F19: the invoice + its AP entry must be atomic. Force the AP insert to fail
+        // (sub_code is NOT NULL) AFTER the purchase row is written, and assert nothing
+        // partial survives.
+        [Test]
+        public void CreatePurchaseInvoice_APFailure_RollsBackPurchase()
+        {
+            var invoice = new Purchase { SubCode = null, DueDate = "2026-05-04" }; // null sub_code fails AP insert
+            var items = new List<PurchaseItem>
+            {
+                new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 300000 }
+            };
+
+            System.Action act = () => _service.CreatePurchaseInvoice(invoice, items, 1);
+            act.Should().Throw<Microsoft.Data.Sqlite.SqliteException>();
+
+            CountRows("purchases").Should().Be(0, "the purchase row must roll back when the AP entry fails");
+            CountRows("purchase_items").Should().Be(0, "the purchase items must roll back too");
+            CountRows("payables_register").Should().Be(0, "no partial AP entry");
+        }
+
+        private int CountRows(string table)
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM " + table;
+            return System.Convert.ToInt32(cmd.ExecuteScalar());
+        }
     }
 }
