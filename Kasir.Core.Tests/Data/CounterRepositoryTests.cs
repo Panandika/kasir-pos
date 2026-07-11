@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using NUnit.Framework;
 using FluentAssertions;
+using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Tests.TestHelpers;
 
@@ -93,6 +94,22 @@ namespace Kasir.Tests.Data
 
             // Counter is untouched after the rollback — the next allocation is still 0001.
             new CounterRepository(_db).GetNext("KLR", "01").Should().Contain("0001");
+        }
+
+        // F50: the custom-format path (FormatNumber) was untested. A seeded format string
+        // with placeholders must render correctly, including a padded sequence.
+        [Test]
+        public void GetNext_CustomFormat_RendersPlaceholders()
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                "INSERT INTO counters (prefix, register_id, current_value, format) VALUES ('INV', '03', 0, @fmt)",
+                SqlHelper.Param("@fmt", "{prefix}/{REG}/{SEQ:05d}"));
+
+            string first = _repo.GetNext("INV", "03");
+            first.Should().Be("INV/03/00001");
+
+            string second = _repo.GetNext("INV", "03");
+            second.Should().Be("INV/03/00002");
         }
 
         [Test]

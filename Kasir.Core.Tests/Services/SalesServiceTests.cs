@@ -242,6 +242,27 @@ namespace Kasir.Tests.Services
             sale.DocDate.Should().Be("2026-04-04");
         }
 
+        // F41: CompleteSale must bind the sale to the actual open shift, not the "1"
+        // no-shift fallback that every other test exercised.
+        [Test]
+        public void CompleteSale_BindsToOpenShift_NotFallback()
+        {
+            new ShiftRepository(_db).OpenShift(new Shift
+            {
+                RegisterId = "01",
+                ShiftNumber = "3",
+                CashierId = 1,
+                OpenedAt = "2026-04-04 08:00:00",
+                OpeningCash = 0,
+                Status = "O"
+            });
+
+            _service.AddItem("P001", 1);
+            var sale = _service.CompleteSale(5000000, 0, 0, "", "", "");
+
+            sale.Shift.Should().Be("3", "the sale must carry the open shift's number, not the fallback '1'");
+        }
+
         // F36: an in-progress cart must survive a crash — a new SalesService on the same DB
         // recovers the persisted draft instead of losing it.
         [Test]

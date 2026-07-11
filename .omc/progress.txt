@@ -39,4 +39,15 @@
 - S18 (F18+F39) DONE: PostingService.ClosePeriod now also blocks on unposted PURCHASE_RETURN.
 - Suite at 431 tests. PATTERN for atomic composition: add InsertWithoutTransaction to repos that own a BeginTransaction (done for Purchase, StockAdjustment; SaleRepository already had it).
 - Discount stories S15/S17 DEFERRED per project memory (discount engine last).
-- Remaining: S02,S01,S07,S08,S10,S11,S46,S48,S30 (UI/Windows/platform), S25,S16,S20,S40,S13,S44,S23,S42,S52,S36,STEST (Core), S15,S17 (discount-last).
+- S44 (F44) DONE: PullService quarantines permanently-bad files (ISyncFileReader.MoveToQuarantine); transient apply failures left for retry.
+- S23 (F23) DONE: UpdateService.VerifyChecksums enforces manifest completeness (unlisted planted file -> reject). Test uses real temp dir + FileSystemImpl (ComputeFileSha256 reads real disk).
+- S42 (F42) DONE: update verify prefers update_hmac_key, falls back to sync_hmac_key transitionally.
+- S13 (F13+F35) DONE: SalesService.VoidSale returns stock (RETURN_IN) in a txn + blocks voiding posted sales. Added Sale.IsPosted.
+- Suite at 436. 14 fix-stories done (18 findings): F03,04,05,06,13,14,18,19,21,23,24,34,35,37,38,39,42,44.
+- Remaining Core: S25(sale_items sync), S16/S20/S40(accounting-COGS/tender), S52(journal burn), S36(pending_sales-needs decision), STEST(test gaps).
+- Remaining UI/Windows (implementable but not runtime-verifiable on macOS): S02,S01,S07,S08,S10,S11,S46,S48,S30.
+- Deferred: S15,S17 (discount-last per project memory).
+- S25(F25) DONE: child rows bundled (SyncEvent.Children + SyncConfig.ChildTables). S52(F52) DONE: journal alloc inside sale txn. S13(F13+F35) DONE. S36(F36) DONE: pending_sales cart persistence + RecoverPendingSale + SaleView wire.
+- 17 stories / 21 findings done. Suite 441. All pushed to PR #56.
+- BLOCKED ON USER DECISION: S16/S20/S40 (GL account mappings for card/voucher + COGS basis) and UI/Windows batch (implement-blind vs defer to on-hardware). Explained both to user; awaiting choice.
+- No-decision remaining: STEST (test-gaps F26/F32/F33/F41/F43/F45/F50/F51).
