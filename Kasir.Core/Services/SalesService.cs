@@ -254,7 +254,10 @@ namespace Kasir.Services
             // has been opened (e.g. tests). Real prod path always opens a shift first.
             var openShift = _shiftRepo.GetOpenShift(registerId);
             string activeShift = openShift != null ? openShift.ShiftNumber : (_currentShift ?? "1");
-            string journalNo = _counterRepo.GetNext("KLR", registerId);
+            // Journal number is allocated INSIDE the sale transaction below so a rolled-back
+            // or crashed sale does not burn a KLR number (F52). GetNext joins the ambient
+            // transaction, so its counter increment rolls back with the sale.
+            string journalNo = null;
             string today = _clock.Now.ToString("yyyy-MM-dd");
             string period = _clock.Now.ToString("yyyyMM");
 
@@ -290,6 +293,9 @@ namespace Kasir.Services
             {
                 try
                 {
+                    journalNo = _counterRepo.GetNext("KLR", registerId);
+                    sale.JournalNo = journalNo;
+
                     _saleRepo.InsertWithoutTransaction(sale, _currentItems);
 
                     // Create stock movements for each sold item

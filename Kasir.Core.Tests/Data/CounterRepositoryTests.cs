@@ -78,6 +78,23 @@ namespace Kasir.Tests.Data
             result.Should().Contain("0001");
         }
 
+        // F52: when GetNext runs inside a caller's transaction that later rolls back, the
+        // counter increment must roll back too — otherwise a failed/crashed sale burns a
+        // KLR number and leaves a gap. This proves the property SalesService.CompleteSale
+        // relies on by allocating the journal number inside the sale transaction.
+        [Test]
+        public void GetNext_InRolledBackTransaction_DoesNotBurnNumber()
+        {
+            using (var txn = _db.BeginTransaction())
+            {
+                _repo.GetNext("KLR", "01").Should().Contain("0001"); // joins the ambient txn
+                txn.Rollback();
+            }
+
+            // Counter is untouched after the rollback — the next allocation is still 0001.
+            new CounterRepository(_db).GetNext("KLR", "01").Should().Contain("0001");
+        }
+
         [Test]
         public void GetNext_Sequential_NoDuplicates()
         {
