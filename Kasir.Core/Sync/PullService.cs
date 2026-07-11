@@ -218,6 +218,14 @@ namespace Kasir.Sync
         {
             if (evt.Data == null || evt.Data.Count == 0) return;
 
+            // For tables with a natural unique key (journal_no, product_code, ...) the
+            // local INTEGER PK must autoincrement locally — replicating the source
+            // register's autoincrement id causes cross-register PK collisions that
+            // INSERT OR IGNORE silently drops (F24). Idempotency comes from the natural
+            // key's UNIQUE constraint instead. Only id-keyed tables keep their id.
+            string keyColumn = PushService.GetKeyColumn(evt.TableName);
+            bool skipSourceId = keyColumn != null && keyColumn != "id";
+
             var columns = new List<string>();
             var paramNames = new List<string>();
             var parameters = new List<SqliteParameter>();
@@ -226,6 +234,7 @@ namespace Kasir.Sync
             foreach (var kvp in evt.Data)
             {
                 if (!ValidColumnName.IsMatch(kvp.Key)) continue;
+                if (skipSourceId && kvp.Key == "id") continue;
                 columns.Add("[" + kvp.Key + "]");
                 string paramName = "@p" + i;
                 paramNames.Add(paramName);

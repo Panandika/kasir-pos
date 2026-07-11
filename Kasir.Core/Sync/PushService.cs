@@ -49,7 +49,9 @@ namespace Kasir.Sync
                 return new PushResult { Success = true, EventCount = 0 };
             }
 
-            var batch = BuildBatch(registerId, pending);
+            var droppedIds = new List<int>();
+            var batch = BuildBatch(registerId, pending, droppedIds);
+            var droppedSet = new HashSet<int>(droppedIds);
             string json = SerializeBatch(batch);
             string signature = SignPayload(json);
             batch.Signature = signature;
@@ -69,16 +71,26 @@ namespace Kasir.Sync
                 _fileWriter.Write(tempPath, json);
                 _fileWriter.SafeMove(tempPath, destPath);
 
-                // Mark all events as synced
+                // Mark events synced, EXCEPT I/U events whose row could not be fetched
+                // (key mismatch / row deleted). Those are marked failed so the data loss
+                // is visible and retryable instead of silently swallowed.
                 foreach (var entry in pending)
                 {
-                    _queueRepo.MarkSynced(entry.Id);
+                    if (droppedSet.Contains(entry.Id))
+                    {
+                        _queueRepo.MarkFailed(entry.Id,
+                            "row not found for I/U event (record_key did not match) — not synced");
+                    }
+                    else
+                    {
+                        _queueRepo.MarkSynced(entry.Id);
+                    }
                 }
 
                 return new PushResult
                 {
                     Success = true,
-                    EventCount = pending.Count,
+                    EventCount = batch.Events.Count,
                     FilePath = destPath
                 };
             }
@@ -94,7 +106,7 @@ namespace Kasir.Sync
             }
         }
 
-        private SyncBatch BuildBatch(string registerId, List<SyncQueueEntry> entries)
+        private SyncBatch BuildBatch(string registerId, List<SyncQueueEntry> entries, List<int> droppedIds)
         {
             var batch = new SyncBatch
             {
@@ -131,6 +143,13 @@ namespace Kasir.Sync
                 {
                     // INSERT/UPDATE: fetch current row
                     evt.Data = FetchRowData(entry.TableName, entry.RecordKey);
+                    if (evt.Data == null)
+                    {
+                        // Row could not be resolved from record_key — record as dropped
+                        // so Push() marks it failed (visible) instead of synced (silent loss).
+                        droppedIds.Add(entry.Id);
+                        continue;
+                    }
                 }
 
                 if (evt.Data != null)
@@ -187,13 +206,16 @@ namespace Kasir.Sync
                 case "accounts": return "account_code";
                 case "locations": return "location_code";
                 case "credit_cards": return "id";
-                case "sales": return "id";
-                case "purchases": return "id";
-                case "cash_transactions": return "id";
-                case "memorial_journals": return "id";
-                case "orders": return "id";
-                case "stock_transfers": return "id";
-                case "stock_adjustments": return "id";
+                // Transaction tables: sync triggers enqueue record_key = NEW.journal_no
+                // (Schema.sql trg_*_sync_*), so lookups MUST key on journal_no, not the
+                // INTEGER PK — otherwise FetchRowData never matches and events are lost.
+                case "sales": return "journal_no";
+                case "purchases": return "journal_no";
+                case "cash_transactions": return "journal_no";
+                case "memorial_journals": return "journal_no";
+                case "orders": return "journal_no";
+                case "stock_transfers": return "journal_no";
+                case "stock_adjustments": return "journal_no";
                 default: return null;
             }
         }
