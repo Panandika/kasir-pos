@@ -33,3 +33,10 @@
   - Test CreatePurchaseInvoice_APFailure_RollsBackPurchase (null sub_code fails AP after purchase insert -> full rollback).
   - PATTERN: repos that own a BeginTransaction need an InsertWithoutTransaction variant for service-level atomic composition. Payables/StockMovement repos use plain ExecuteNonQuery so they auto-enlist in the ambient txn (Microsoft.Data.Sqlite).
 - Branch pushed; draft PR #56 open. Network needs dangerouslyDisableSandbox for git push/gh.
+- S38 (F38) DONE: PaymentCalculator change only from cash; non-cash overpayment rejected (NonCashOverpayment field).
+- S37 (F37) DONE: AccountingService + PayablesService read register_id from config, not hardcoded '01'.
+- S34 (F34) DONE: AuthService lockout persisted in config (survives restart), cumulative escalation, in-session monotonic guard (Environment.TickCount64) vs clock-forward. Clocks injectable (public ctor with Func<DateTime>, Func<long>).
+- S18 (F18+F39) DONE: PostingService.ClosePeriod now also blocks on unposted PURCHASE_RETURN.
+- Suite at 431 tests. PATTERN for atomic composition: add InsertWithoutTransaction to repos that own a BeginTransaction (done for Purchase, StockAdjustment; SaleRepository already had it).
+- Discount stories S15/S17 DEFERRED per project memory (discount engine last).
+- Remaining: S02,S01,S07,S08,S10,S11,S46,S48,S30 (UI/Windows/platform), S25,S16,S20,S40,S13,S44,S23,S42,S52,S36,STEST (Core), S15,S17 (discount-last).

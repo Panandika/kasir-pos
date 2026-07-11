@@ -230,6 +230,16 @@ namespace Kasir.Services
                     string.Format("{0} unposted purchases in period {1}", unpostedPurchases.Count, periodCode));
             }
 
+            // Purchase returns are a separate doc_type and were previously NOT checked, so a
+            // period could close with unposted returns that then became permanently
+            // unpostable (F18/F39). Block the close until they are posted.
+            var unpostedReturns = GetUnpostedPurchases(periodCode, "PURCHASE_RETURN");
+            if (unpostedReturns.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    string.Format("{0} unposted purchase returns in period {1}", unpostedReturns.Count, periodCode));
+            }
+
             var unpostedCash = _cashTxnRepo.GetUnpostedByPeriod(periodCode);
             if (unpostedCash.Count > 0)
             {
