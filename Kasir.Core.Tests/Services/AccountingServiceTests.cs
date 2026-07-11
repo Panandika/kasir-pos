@@ -345,6 +345,30 @@ namespace Kasir.Tests.Services
             (cash.Debit + card.Debit).Should().Be(revenue.Credit, "journal stays balanced");
         }
 
+        // F16 robustness: a legacy/migrated sale whose tender columns do not reconcile to
+        // total_value (e.g. all zero) must NOT throw — it falls back to a single cash debit
+        // so batch period-close is never blocked by a historical row.
+        [Test]
+        public void PostSaleJournal_LegacyTenderMismatch_FallsBackToCashDebit()
+        {
+            var sale = new Sale
+            {
+                JournalNo = "JFA-01-2604-0013",
+                DocDate = "2026-04-04",
+                TotalValue = 100000,
+                CashAmount = 0, NonCash = 0, VoucherAmount = 0, ChangeAmount = 0, // no tender breakdown
+                PeriodCode = "202604",
+                ChangedBy = 1
+            };
+
+            Action act = () => _service.PostSaleJournal(sale, new List<SaleItem>(), "1100");
+            act.Should().NotThrow();
+
+            var glLines = _glRepo.GetByJournalNo(sale.JournalNo);
+            glLines.Single(l => l.AccountCode == "1100").Debit.Should().Be(100000, "full total posts to cash");
+            glLines.Single(l => l.AccountCode == "4100").Credit.Should().Be(100000);
+        }
+
         // F16: a card sale with no ACCOUNT_CARD_CLEARING configured must fail-closed with a
         // clear, actionable error — never silently post to a wrong account.
         [Test]

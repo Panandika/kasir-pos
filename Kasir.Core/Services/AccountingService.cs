@@ -105,46 +105,55 @@ namespace Kasir.Services
 
             // Debit each tender to its own account (F16). Change is only ever given from
             // cash, so the cash portion is net of change; card and voucher tenders go to
-            // their own accounts and no longer inflate cash. The three portions reconcile
-            // to the sale total (guarded below).
+            // their own accounts and no longer inflate cash.
             long cashPortion = sale.CashAmount - sale.ChangeAmount;
             long cardPortion = sale.NonCash;
             long voucherPortion = sale.VoucherAmount;
+            long tenderSum = cashPortion + cardPortion + voucherPortion;
 
-            if (cashPortion != 0)
+            if (cashPortion >= 0 && tenderSum == sale.TotalValue)
             {
+                // Proper tender breakdown — post each tender to its own account.
+                if (cashPortion > 0)
+                {
+                    entry.Lines.Add(new JournalLine
+                    {
+                        AccountCode = cashAccountCode,
+                        Debit = cashPortion,
+                        Remark = "Cash sale"
+                    });
+                }
+                if (cardPortion > 0)
+                {
+                    entry.Lines.Add(new JournalLine
+                    {
+                        AccountCode = GetCardClearingAccount(),
+                        Debit = cardPortion,
+                        Remark = "Card tender"
+                    });
+                }
+                if (voucherPortion > 0)
+                {
+                    entry.Lines.Add(new JournalLine
+                    {
+                        AccountCode = GetVoucherAccount(),
+                        Debit = voucherPortion,
+                        Remark = "Voucher tender"
+                    });
+                }
+            }
+            else
+            {
+                // Legacy / incomplete tender data (e.g. migrated sales whose cash_amount /
+                // non_cash / voucher_amount do not reconcile to total_value) — fall back to
+                // the original single cash debit so batch posting is never blocked by a
+                // historical row. New sales with proper tender data take the split path above.
                 entry.Lines.Add(new JournalLine
                 {
                     AccountCode = cashAccountCode,
-                    Debit = cashPortion,
+                    Debit = sale.TotalValue,
                     Remark = "Cash sale"
                 });
-            }
-            if (cardPortion > 0)
-            {
-                entry.Lines.Add(new JournalLine
-                {
-                    AccountCode = GetCardClearingAccount(),
-                    Debit = cardPortion,
-                    Remark = "Card tender"
-                });
-            }
-            if (voucherPortion > 0)
-            {
-                entry.Lines.Add(new JournalLine
-                {
-                    AccountCode = GetVoucherAccount(),
-                    Debit = voucherPortion,
-                    Remark = "Voucher tender"
-                });
-            }
-
-            long tenderSum = cashPortion + cardPortion + voucherPortion;
-            if (tenderSum != sale.TotalValue)
-            {
-                throw new InvalidOperationException(string.Format(
-                    "Tender split ({0}) does not reconcile to sale total ({1}) for {2}",
-                    tenderSum, sale.TotalValue, sale.JournalNo));
             }
 
             // Credit: Sales revenue (aggregate by account)
