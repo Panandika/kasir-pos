@@ -131,6 +131,27 @@ namespace Kasir.Tests.Sync
             result.SkippedCount.Should().Be(0); // Skipped silently, not counted as error
         }
 
+        // F44: a permanently-bad (tampered) file must be quarantined out of the inbox so
+        // it cannot re-consume the limited inbox window on every subsequent pull.
+        [Test]
+        public void Pull_PoisonFile_IsQuarantined_AndNotReprocessed()
+        {
+            var batch = CreateValidBatch("01");
+            batch.Signature = "tampered-signature";
+            string json = JsonConvert.SerializeObject(batch);
+            string path = "C:\\kasir\\sync\\outbox\\01_20260404_120000_abc123.json";
+            _fileReader.Files[path] = json;
+
+            var first = _pullService.Pull();
+            first.SkippedCount.Should().Be(1);
+            _fileReader.QuarantinedFiles.Should().ContainSingle();
+            _fileReader.Files.Should().NotContainKey(path, "the poison file must leave the inbox");
+
+            // A second pull sees an empty inbox — the poison file is gone, not reprocessed.
+            var second = _pullService.Pull();
+            second.SkippedCount.Should().Be(0);
+        }
+
         [Test]
         public void Pull_EmptyOutbox_SucceedsWithZero()
         {

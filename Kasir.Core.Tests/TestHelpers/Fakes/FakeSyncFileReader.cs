@@ -8,11 +8,13 @@ namespace Kasir.Tests.TestHelpers.Fakes
     {
         public Dictionary<string, string> Files { get; private set; }
         public List<string> ArchivedFiles { get; private set; }
+        public List<string> QuarantinedFiles { get; private set; }
 
         public FakeSyncFileReader()
         {
             Files = new Dictionary<string, string>();
             ArchivedFiles = new List<string>();
+            QuarantinedFiles = new List<string>();
         }
 
         private static string Normalize(string path)
@@ -61,6 +63,12 @@ namespace Kasir.Tests.TestHelpers.Fakes
         public void MoveToArchive(string path)
         {
             ArchivedFiles.Add(path);
+            Delete(path);
+        }
+
+        public void MoveToQuarantine(string path)
+        {
+            QuarantinedFiles.Add(path);
             Delete(path);
         }
     }

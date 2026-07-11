@@ -58,34 +58,55 @@ namespace Kasir.Sync
                     continue;
                 }
 
+                // Phase 1 — parse/verify/validate. Any failure here means the file is
+                // permanently bad (unparseable, tampered, or invalid), so it is moved to
+                // quarantine; leaving it in place would let it re-consume the limited inbox
+                // window on every pull and starve good files (F44).
+                SyncBatch batch;
                 try
                 {
                     string json = _fileReader.Read(file);
                     if (json == null) continue;
 
-                    var batch = DeserializeBatch(json);
-
+                    batch = DeserializeBatch(json);
                     VerifySignature(batch, json);
                     ValidateBatch(batch);
-
-                    int applied = ApplyBatch(batch);
-                    totalApplied += applied;
-
-                    _fileReader.MoveToArchive(file);
                 }
                 catch (SecurityException ex)
                 {
                     lastError = "HMAC verification failed: " + ex.Message;
                     totalSkipped++;
+                    _fileReader.MoveToQuarantine(file);
+                    continue;
                 }
                 catch (InvalidOperationException ex)
                 {
                     lastError = "Validation failed: " + ex.Message;
                     totalSkipped++;
+                    _fileReader.MoveToQuarantine(file);
+                    continue;
                 }
                 catch (Exception ex)
                 {
+                    // Unparseable JSON / oversized file etc. — also permanently bad.
                     lastError = ex.Message;
+                    totalSkipped++;
+                    _fileReader.MoveToQuarantine(file);
+                    continue;
+                }
+
+                // Phase 2 — apply. A failure here (e.g. the DB is briefly locked) is
+                // transient, so the file is LEFT in the inbox to retry on the next pull
+                // rather than quarantined.
+                try
+                {
+                    int applied = ApplyBatch(batch);
+                    totalApplied += applied;
+                    _fileReader.MoveToArchive(file);
+                }
+                catch (Exception ex)
+                {
+                    lastError = "Apply failed (will retry): " + ex.Message;
                     totalSkipped++;
                 }
             }
