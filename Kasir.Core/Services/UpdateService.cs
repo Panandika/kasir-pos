@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using System.Diagnostics;
 using System.IO;
@@ -275,6 +276,7 @@ namespace Kasir.Services
             string content = _fs.ReadAllText(checksumFile);
             string[] lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
+            var listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string line in lines)
             {
                 // Format: "hash  filename" (two spaces between hash and name)
@@ -283,6 +285,7 @@ namespace Kasir.Services
 
                 string expectedHash = line.Substring(0, sepIndex).Trim();
                 string fileName = line.Substring(sepIndex + 2).Trim();
+                listed.Add(NormalizeRelPath(fileName));
 
                 string filePath = Path.Combine(directory, fileName);
                 if (!_fs.FileExists(filePath))
@@ -297,7 +300,43 @@ namespace Kasir.Services
                 }
             }
 
+            // Manifest completeness (F23): every file physically present in the update must
+            // be covered by the signed manifest. Otherwise an attacker with write access to
+            // the update share could add an unlisted file (e.g. a malicious DLL) that skips
+            // verification and is then deployed into the app directory — remote code
+            // execution. Only the manifest and its HMAC signature are exempt.
+            var exempt = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "checksum.sha256",
+                "checksum.sha256.hmac"
+            };
+            foreach (string full in _fs.GetFiles(directory, "*", true))
+            {
+                string rel = RelativePathUnder(directory, full);
+                if (exempt.Contains(rel)) continue;
+                if (!listed.Contains(rel))
+                {
+                    return false; // unlisted planted file
+                }
+            }
+
             return true;
+        }
+
+        private static string NormalizeRelPath(string p)
+        {
+            return p.Replace('\\', '/').TrimStart('/');
+        }
+
+        private static string RelativePathUnder(string baseDir, string fullPath)
+        {
+            string b = baseDir.Replace('\\', '/').TrimEnd('/');
+            string f = fullPath.Replace('\\', '/');
+            if (f.Length > b.Length && f.StartsWith(b + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return f.Substring(b.Length + 1);
+            }
+            return Path.GetFileName(fullPath);
         }
 
         public void PublishToShare(string zipPath)
