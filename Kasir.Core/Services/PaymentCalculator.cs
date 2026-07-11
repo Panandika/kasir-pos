@@ -40,19 +40,35 @@ namespace Kasir.Services
             long cardAmount,
             long voucherAmount)
         {
-            long totalPayment = cashAmount + cardAmount + voucherAmount;
+            long nonCash = cardAmount + voucherAmount;
 
-            if (totalPayment < totalDue)
+            // Card and voucher tenders cannot produce change — you never hand back cash
+            // for a card/voucher overpayment. So non-cash tender must not exceed the amount
+            // due; if it does it is a data-entry error, not change (F38).
+            if (nonCash > totalDue)
             {
                 return new PaymentValidation
                 {
                     IsValid = false,
-                    Shortfall = totalDue - totalPayment
+                    NonCashOverpayment = nonCash - totalDue,
+                    CardAmount = cardAmount,
+                    VoucherAmount = voucherAmount
                 };
             }
 
-            // Change comes from cash only
-            long change = totalPayment - totalDue;
+            // Cash must cover whatever the non-cash tender did not.
+            long cashRequired = totalDue - nonCash;
+            if (cashAmount < cashRequired)
+            {
+                return new PaymentValidation
+                {
+                    IsValid = false,
+                    Shortfall = cashRequired - cashAmount
+                };
+            }
+
+            // Change is ONLY the cash overpayment — never from card or voucher.
+            long change = cashAmount - cashRequired;
 
             return new PaymentValidation
             {
@@ -81,6 +97,9 @@ namespace Kasir.Services
         public bool IsValid { get; set; }
         public long Change { get; set; }
         public long Shortfall { get; set; }
+        // Amount by which card+voucher tender exceeded the total due (F38). Non-zero only
+        // on an invalid result; such overpayment must be corrected, not returned as change.
+        public long NonCashOverpayment { get; set; }
         public long CashAmount { get; set; }
         public long CardAmount { get; set; }
         public long VoucherAmount { get; set; }
