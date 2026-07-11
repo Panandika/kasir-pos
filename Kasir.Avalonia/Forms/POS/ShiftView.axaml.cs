@@ -101,7 +101,9 @@ public partial class ShiftView : UserControl
             return;
         }
 
-        long shiftCash = _saleRepo.GetCashSinceShift(CurrentShift.RegisterId, CurrentShift.ShiftNumber);
+        // Scope to this shift's open→now window; the shift number alone recurs daily (F03).
+        long shiftCash = _saleRepo.GetCashSinceShift(
+            CurrentShift.RegisterId, CurrentShift.ShiftNumber, CurrentShift.OpenedAt, CurrentShift.ClosedAt);
         long expected = CurrentShift.OpeningCash + shiftCash;
 
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner,
