@@ -210,10 +210,12 @@ namespace Kasir.Sync
                         {
                             case "I":
                                 ApplyInsert(evt);
+                                ApplyChildren(evt);
                                 applied++;
                                 break;
                             case "U":
                                 ApplyUpdate(evt);
+                                ApplyChildren(evt);
                                 applied++;
                                 break;
                             case "D":
@@ -233,6 +235,61 @@ namespace Kasir.Sync
             }
 
             return applied;
+        }
+
+        // Replace the parent's child detail rows (e.g. sale_items) so they replicate with
+        // the parent (F25). Child rows are keyed by journal_no; we delete the existing set
+        // and re-insert the incoming set, skipping the source register's autoincrement id
+        // so the local PK is assigned locally (same F24 rationale).
+        private void ApplyChildren(SyncEvent evt)
+        {
+            if (evt.Children == null || evt.Children.Count == 0) return;
+
+            foreach (var kv in evt.Children)
+            {
+                string childTable = kv.Key;
+                // Whitelist: only known child tables may be written (the table name comes
+                // from the batch, so it must be validated before use in SQL).
+                if (!SyncConfig.ChildTables.ContainsValue(childTable)) continue;
+
+                using (var del = _db.CreateCommand())
+                {
+                    del.CommandText = string.Format("DELETE FROM [{0}] WHERE [journal_no] = @key", childTable);
+                    del.Parameters.AddWithValue("@key", evt.RecordKey);
+                    del.ExecuteNonQuery();
+                }
+
+                foreach (var row in kv.Value)
+                {
+                    if (row == null || row.Count == 0) continue;
+
+                    var columns = new List<string>();
+                    var paramNames = new List<string>();
+                    var parameters = new List<SqliteParameter>();
+
+                    int i = 0;
+                    foreach (var cell in row)
+                    {
+                        if (!ValidColumnName.IsMatch(cell.Key)) continue;
+                        if (cell.Key == "id") continue; // let the local PK autoincrement
+                        columns.Add("[" + cell.Key + "]");
+                        string p = "@c" + i;
+                        paramNames.Add(p);
+                        parameters.Add(new SqliteParameter(p, cell.Value ?? DBNull.Value));
+                        i++;
+                    }
+                    if (columns.Count == 0) continue;
+
+                    string sql = string.Format("INSERT INTO [{0}] ({1}) VALUES ({2})",
+                        childTable, string.Join(", ", columns), string.Join(", ", paramNames));
+                    using (var cmd = _db.CreateCommand())
+                    {
+                        cmd.CommandText = sql;
+                        foreach (var p in parameters) cmd.Parameters.Add(p);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
         }
 
         private void ApplyInsert(SyncEvent evt)

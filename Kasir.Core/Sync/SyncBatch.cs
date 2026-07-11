@@ -25,6 +25,11 @@ namespace Kasir.Sync
         public string Operation { get; set; }
         public Dictionary<string, object> Data { get; set; }
 
+        // Child detail rows bundled with the parent transaction (F25): child-table name ->
+        // its rows. e.g. a "sales" event carries its "sale_items". Null/absent for events
+        // that have no child table.
+        public Dictionary<string, List<Dictionary<string, object>>> Children { get; set; }
+
         public SyncEvent()
         {
             Data = new Dictionary<string, object>();

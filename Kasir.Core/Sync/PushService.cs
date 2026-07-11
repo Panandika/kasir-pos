@@ -150,6 +150,21 @@ namespace Kasir.Sync
                         droppedIds.Add(entry.Id);
                         continue;
                     }
+
+                    // Bundle child detail rows (e.g. sale_items) so they replicate with
+                    // their parent (F25).
+                    string childTable;
+                    if (SyncConfig.ChildTables.TryGetValue(entry.TableName, out childTable))
+                    {
+                        var children = FetchChildRows(childTable, entry.RecordKey);
+                        if (children.Count > 0)
+                        {
+                            evt.Children = new Dictionary<string, List<Dictionary<string, object>>>
+                            {
+                                { childTable, children }
+                            };
+                        }
+                    }
                 }
 
                 if (evt.Data != null)
@@ -191,6 +206,31 @@ namespace Kasir.Sync
             }
 
             return data;
+        }
+
+        // Fetch all child detail rows for a parent transaction, linked by journal_no.
+        private List<Dictionary<string, object>> FetchChildRows(string childTable, string journalNo)
+        {
+            var rows = new List<Dictionary<string, object>>();
+            string sql = string.Format("SELECT * FROM [{0}] WHERE [journal_no] = @jnl ORDER BY id", childTable);
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                cmd.Parameters.AddWithValue("@jnl", journalNo);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var row = new Dictionary<string, object>();
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        }
+                        rows.Add(row);
+                    }
+                }
+            }
+            return rows;
         }
 
         internal static string GetKeyColumn(string tableName)

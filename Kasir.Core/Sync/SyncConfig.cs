@@ -33,6 +33,18 @@ namespace Kasir.Sync
             "stock_adjustments"
         };
 
+        // Parent transaction table -> its child detail table (linked by journal_no). The
+        // child rows are bundled into the parent's sync event so they replicate together
+        // (F25). The child table names double as the pull-side whitelist.
+        public static readonly Dictionary<string, string> ChildTables = new Dictionary<string, string>
+        {
+            { "sales", "sale_items" },
+            { "purchases", "purchase_items" },
+            { "orders", "order_items" },
+            { "stock_adjustments", "stock_adjustment_items" },
+            { "memorial_journals", "memorial_journal_lines" }
+        };
+
         public static string GetOutboxPath(string hubSharePath)
         {
             return System.IO.Path.Combine(hubSharePath, "outbox");
