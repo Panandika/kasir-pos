@@ -160,6 +160,30 @@ namespace Kasir.Tests.Services
             }
         }
 
+        // F42: update packages must verify against a DEDICATED update key, not the shared
+        // sync key. A package signed with only the sync key must be rejected once a
+        // dedicated update_hmac_key is provisioned.
+        [Test]
+        public void VerifyChecksumHmac_UsesDedicatedUpdateKey_RejectsSyncKeySignature()
+        {
+            var config = new ConfigRepository(_db);
+            config.Set("sync_hmac_key", "sync-key");
+            config.Set("update_hmac_key", "update-key");
+
+            const string dir = @"\\SERVER\updates\latest";
+            const string checksum = "abc123  Kasir.exe";
+            _fs.AddDirectory(dir);
+            _fs.AddFile(dir + @"\checksum.sha256", checksum);
+
+            // Signed with the SYNC key — must now FAIL (keys are separated).
+            _fs.AddFile(dir + @"\checksum.sha256.hmac", UpdateService.ComputeHmac(checksum, "sync-key"));
+            _sut.VerifyChecksumHmac(dir).Should().BeFalse("a sync-key signature must not authorize an update");
+
+            // Signed with the dedicated UPDATE key — passes.
+            _fs.AddFile(dir + @"\checksum.sha256.hmac", UpdateService.ComputeHmac(checksum, "update-key"));
+            _sut.VerifyChecksumHmac(dir).Should().BeTrue();
+        }
+
         [Test]
         public void ComputeHmac_Deterministic()
         {

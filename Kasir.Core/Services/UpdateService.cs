@@ -251,7 +251,16 @@ namespace Kasir.Services
                 return false; // One exists without the other — tampered or incomplete
             }
 
-            string hmacKey = _configRepo.Get("sync_hmac_key") ?? "default-hmac-key-change-me";
+            // F42: update packages must be signed with a DEDICATED key, not the sync HMAC
+            // key. Sharing one key meant a single DB read (the sync key) let an attacker
+            // forge an update package and push RCE fleet-wide. Prefer update_hmac_key;
+            // fall back to sync_hmac_key only until a register has provisioned the dedicated
+            // key (transitional — provisioning update_hmac_key completes the separation).
+            string hmacKey = _configRepo.Get("update_hmac_key");
+            if (string.IsNullOrEmpty(hmacKey))
+            {
+                hmacKey = _configRepo.Get("sync_hmac_key") ?? "default-hmac-key-change-me";
+            }
 
             if (hmacKey == "default-hmac-key-change-me")
             {
