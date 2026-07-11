@@ -164,7 +164,7 @@ The mirror is non-destructive to local POS. To wipe and reload:
 
 ```bash
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
-PGURL="postgresql://postgres.mnatezzsysmadvrosnad:***REMOVED-DB-PASSWORD***@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require"
+PGURL="postgresql://postgres.mnatezzsysmadvrosnad:<DB_PASSWORD>@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require"  # <DB_PASSWORD> from kasir-pos/.env
 
 # Drop everything we created
 for t in stock_movements stock_adjustments stock_transfers \

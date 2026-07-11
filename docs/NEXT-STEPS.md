@@ -142,50 +142,51 @@ cp docs/NEXT-STEPS.md docs/LIVE-LOAD-RESULTS.md                            ./gat
 
 ## Credentials (handle with care)
 
-> **⚠️ Rotate these immediately if this file leaks publicly.**
-> The repo is private (`Panandika/kasir-pos`) so values are inlined
-> here for the Win10 agent's convenience. If you ever publish the
-> repo or share this doc beyond the operator, regenerate the
-> Supabase DB password (`Settings → Database → Reset password`)
-> and the service-role key (`Settings → API → service_role → Reset`).
+> **⚠️ Secrets are NOT inlined here. Read them from `kasir-pos/.env`
+> (gitignored) — that is the single canonical source.**
+> These values were previously committed to this repo's git history
+> (commit `6f3264d`) and MUST be treated as compromised: rotate the
+> Supabase DB password (`Settings → Database → Reset password`) and
+> the service-role key (`Settings → API → service_role → Reset`),
+> then update `.env` only. Never paste live secrets into any tracked file.
 
 ```ini
 # Postgres URL — Supavisor pooler, SESSION mode (port 5432).
 # Use this for: DDL, ad-hoc psql sessions, --initial-load.
 # Session mode supports SET session_replication_role and other
 # session-scoped commands the loader needs.
-CONNECTION_STRING=postgresql://postgres.mnatezzsysmadvrosnad:***REMOVED-DB-PASSWORD***@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+CONNECTION_STRING=postgresql://postgres.mnatezzsysmadvrosnad:<DB_PASSWORD>@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
 
 # Postgres URL — Supavisor pooler, TRANSACTION mode (port 6543).
 # Use this for: the steady-state Kasir.CloudSync worker (Step 4).
 # Transaction mode is more efficient for the worker's many short
 # UPSERT round-trips but does NOT keep session state across queries.
-CONNECTION_STRING_TX=postgresql://postgres.mnatezzsysmadvrosnad:***REMOVED-DB-PASSWORD***@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require
+CONNECTION_STRING_TX=postgresql://postgres.mnatezzsysmadvrosnad:<DB_PASSWORD>@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require
 
 # Same hostname/user split out for tools that want fields, not URLs.
 POOLER_HOST=aws-1-ap-southeast-1.pooler.supabase.com
 POOLER_USER=postgres.mnatezzsysmadvrosnad
-DB_PASSWORD=***REMOVED-DB-PASSWORD***
+DB_PASSWORD=<from .env>
 
 # Supabase service-role key (JWT). Used by Supabase REST/Studio/etc.
 # at the API level — NOT used by the Postgres connection above.
 # Required if you ever script via the Supabase Management API or
 # PostgREST. Treat as equally sensitive as the DB password.
-SERVICE_ROLE_KEY=***REMOVED-SERVICE-ROLE-KEY***
+SERVICE_ROLE_KEY=<from .env>
 ```
 
 The Npgsql key=value form (used in `setx` and `appsettings.json`):
 
 ```text
 # Session mode (Step 1 TLS smoke test, Step 2 if you ever re-load):
-Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.mnatezzsysmadvrosnad;Password=***REMOVED-DB-PASSWORD***;SslMode=Require
+Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.mnatezzsysmadvrosnad;Password=<DB_PASSWORD>;SslMode=Require
 
 # Transaction mode (Step 4 service env var KASIR_CLOUDSYNC_SUPABASE):
-Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.mnatezzsysmadvrosnad;Password=***REMOVED-DB-PASSWORD***;SslMode=Require
+Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.mnatezzsysmadvrosnad;Password=<DB_PASSWORD>;SslMode=Require
 ```
 
-A copy of these also lives at `kasir-pos/.env` on the dev laptop
-(gitignored there). Either source is authoritative.
+The live values live only at `kasir-pos/.env` on the dev laptop
+(gitignored). That is the single authoritative source.
 
 The file `kasir-pos/appsettings.json` (also gitignored) contains an
 older **direct-connection** format pointing at
