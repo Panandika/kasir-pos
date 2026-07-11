@@ -70,6 +70,24 @@ namespace Kasir.Tests.Services
             glLines[1].Credit.Should().Be(100000);
         }
 
+        // F37: journal numbering + the memorial_journals row must use the actual register
+        // id, not a hardcoded '01' (which caused duplicate document numbers across
+        // registers).
+        [Test]
+        public void CreateJournalEntry_UsesActualRegisterId_NotHardcoded01()
+        {
+            new ConfigRepository(_db).Set("register_id", "02");
+
+            var journalNo = _service.CreateJournalEntry(MakeBalancedEntry(100000));
+
+            journalNo.Should().Contain("-02-", "the journal number must carry the active register id");
+
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT register_id FROM memorial_journals WHERE journal_no = @jnl";
+            cmd.Parameters.AddWithValue("@jnl", journalNo);
+            (cmd.ExecuteScalar() as string).Should().Be("02");
+        }
+
         [Test]
         public void CreateJournalEntry_Unbalanced_ThrowsInvalidOperationException()
         {

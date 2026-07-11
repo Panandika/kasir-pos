@@ -15,6 +15,7 @@ namespace Kasir.Services
         private readonly AccountRepository _accountRepo;
         private readonly FiscalPeriodRepository _periodRepo;
         private readonly CounterRepository _counterRepo;
+        private readonly ConfigRepository _configRepo;
 
         public AccountingService(SqliteConnection db)
         {
@@ -24,15 +25,19 @@ namespace Kasir.Services
             _accountRepo = new AccountRepository(db);
             _periodRepo = new FiscalPeriodRepository(db);
             _counterRepo = new CounterRepository(db);
+            _configRepo = new ConfigRepository(db);
         }
+
+        private string RegisterId => _configRepo.Get("register_id") ?? "01";
 
         public string CreateJournalEntry(JournalEntry entry)
         {
             ValidateJournalEntry(entry);
 
+            string registerId = RegisterId;
             if (string.IsNullOrEmpty(entry.JournalNo))
             {
-                entry.JournalNo = _counterRepo.GetNext("UMH", "01");
+                entry.JournalNo = _counterRepo.GetNext("UMH", registerId);
             }
 
             using (var txn = _db.BeginTransaction())
@@ -43,12 +48,13 @@ namespace Kasir.Services
                     SqlHelper.ExecuteNonQuery(_db,
                         @"INSERT INTO memorial_journals (doc_type, journal_no, doc_date, remark,
                           control, period_code, register_id, changed_by, changed_at)
-                          VALUES ('MEMORIAL', @jnl, @date, @remark, 1, @period, '01', @changedBy,
+                          VALUES ('MEMORIAL', @jnl, @date, @remark, 1, @period, @reg, @changedBy,
                           datetime('now','localtime'))",
                         SqlHelper.Param("@jnl", entry.JournalNo),
                         SqlHelper.Param("@date", entry.DocDate),
                         SqlHelper.Param("@remark", entry.Remark ?? ""),
                         SqlHelper.Param("@period", entry.PeriodCode),
+                        SqlHelper.Param("@reg", registerId),
                         SqlHelper.Param("@changedBy", entry.ChangedBy));
 
                     // Insert memorial journal lines
