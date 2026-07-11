@@ -320,7 +320,46 @@ namespace Kasir.Services
 
         public void VoidSale(string journalNo)
         {
-            _saleRepo.VoidSale(journalNo, _cashierUserId);
+            var sale = _saleRepo.GetByJournalNo(journalNo);
+            if (sale == null)
+            {
+                throw new InvalidOperationException("Penjualan tidak ditemukan: " + journalNo);
+            }
+            if (sale.Control == 3)
+            {
+                return; // already voided — idempotent
+            }
+
+            // A sale whose GL journal was already posted must be reversed with a proper
+            // return/credit note, not silently voided — otherwise the GL and the sale
+            // diverge (F13). Block it here.
+            if (sale.IsPosted == "Y")
+            {
+                throw new InvalidOperationException(
+                    "Tidak bisa void penjualan yang sudah diposting ke jurnal; buat retur penjualan.");
+            }
+
+            var items = _saleRepo.GetItemsByJournalNo(journalNo);
+
+            using (var txn = _db.BeginTransaction())
+            {
+                try
+                {
+                    _saleRepo.VoidSale(journalNo, _cashierUserId);
+
+                    // Return the sold stock to inventory — a plain control=3 flip left the
+                    // stock permanently understated (F35).
+                    foreach (var item in items)
+                    {
+                        _inventoryService.RecordStockIn(
+                            item.ProductCode, item.Quantity, item.Cogs,
+                            "RETURN_IN", journalNo, sale.DocDate, _cashierUserId);
+                    }
+
+                    txn.Commit();
+                }
+                catch { txn.Rollback(); throw; }
+            }
         }
 
         public void ClearCurrentSale()

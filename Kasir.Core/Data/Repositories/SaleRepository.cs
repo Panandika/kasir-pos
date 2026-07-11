@@ -218,6 +218,7 @@ namespace Kasir.Data.Repositories
                 VoucherAmount = SqlHelper.GetLong(reader, "voucher_amount"),
                 CreditAmount = SqlHelper.GetLong(reader, "credit_amount"),
                 Control = SqlHelper.GetInt(reader, "control"),
+                IsPosted = SqlHelper.GetString(reader, "is_posted"),
                 PrintCount = SqlHelper.GetInt(reader, "print_count"),
                 PeriodCode = SqlHelper.GetString(reader, "period_code"),
                 RegisterId = SqlHelper.GetString(reader, "register_id"),

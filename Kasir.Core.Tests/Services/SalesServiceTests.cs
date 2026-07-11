@@ -242,6 +242,45 @@ namespace Kasir.Tests.Services
             sale.DocDate.Should().Be("2026-04-04");
         }
 
+        // F35: voiding a sale must return the sold stock to inventory — a plain control=3
+        // flip left inventory permanently understated.
+        [Test]
+        public void VoidSale_ReturnsSoldStockToInventory()
+        {
+            var movementRepo = new StockMovementRepository(_db);
+            _service.AddItem("P001", 2);
+            var sale = _service.CompleteSale(10000000, 0, 0, "", "", "");
+
+            int afterSale = movementRepo.GetStockOnHand("P001"); // reduced by 2
+            _service.VoidSale(sale.JournalNo);
+            int afterVoid = movementRepo.GetStockOnHand("P001");
+
+            afterVoid.Should().Be(afterSale + 2, "voiding returns the 2 sold units to stock");
+
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT control FROM sales WHERE journal_no = @j";
+            cmd.Parameters.AddWithValue("@j", sale.JournalNo);
+            System.Convert.ToInt32(cmd.ExecuteScalar()).Should().Be(3, "sale is marked void");
+        }
+
+        // F13: a sale whose GL journal is already posted must not be silently voided.
+        [Test]
+        public void VoidSale_PostedSale_Throws()
+        {
+            _service.AddItem("P001", 1);
+            var sale = _service.CompleteSale(5000000, 0, 0, "", "", "");
+
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "UPDATE sales SET is_posted = 'Y' WHERE journal_no = @j";
+                cmd.Parameters.AddWithValue("@j", sale.JournalNo);
+                cmd.ExecuteNonQuery();
+            }
+
+            System.Action act = () => _service.VoidSale(sale.JournalNo);
+            act.Should().Throw<System.InvalidOperationException>().WithMessage("*diposting*");
+        }
+
         [Test]
         public void CompleteSale_InsufficientPayment_Throws()
         {
