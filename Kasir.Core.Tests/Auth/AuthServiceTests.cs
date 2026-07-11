@@ -102,6 +102,59 @@ namespace Kasir.Tests.Auth
             result.ErrorMessage.Should().Contain("locked");
         }
 
+        // F34: lockout state must survive an app restart (a fresh AuthService on the same
+        // DB is still locked) — previously it lived only in memory.
+        [Test]
+        public void Lockout_Persists_AcrossNewAuthServiceInstance()
+        {
+            _auth.Login("ADMIN", "wrong1");
+            _auth.Login("ADMIN", "wrong2");
+            _auth.Login("ADMIN", "wrong3");
+            _auth.IsLockedOut.Should().BeTrue();
+
+            var fresh = new AuthService(_db); // simulates app restart / new LoginView
+            fresh.IsLockedOut.Should().BeTrue("persisted lockout must survive a new instance");
+            fresh.Login("ADMIN", "admin").Success.Should().BeFalse();
+        }
+
+        // F34: the cumulative failure count is never reset on lockout, so each further
+        // failure escalates the lockout duration.
+        [Test]
+        public void Lockout_Escalates_WithCumulativeFailures()
+        {
+            var t = new System.DateTime(2026, 7, 11, 9, 0, 0);
+            long mono = 0;
+            var auth = new AuthService(_db, () => t, () => mono);
+
+            auth.Login("ADMIN", "x"); auth.Login("ADMIN", "x"); auth.Login("ADMIN", "x");
+            int firstLock = auth.RemainingLockoutSeconds; // 30s after 3 fails
+
+            // Advance past the first lockout (both clocks) and fail three more times.
+            t = t.AddSeconds(31); mono += 31000;
+            auth.Login("ADMIN", "x"); auth.Login("ADMIN", "x"); auth.Login("ADMIN", "x");
+            int secondLock = auth.RemainingLockoutSeconds; // 6 fails -> longer
+
+            firstLock.Should().Be(30);
+            secondLock.Should().BeGreaterThan(firstLock, "more cumulative failures = longer lockout");
+        }
+
+        // F34: moving the system clock forward must NOT release an active lockout — the
+        // in-session monotonic deadline still holds.
+        [Test]
+        public void Lockout_NotReleasedBy_MovingWallClockForward()
+        {
+            var t = new System.DateTime(2026, 7, 11, 9, 0, 0);
+            long mono = 0;
+            var auth = new AuthService(_db, () => t, () => mono);
+
+            auth.Login("ADMIN", "x"); auth.Login("ADMIN", "x"); auth.Login("ADMIN", "x");
+            auth.IsLockedOut.Should().BeTrue();
+
+            // Attacker jumps the wall clock a year ahead but no real (monotonic) time passed.
+            t = t.AddYears(1);
+            auth.IsLockedOut.Should().BeTrue("monotonic deadline must still hold the lockout");
+        }
+
         [Test]
         public void Logout_ClearsCurrentUser()
         {
