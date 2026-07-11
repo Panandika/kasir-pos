@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using NUnit.Framework;
 using FluentAssertions;
@@ -246,6 +247,7 @@ namespace Kasir.Tests.Services
                 JournalNo = "JFA-01-2604-0001",
                 DocDate = "2026-04-04",
                 TotalValue = 500000,
+                CashAmount = 500000, // full cash tender
                 PeriodCode = "202604",
                 ChangedBy = 1
             };
@@ -278,6 +280,7 @@ namespace Kasir.Tests.Services
                 JournalNo = "JFA-01-2604-0002",
                 DocDate = "2026-04-04",
                 TotalValue = 150000,
+                CashAmount = 150000, // full cash tender
                 PeriodCode = "202604",
                 ChangedBy = 1
             };
@@ -307,6 +310,80 @@ namespace Kasir.Tests.Services
 
             Action act = () => _service.PostSaleJournal(sale, new List<SaleItem>(), "");
             act.Should().Throw<ArgumentException>();
+        }
+
+        // F16: a card sale must debit the card portion to the card-clearing account and
+        // only the cash portion to cash — not the full total to cash.
+        [Test]
+        public void PostSaleJournal_CardSale_SplitsTenderToCorrectAccounts()
+        {
+            SeedAccount("640.001", "Card Clearing", 1, "D");
+            new ConfigRepository(_db).Set("ACCOUNT_CARD_CLEARING", "640.001");
+
+            var sale = new Sale
+            {
+                JournalNo = "JFA-01-2604-0010",
+                DocDate = "2026-04-04",
+                TotalValue = 500000,
+                CashAmount = 200000,   // Rp 2000 cash
+                NonCash = 300000,      // Rp 3000 card
+                ChangeAmount = 0,
+                PeriodCode = "202604",
+                ChangedBy = 1
+            };
+
+            _service.PostSaleJournal(sale, new List<SaleItem>(), "1100");
+
+            var glLines = _glRepo.GetByJournalNo(sale.JournalNo);
+            var cash = glLines.Single(l => l.AccountCode == "1100");
+            var card = glLines.Single(l => l.AccountCode == "640.001");
+            var revenue = glLines.Single(l => l.AccountCode == "4100");
+
+            cash.Debit.Should().Be(200000, "only the cash portion posts to cash");
+            card.Debit.Should().Be(300000, "the card portion posts to the card-clearing account");
+            revenue.Credit.Should().Be(500000);
+            (cash.Debit + card.Debit).Should().Be(revenue.Credit, "journal stays balanced");
+        }
+
+        // F16: a card sale with no ACCOUNT_CARD_CLEARING configured must fail-closed with a
+        // clear, actionable error — never silently post to a wrong account.
+        [Test]
+        public void PostSaleJournal_CardSale_MissingCardConfig_FailsClosed()
+        {
+            var sale = new Sale
+            {
+                JournalNo = "JFA-01-2604-0011",
+                DocDate = "2026-04-04",
+                TotalValue = 300000,
+                CashAmount = 0,
+                NonCash = 300000, // card, but no ACCOUNT_CARD_CLEARING set
+                PeriodCode = "202604",
+                ChangedBy = 1
+            };
+
+            Action act = () => _service.PostSaleJournal(sale, new List<SaleItem>(), "1100");
+            act.Should().Throw<InvalidOperationException>().WithMessage("*ACCOUNT_CARD_CLEARING*");
+        }
+
+        // Fail-closed: a configured account code that does not exist in the chart of
+        // accounts must throw, not post to a bogus account.
+        [Test]
+        public void PostSaleJournal_ConfiguredAccountMissingFromChart_FailsClosed()
+        {
+            new ConfigRepository(_db).Set("ACCOUNT_SALES_REVENUE", "999.999"); // not seeded
+
+            var sale = new Sale
+            {
+                JournalNo = "JFA-01-2604-0012",
+                DocDate = "2026-04-04",
+                TotalValue = 100000,
+                CashAmount = 100000,
+                PeriodCode = "202604",
+                ChangedBy = 1
+            };
+
+            Action act = () => _service.PostSaleJournal(sale, new List<SaleItem>(), "1100");
+            act.Should().Throw<InvalidOperationException>().WithMessage("*does not exist*");
         }
 
         // --- Purchase Posting ---

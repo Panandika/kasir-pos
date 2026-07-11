@@ -323,19 +323,33 @@ namespace Kasir.Services
             {
                 try
                 {
+                    // Journal number is allocated inside the sale transaction so a
+                    // rolled-back sale does not burn a KLR number (F52).
                     journalNo = _counterRepo.GetNext("KLR", registerId);
                     sale.JournalNo = journalNo;
 
-                    _saleRepo.InsertWithoutTransaction(sale, _currentItems);
-
-                    // Create stock movements for each sold item
+                    // COGS must use the weighted-average cost that the stock ledger uses,
+                    // not the master CostPrice, so the GL COGS matches the inventory ledger
+                    // (F20/F40). Capture the per-unit cost once and use it for BOTH the
+                    // stored line COGS and the stock-out movement.
+                    var unitCosts = new List<long>(_currentItems.Count);
                     foreach (var item in _currentItems)
                     {
-                        long costPrice = _inventoryService.CalculateAverageCost(item.ProductCode);
+                        long avgCost = _inventoryService.CalculateAverageCost(item.ProductCode);
+                        unitCosts.Add(avgCost);
+                        item.Cogs = avgCost * item.Quantity;
+                    }
+
+                    _saleRepo.InsertWithoutTransaction(sale, _currentItems);
+
+                    // Create stock movements at the same weighted-average cost.
+                    for (int i = 0; i < _currentItems.Count; i++)
+                    {
+                        var item = _currentItems[i];
                         _inventoryService.RecordStockOut(
                             item.ProductCode,
                             item.Quantity,
-                            costPrice,
+                            unitCosts[i],
                             "SALE",
                             journalNo,
                             today,
