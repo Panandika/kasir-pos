@@ -83,19 +83,28 @@ namespace Kasir.Services
             receipt.GrossAmount = gross;
             receipt.TotalValue = gross - receipt.TotalDisc + receipt.VatAmount;
 
-            _purchaseRepo.Insert(receipt, items);
-
-            // Create stock movements for each received item
-            foreach (var item in items)
+            // Atomic: the receipt and its stock-in movements must all land or none (F19).
+            using (var txn = _db.BeginTransaction())
             {
-                _inventoryService.RecordStockIn(
-                    item.ProductCode,
-                    item.Quantity,
-                    item.UnitPrice,
-                    "PURCHASE",
-                    journalNo,
-                    receipt.DocDate,
-                    userId);
+                try
+                {
+                    _purchaseRepo.InsertWithoutTransaction(receipt, items);
+
+                    foreach (var item in items)
+                    {
+                        _inventoryService.RecordStockIn(
+                            item.ProductCode,
+                            item.Quantity,
+                            item.UnitPrice,
+                            "PURCHASE",
+                            journalNo,
+                            receipt.DocDate,
+                            userId);
+                    }
+
+                    txn.Commit();
+                }
+                catch { txn.Rollback(); throw; }
             }
 
             return journalNo;
@@ -126,23 +135,32 @@ namespace Kasir.Services
             invoice.GrossAmount = gross;
             invoice.TotalValue = gross - invoice.TotalDisc + invoice.VatAmount;
 
-            _purchaseRepo.Insert(invoice, items);
-
-            // Create AP entry
-            _payablesRepo.Insert(new PayablesEntry
+            // Atomic: the invoice and its AP entry must all land or none (F19).
+            using (var txn = _db.BeginTransaction())
             {
-                SubCode = invoice.SubCode,
-                JournalNo = journalNo,
-                DocDate = invoice.DocDate,
-                DueDate = invoice.DueDate,
-                Direction = "D",
-                GrossAmount = invoice.GrossAmount,
-                Amount = invoice.TotalValue,
-                PaymentAmount = 0,
-                Control = 1,
-                PeriodCode = period,
-                ChangedBy = userId
-            });
+                try
+                {
+                    _purchaseRepo.InsertWithoutTransaction(invoice, items);
+
+                    _payablesRepo.Insert(new PayablesEntry
+                    {
+                        SubCode = invoice.SubCode,
+                        JournalNo = journalNo,
+                        DocDate = invoice.DocDate,
+                        DueDate = invoice.DueDate,
+                        Direction = "D",
+                        GrossAmount = invoice.GrossAmount,
+                        Amount = invoice.TotalValue,
+                        PaymentAmount = 0,
+                        Control = 1,
+                        PeriodCode = period,
+                        ChangedBy = userId
+                    });
+
+                    txn.Commit();
+                }
+                catch { txn.Rollback(); throw; }
+            }
 
             return journalNo;
         }
@@ -171,25 +189,34 @@ namespace Kasir.Services
             ret.GrossAmount = gross;
             ret.TotalValue = gross;
 
-            _purchaseRepo.Insert(ret, items);
-
-            // Stock out for returned items
-            foreach (var item in items)
+            // Atomic: the return, its stock-out movements, and the AP offset must all
+            // land or none (F19).
+            using (var txn = _db.BeginTransaction())
             {
-                _inventoryService.RecordStockOut(
-                    item.ProductCode,
-                    item.Quantity,
-                    item.UnitPrice,
-                    "RETURN_OUT",
-                    journalNo,
-                    ret.DocDate,
-                    userId);
-            }
+                try
+                {
+                    _purchaseRepo.InsertWithoutTransaction(ret, items);
 
-            // If with invoice, create offsetting AP entry
-            if (hasInvoice && !string.IsNullOrEmpty(ret.RefNo))
-            {
-                _payablesRepo.RecordPayment(ret.RefNo, ret.TotalValue);
+                    foreach (var item in items)
+                    {
+                        _inventoryService.RecordStockOut(
+                            item.ProductCode,
+                            item.Quantity,
+                            item.UnitPrice,
+                            "RETURN_OUT",
+                            journalNo,
+                            ret.DocDate,
+                            userId);
+                    }
+
+                    if (hasInvoice && !string.IsNullOrEmpty(ret.RefNo))
+                    {
+                        _payablesRepo.RecordPayment(ret.RefNo, ret.TotalValue);
+                    }
+
+                    txn.Commit();
+                }
+                catch { txn.Rollback(); throw; }
             }
 
             return journalNo;

@@ -242,6 +242,97 @@ namespace Kasir.Tests.Services
             sale.DocDate.Should().Be("2026-04-04");
         }
 
+        // F41: CompleteSale must bind the sale to the actual open shift, not the "1"
+        // no-shift fallback that every other test exercised.
+        [Test]
+        public void CompleteSale_BindsToOpenShift_NotFallback()
+        {
+            new ShiftRepository(_db).OpenShift(new Shift
+            {
+                RegisterId = "01",
+                ShiftNumber = "3",
+                CashierId = 1,
+                OpenedAt = "2026-04-04 08:00:00",
+                OpeningCash = 0,
+                Status = "O"
+            });
+
+            _service.AddItem("P001", 1);
+            var sale = _service.CompleteSale(5000000, 0, 0, "", "", "");
+
+            sale.Shift.Should().Be("3", "the sale must carry the open shift's number, not the fallback '1'");
+        }
+
+        // F36: an in-progress cart must survive a crash — a new SalesService on the same DB
+        // recovers the persisted draft instead of losing it.
+        [Test]
+        public void PendingCart_IsRecovered_ByNewSalesService()
+        {
+            _service.AddItem("P001", 2);
+            _service.AddItem("P002", 1);
+
+            // Simulate a crash + restart: brand-new service on the same database.
+            var recovered = new SalesService(_db, _clock);
+            recovered.SetCashier("ADM", 1);
+            int count = recovered.RecoverPendingSale();
+
+            count.Should().Be(2, "the two draft lines must be recovered");
+            recovered.CurrentItems.Should().HaveCount(2);
+            recovered.CurrentItems[0].ProductCode.Should().Be("P001");
+            recovered.CurrentItems[0].ProductName.Should().Be("MINYAK GORENG 2L", "product name is re-looked-up");
+        }
+
+        // F36: completing the sale clears the persisted draft so it is not recovered later.
+        [Test]
+        public void CompleteSale_ClearsPendingDraft()
+        {
+            _service.AddItem("P001", 1);
+            _service.CompleteSale(5000000, 0, 0, "", "", "");
+
+            var after = new SalesService(_db, _clock);
+            after.SetCashier("ADM", 1);
+            after.RecoverPendingSale().Should().Be(0, "a completed sale leaves no draft to recover");
+        }
+
+        // F35: voiding a sale must return the sold stock to inventory — a plain control=3
+        // flip left inventory permanently understated.
+        [Test]
+        public void VoidSale_ReturnsSoldStockToInventory()
+        {
+            var movementRepo = new StockMovementRepository(_db);
+            _service.AddItem("P001", 2);
+            var sale = _service.CompleteSale(10000000, 0, 0, "", "", "");
+
+            int afterSale = movementRepo.GetStockOnHand("P001"); // reduced by 2
+            _service.VoidSale(sale.JournalNo);
+            int afterVoid = movementRepo.GetStockOnHand("P001");
+
+            afterVoid.Should().Be(afterSale + 2, "voiding returns the 2 sold units to stock");
+
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT control FROM sales WHERE journal_no = @j";
+            cmd.Parameters.AddWithValue("@j", sale.JournalNo);
+            System.Convert.ToInt32(cmd.ExecuteScalar()).Should().Be(3, "sale is marked void");
+        }
+
+        // F13: a sale whose GL journal is already posted must not be silently voided.
+        [Test]
+        public void VoidSale_PostedSale_Throws()
+        {
+            _service.AddItem("P001", 1);
+            var sale = _service.CompleteSale(5000000, 0, 0, "", "", "");
+
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "UPDATE sales SET is_posted = 'Y' WHERE journal_no = @j";
+                cmd.Parameters.AddWithValue("@j", sale.JournalNo);
+                cmd.ExecuteNonQuery();
+            }
+
+            System.Action act = () => _service.VoidSale(sale.JournalNo);
+            act.Should().Throw<System.InvalidOperationException>().WithMessage("*diposting*");
+        }
+
         [Test]
         public void CompleteSale_InsufficientPayment_Throws()
         {

@@ -39,6 +39,7 @@ namespace Kasir.Services
         private readonly PayablesRepository _payablesRepo;
         private readonly AccountingService _accountingService;
         private readonly CounterRepository _counterRepo;
+        private readonly ConfigRepository _configRepo;
 
         public PayablesService(SqliteConnection db)
         {
@@ -46,6 +47,7 @@ namespace Kasir.Services
             _payablesRepo = new PayablesRepository(db);
             _accountingService = new AccountingService(db);
             _counterRepo = new CounterRepository(db);
+            _configRepo = new ConfigRepository(db);
         }
 
         public List<PayablesEntry> GetOutstanding(string vendorCode)
@@ -121,7 +123,7 @@ namespace Kasir.Services
                     result.AmountRemaining = remaining;
 
                     // Post GL: debit AP, credit Cash/Bank
-                    string paymentJnl = _counterRepo.GetNext("KKL", "01");
+                    string paymentJnl = _counterRepo.GetNext("KKL", _configRepo.Get("register_id") ?? "01");
                     _accountingService.PostPaymentJournal(paymentJnl, docDate, periodCode,
                         vendorCode, result.AmountAllocated, cashAccountCode, changedBy);
 

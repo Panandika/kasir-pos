@@ -19,6 +19,18 @@ namespace Kasir.Data.Repositories
             {
                 try
                 {
+                    int id = InsertWithoutTransaction(header, items);
+                    txn.Commit();
+                    return id;
+                }
+                catch { txn.Rollback(); throw; }
+            }
+        }
+
+        // Body of Insert without its own transaction, so StockOpnameService can enlist the
+        // adjustment document and its stock movements in one atomic unit (F21).
+        public int InsertWithoutTransaction(StockAdjustment header, List<StockAdjustmentItem> items)
+        {
                     SqlHelper.ExecuteNonQuery(_db,
                         @"INSERT INTO stock_adjustments (doc_type, journal_no, doc_date, location_code,
                           remark, control, period_code, register_id, changed_by, changed_at)
@@ -47,11 +59,7 @@ namespace Kasir.Data.Repositories
                             SqlHelper.Param("@reason", item.Reason ?? ""));
                     }
 
-                    txn.Commit();
-                    return (int)SqlHelper.LastInsertRowId(_db);
-                }
-                catch { txn.Rollback(); throw; }
-            }
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public List<StockAdjustmentItem> GetAllItemsByDateRange(string from, string to)

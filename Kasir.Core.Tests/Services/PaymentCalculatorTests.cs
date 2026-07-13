@@ -105,6 +105,39 @@ namespace Kasir.Tests.Services
             result.Change.Should().Be(10000);
         }
 
+        // F38: card/voucher overpayment must NOT produce cash change.
+        [Test]
+        public void ValidatePayment_CardOverpayment_IsRejected_NoCashChange()
+        {
+            // Due Rp 1000, card tender Rp 1500, no cash. Old code returned valid with
+            // Rp 500 "change" out of the drawer even though nothing was paid in cash.
+            var result = _calc.ValidatePayment(100000, 0, 150000, 0);
+
+            result.IsValid.Should().BeFalse("you cannot give cash change on a card overpayment");
+            result.Change.Should().Be(0);
+            result.NonCashOverpayment.Should().Be(50000);
+        }
+
+        [Test]
+        public void ValidatePayment_VoucherOverpayment_IsRejected()
+        {
+            var result = _calc.ValidatePayment(100000, 0, 0, 150000);
+            result.IsValid.Should().BeFalse();
+            result.Change.Should().Be(0);
+            result.NonCashOverpayment.Should().Be(50000);
+        }
+
+        [Test]
+        public void ValidatePayment_CardCoversDue_ExtraCash_IsChangeFromCashOnly()
+        {
+            // Card exactly covers the due (== not >), so it is accepted; the extra Rp 200
+            // cash is a cash overpayment returned as change (change from cash only).
+            var result = _calc.ValidatePayment(100000, 20000, 100000, 0);
+            result.IsValid.Should().BeTrue();
+            result.Change.Should().Be(20000, "the change is the cash overpayment, not from the card");
+            result.NonCashOverpayment.Should().Be(0);
+        }
+
         // Loyalty points tests
         [TestCase(1000000L, 1, Description = "Rp 10,000 = 1 sticker")]
         [TestCase(5000000L, 5, Description = "Rp 50,000 = 5 stickers")]

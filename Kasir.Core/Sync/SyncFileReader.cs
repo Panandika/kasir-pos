@@ -46,16 +46,26 @@ namespace Kasir.Sync
 
         public void MoveToArchive(string path)
         {
+            MoveToSibling(path, "archive");
+        }
+
+        public void MoveToQuarantine(string path)
+        {
+            MoveToSibling(path, "quarantine");
+        }
+
+        private static void MoveToSibling(string path, string subDir)
+        {
             string dir = Path.GetDirectoryName(path);
             string parentDir = Path.GetDirectoryName(dir);
-            string archiveDir = Path.Combine(parentDir, "archive");
+            string destDir = Path.Combine(parentDir, subDir);
 
-            if (!Directory.Exists(archiveDir))
+            if (!Directory.Exists(destDir))
             {
-                Directory.CreateDirectory(archiveDir);
+                Directory.CreateDirectory(destDir);
             }
 
-            string destPath = Path.Combine(archiveDir, Path.GetFileName(path));
+            string destPath = Path.Combine(destDir, Path.GetFileName(path));
 
             if (File.Exists(destPath))
             {

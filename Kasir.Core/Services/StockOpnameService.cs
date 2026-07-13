@@ -74,14 +74,24 @@ namespace Kasir.Services
                 item.Value = avgCost * item.Quantity;
             }
 
-            _adjRepo.Insert(header, items);
-
-            // Create ADJUSTMENT stock movements
-            foreach (var item in items)
+            // Atomic: the adjustment document and its stock-out movements must all land
+            // or none (F21).
+            using (var txn = _db.BeginTransaction())
             {
-                _inventoryService.RecordStockOut(
-                    item.ProductCode, item.Quantity, item.CostPrice,
-                    "ADJUSTMENT", journalNo, today, userId);
+                try
+                {
+                    _adjRepo.InsertWithoutTransaction(header, items);
+
+                    foreach (var item in items)
+                    {
+                        _inventoryService.RecordStockOut(
+                            item.ProductCode, item.Quantity, item.CostPrice,
+                            "ADJUSTMENT", journalNo, today, userId);
+                    }
+
+                    txn.Commit();
+                }
+                catch { txn.Rollback(); throw; }
             }
 
             return journalNo;
@@ -96,50 +106,62 @@ namespace Kasir.Services
 
             var adjustItems = new List<StockAdjustmentItem>();
 
-            foreach (var line in lines)
+            // Atomic: the OPNAME stock movements and the adjustment document must all land
+            // or none — otherwise a failure leaves orphaned OPNAME movements with no
+            // adjustment header (F21).
+            using (var txn = _db.BeginTransaction())
             {
-                int variance = line.PhysicalQty - line.SystemQty;
-                if (variance == 0) continue;
-
-                long avgCost = _inventoryService.CalculateAverageCost(line.ProductCode);
-
-                adjustItems.Add(new StockAdjustmentItem
+                try
                 {
-                    ProductCode = line.ProductCode,
-                    Quantity = Math.Abs(variance),
-                    CostPrice = avgCost,
-                    Value = avgCost * Math.Abs(variance),
-                    Reason = variance > 0 ? "SURPLUS" : "SHORTAGE"
-                });
+                    foreach (var line in lines)
+                    {
+                        int variance = line.PhysicalQty - line.SystemQty;
+                        if (variance == 0) continue;
 
-                // Create OPNAME stock movement
-                if (variance > 0)
-                {
-                    _inventoryService.RecordStockIn(
-                        line.ProductCode, variance, avgCost,
-                        "OPNAME", journalNo, today, userId);
+                        long avgCost = _inventoryService.CalculateAverageCost(line.ProductCode);
+
+                        adjustItems.Add(new StockAdjustmentItem
+                        {
+                            ProductCode = line.ProductCode,
+                            Quantity = Math.Abs(variance),
+                            CostPrice = avgCost,
+                            Value = avgCost * Math.Abs(variance),
+                            Reason = variance > 0 ? "SURPLUS" : "SHORTAGE"
+                        });
+
+                        // Create OPNAME stock movement
+                        if (variance > 0)
+                        {
+                            _inventoryService.RecordStockIn(
+                                line.ProductCode, variance, avgCost,
+                                "OPNAME", journalNo, today, userId);
+                        }
+                        else
+                        {
+                            _inventoryService.RecordStockOut(
+                                line.ProductCode, Math.Abs(variance), avgCost,
+                                "OPNAME", journalNo, today, userId);
+                        }
+                    }
+
+                    if (adjustItems.Count > 0)
+                    {
+                        var header = new StockAdjustment
+                        {
+                            DocType = "OPNAME",
+                            JournalNo = journalNo,
+                            DocDate = today,
+                            Control = 1,
+                            PeriodCode = period,
+                            RegisterId = registerId,
+                            ChangedBy = userId
+                        };
+                        _adjRepo.InsertWithoutTransaction(header, adjustItems);
+                    }
+
+                    txn.Commit();
                 }
-                else
-                {
-                    _inventoryService.RecordStockOut(
-                        line.ProductCode, Math.Abs(variance), avgCost,
-                        "OPNAME", journalNo, today, userId);
-                }
-            }
-
-            if (adjustItems.Count > 0)
-            {
-                var header = new StockAdjustment
-                {
-                    DocType = "OPNAME",
-                    JournalNo = journalNo,
-                    DocDate = today,
-                    Control = 1,
-                    PeriodCode = period,
-                    RegisterId = registerId,
-                    ChangedBy = userId
-                };
-                _adjRepo.Insert(header, adjustItems);
+                catch { txn.Rollback(); throw; }
             }
 
             return journalNo;

@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using NUnit.Framework;
 using FluentAssertions;
+using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Tests.TestHelpers;
 
@@ -76,6 +77,39 @@ namespace Kasir.Tests.Data
 
             string result = _repo.GetNext("KLR", "01");
             result.Should().Contain("0001");
+        }
+
+        // F52: when GetNext runs inside a caller's transaction that later rolls back, the
+        // counter increment must roll back too — otherwise a failed/crashed sale burns a
+        // KLR number and leaves a gap. This proves the property SalesService.CompleteSale
+        // relies on by allocating the journal number inside the sale transaction.
+        [Test]
+        public void GetNext_InRolledBackTransaction_DoesNotBurnNumber()
+        {
+            using (var txn = _db.BeginTransaction())
+            {
+                _repo.GetNext("KLR", "01").Should().Contain("0001"); // joins the ambient txn
+                txn.Rollback();
+            }
+
+            // Counter is untouched after the rollback — the next allocation is still 0001.
+            new CounterRepository(_db).GetNext("KLR", "01").Should().Contain("0001");
+        }
+
+        // F50: the custom-format path (FormatNumber) was untested. A seeded format string
+        // with placeholders must render correctly, including a padded sequence.
+        [Test]
+        public void GetNext_CustomFormat_RendersPlaceholders()
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                "INSERT INTO counters (prefix, register_id, current_value, format) VALUES ('INV', '03', 0, @fmt)",
+                SqlHelper.Param("@fmt", "{prefix}/{REG}/{SEQ:05d}"));
+
+            string first = _repo.GetNext("INV", "03");
+            first.Should().Be("INV/03/00001");
+
+            string second = _repo.GetNext("INV", "03");
+            second.Should().Be("INV/03/00002");
         }
 
         [Test]

@@ -58,34 +58,55 @@ namespace Kasir.Sync
                     continue;
                 }
 
+                // Phase 1 — parse/verify/validate. Any failure here means the file is
+                // permanently bad (unparseable, tampered, or invalid), so it is moved to
+                // quarantine; leaving it in place would let it re-consume the limited inbox
+                // window on every pull and starve good files (F44).
+                SyncBatch batch;
                 try
                 {
                     string json = _fileReader.Read(file);
                     if (json == null) continue;
 
-                    var batch = DeserializeBatch(json);
-
+                    batch = DeserializeBatch(json);
                     VerifySignature(batch, json);
                     ValidateBatch(batch);
-
-                    int applied = ApplyBatch(batch);
-                    totalApplied += applied;
-
-                    _fileReader.MoveToArchive(file);
                 }
                 catch (SecurityException ex)
                 {
                     lastError = "HMAC verification failed: " + ex.Message;
                     totalSkipped++;
+                    _fileReader.MoveToQuarantine(file);
+                    continue;
                 }
                 catch (InvalidOperationException ex)
                 {
                     lastError = "Validation failed: " + ex.Message;
                     totalSkipped++;
+                    _fileReader.MoveToQuarantine(file);
+                    continue;
                 }
                 catch (Exception ex)
                 {
+                    // Unparseable JSON / oversized file etc. — also permanently bad.
                     lastError = ex.Message;
+                    totalSkipped++;
+                    _fileReader.MoveToQuarantine(file);
+                    continue;
+                }
+
+                // Phase 2 — apply. A failure here (e.g. the DB is briefly locked) is
+                // transient, so the file is LEFT in the inbox to retry on the next pull
+                // rather than quarantined.
+                try
+                {
+                    int applied = ApplyBatch(batch);
+                    totalApplied += applied;
+                    _fileReader.MoveToArchive(file);
+                }
+                catch (Exception ex)
+                {
+                    lastError = "Apply failed (will retry): " + ex.Message;
                     totalSkipped++;
                 }
             }
@@ -189,10 +210,12 @@ namespace Kasir.Sync
                         {
                             case "I":
                                 ApplyInsert(evt);
+                                ApplyChildren(evt);
                                 applied++;
                                 break;
                             case "U":
                                 ApplyUpdate(evt);
+                                ApplyChildren(evt);
                                 applied++;
                                 break;
                             case "D":
@@ -214,9 +237,72 @@ namespace Kasir.Sync
             return applied;
         }
 
+        // Replace the parent's child detail rows (e.g. sale_items) so they replicate with
+        // the parent (F25). Child rows are keyed by journal_no; we delete the existing set
+        // and re-insert the incoming set, skipping the source register's autoincrement id
+        // so the local PK is assigned locally (same F24 rationale).
+        private void ApplyChildren(SyncEvent evt)
+        {
+            if (evt.Children == null || evt.Children.Count == 0) return;
+
+            foreach (var kv in evt.Children)
+            {
+                string childTable = kv.Key;
+                // Whitelist: only known child tables may be written (the table name comes
+                // from the batch, so it must be validated before use in SQL).
+                if (!SyncConfig.ChildTables.ContainsValue(childTable)) continue;
+
+                using (var del = _db.CreateCommand())
+                {
+                    del.CommandText = string.Format("DELETE FROM [{0}] WHERE [journal_no] = @key", childTable);
+                    del.Parameters.AddWithValue("@key", evt.RecordKey);
+                    del.ExecuteNonQuery();
+                }
+
+                foreach (var row in kv.Value)
+                {
+                    if (row == null || row.Count == 0) continue;
+
+                    var columns = new List<string>();
+                    var paramNames = new List<string>();
+                    var parameters = new List<SqliteParameter>();
+
+                    int i = 0;
+                    foreach (var cell in row)
+                    {
+                        if (!ValidColumnName.IsMatch(cell.Key)) continue;
+                        if (cell.Key == "id") continue; // let the local PK autoincrement
+                        columns.Add("[" + cell.Key + "]");
+                        string p = "@c" + i;
+                        paramNames.Add(p);
+                        parameters.Add(new SqliteParameter(p, cell.Value ?? DBNull.Value));
+                        i++;
+                    }
+                    if (columns.Count == 0) continue;
+
+                    string sql = string.Format("INSERT INTO [{0}] ({1}) VALUES ({2})",
+                        childTable, string.Join(", ", columns), string.Join(", ", paramNames));
+                    using (var cmd = _db.CreateCommand())
+                    {
+                        cmd.CommandText = sql;
+                        foreach (var p in parameters) cmd.Parameters.Add(p);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
         private void ApplyInsert(SyncEvent evt)
         {
             if (evt.Data == null || evt.Data.Count == 0) return;
+
+            // For tables with a natural unique key (journal_no, product_code, ...) the
+            // local INTEGER PK must autoincrement locally — replicating the source
+            // register's autoincrement id causes cross-register PK collisions that
+            // INSERT OR IGNORE silently drops (F24). Idempotency comes from the natural
+            // key's UNIQUE constraint instead. Only id-keyed tables keep their id.
+            string keyColumn = PushService.GetKeyColumn(evt.TableName);
+            bool skipSourceId = keyColumn != null && keyColumn != "id";
 
             var columns = new List<string>();
             var paramNames = new List<string>();
@@ -226,6 +312,7 @@ namespace Kasir.Sync
             foreach (var kvp in evt.Data)
             {
                 if (!ValidColumnName.IsMatch(kvp.Key)) continue;
+                if (skipSourceId && kvp.Key == "id") continue;
                 columns.Add("[" + kvp.Key + "]");
                 string paramName = "@p" + i;
                 paramNames.Add(paramName);

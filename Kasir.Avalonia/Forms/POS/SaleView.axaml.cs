@@ -86,6 +86,12 @@ public partial class SaleView : UserControl, INavigationAware
         TxtSearchInput.KeyDown += OnSearchInputKeyDown;
         DgvSearch.KeyDown += OnSearchGridKeyDown;
 
+        // Recover an unfinished cart persisted by a previous (crashed) session (F36).
+        if (_salesService.RecoverPendingSale() > 0)
+        {
+            RefreshGrid();
+        }
+
         CheckShift();
         UpdateTotals();
         UpdateFooter();

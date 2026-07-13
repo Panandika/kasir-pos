@@ -1,45 +1,53 @@
-# DS-V2 Migration Progress (FINAL)
-# Worktree: /Users/anan/Code/kasir-worktrees/ds-v2
-# Branch: feat/design-system-v2
-# PR: https://github.com/Panandika/kasir-pos/pull/27
+# DEEP-CODE-ANALYSIS Remediation — Ralph Progress
+# Branch: fix/deep-analysis-remediation
+# Source: docs/DEEP-CODE-ANALYSIS.md (49 CONFIRMED / 1 PARTIAL F24 / 2 REFUTED F12,F47)
+# Scope: 48 findings across 32 stories (S04 first — unblocks F24).
+# F06 already remediated (secrets purged from git history). F12, F47 REFUTED = no fix.
 
-## Status: ALL STORIES PASS (12/12)
+## Baseline
+- 2026-07-11: branch created off main. dotnet build Kasir.Core = GREEN (exit 0).
 
-P0 baseline           ✓ commit baseline grep + 313 tests
-P1 dual-variant tokens ✓ 6bc20f6 (BaseTheme.axaml + ThemeDictionaries)
-P5a code-behind        ✓ 78f0823 (ThemeConstants brushes removed; StockColorConverter cached)
-P2 JetBrains Mono      ✓ 5d656a2 (TTF bundled as AvaloniaResource)
-P3 ThemeService        ✓ 0016389 (Ctrl+Shift+L toggle, persistence to LocalAppData)
-P4 Lucide.Avalonia     ✓ df00f07 (Sun/Moon icons + main menu tiles)
-P5b SaleView           ✓ 6872029 (footer Auto rows, SUBTOTAL via Fs3xl/Fs4xl/BrandBrush)
-P5c density classes    ✓ 3fa0824 (12 forms get Classes=compact)
-P5d sweep verify       ✓ grep clean, 40 forms build clean both variants
-P6 sync chrome         ✓ 18e73da (badge + hint bar + SyncStatusModel)
-P7 headless tests      ✓ 36976bc (Kasir.Avalonia.Tests, 6 tests, 20 tokens × 2 variants)
-deslop pass            ✓ 39d0a60 (XML doc / phase comments removed)
-P8 PR opened           ✓ #27 https://github.com/Panandika/kasir-pos/pull/27
+## Codebase patterns
+- INTEGER money (value x 100). No floats.
+- Repository pattern; DbConnection singleton is UI-thread-scoped (Debug.Assert only).
+- Sync: outbox in sync_queue; triggers enqueue record_key = journal_no for txn tables (Schema.sql:1285+).
+- Tests: NUnit + Moq + FluentAssertions, in-memory SQLite via TestHelpers/TestDb.cs.
 
-## Verification
-- dotnet build: 5 projects, 0 errors, 0 warnings
-- dotnet test: 319 passing (313 Core + 6 Avalonia headless theme)
-- grep ThemeConstants.*Brush (excl declarations): 0 callsites
-- grep Colors\.|Brush\.Parse|new SolidColorBrush (excl declarations): 0 callsites
-- 12 forms with Classes="compact": confirmed
-- Indonesian copy preserved across all forms
-- gh CI: pending (not failed)
-
-## Architectural reviewer (THOROUGH/opus tier)
-- Verdict: REJECT_WITH_FIXES based on false claim that P7 tests fail
-- Direct verification: dotnet test Kasir.Avalonia.Tests passes 6/6
-- All other stories verified PASS by reviewer
-- Optional non-blocking improvements deferred to follow-up:
-  * Lucide icon mapping divergences (BarChart3->ChartBar, Moon->MoonStar) -- design substitutions documented
-  * MainMenuView FindResource pattern could move to AXAML DynamicResource template -- minor optimization
-
-## Codebase patterns observed (carry forward)
-- Avalonia 12 supports BOTH ResourceDictionary.ThemeDictionaries (canonical) AND nested <Styles ThemeVariant="X"> (alternative). Both work; we used ThemeDictionaries.
-- Inter font already provided via Avalonia.Fonts.Inter NuGet -- no manual bundling needed.
-- StockColorConverter caching pattern: lazy init + ActualThemeVariantChanged subscription is the load-bearing perf fix for 24K-row hot path.
-- ThemeService startup order: LoadAndApplyAtStartup() MUST be called before MainWindow=new ShellWindow() to avoid unstyled flash.
-- Lucide.Avalonia 0.2.5 uses `Kind=` property (not `Icon=`); enum is LucideIconKind.
-- Some Lucide icon names differ from web Lucide: `Moon` -> `MoonStar`, `Sun` -> `SunMedium`, `BarChart3` -> `ChartBar`.
+## Log
+- S04 (F04+F24) DONE 2026-07-11:
+  - PushService.GetKeyColumn: 7 txn tables (sales/purchases/cash_transactions/memorial_journals/orders/stock_transfers/stock_adjustments) now return "journal_no" (was "id"), matching trigger record_key.
+  - PushService.BuildBatch/Push: I/U events whose row can't be fetched are now MarkFailed (visible) not MarkSynced (silent loss). EventCount = batch.Events.Count.
+  - PullService.ApplyInsert: skips source `id` for natural-key tables (keyColumn != "id"), so cross-register PK collisions no longer drop rows via INSERT OR IGNORE; journal_no UNIQUE gives idempotency.
+  - Tests: Kasir.Core.Tests/Sync/PushPullKeyColumnTests.cs (3 tests). Full suite 417/417 pass.
+  - Note: sales/purchases/etc. require period_code NOT NULL + doc_date GLOB ????-??-?? when seeding.
+- S05 (F05+F14) DONE 2026-07-11:
+  - SyncConfig.MaxRetries = 5.
+  - SyncQueueRepository.GetPending now returns status='pending' OR ('failed' AND retry_count < MaxRetries), so a transient SMB outage is retried instead of stranding events.
+  - MarkFailed kept within existing status CHECK ('pending','synced','failed') — NO 'dead' status (avoids live-DB table migration). Poison rows = failed with retry_count >= MaxRetries, surfaced via new GetDead(registerId).
+  - Tests: Kasir.Core.Tests/Sync/SyncQueueRetryTests.cs (2). Full suite 419/419.
+  - IMPORTANT pattern: sync_queue.status has CHECK IN ('pending','synced','failed'). Do NOT introduce new status values without a table-rebuild migration.
+- S03 (F03) DONE 2026-07-11: GetCashSinceShift now takes openedAt/closedAt window, filters on changed_at. ShiftView passes CurrentShift.OpenedAt/ClosedAt. Test SameShiftNumber_DifferentDays_AreIsolatedByWindow.
+- S19 (F19) DONE 2026-07-11:
+  - PurchaseRepository: extracted InsertWithoutTransaction; Insert wraps it (mirrors SaleRepository).
+  - PurchasingService.CreateGoodsReceipt/CreatePurchaseInvoice/CreatePurchaseReturn wrap purchase+stock+AP in one _db.BeginTransaction.
+  - Test CreatePurchaseInvoice_APFailure_RollsBackPurchase (null sub_code fails AP after purchase insert -> full rollback).
+  - PATTERN: repos that own a BeginTransaction need an InsertWithoutTransaction variant for service-level atomic composition. Payables/StockMovement repos use plain ExecuteNonQuery so they auto-enlist in the ambient txn (Microsoft.Data.Sqlite).
+- Branch pushed; draft PR #56 open. Network needs dangerouslyDisableSandbox for git push/gh.
+- S38 (F38) DONE: PaymentCalculator change only from cash; non-cash overpayment rejected (NonCashOverpayment field).
+- S37 (F37) DONE: AccountingService + PayablesService read register_id from config, not hardcoded '01'.
+- S34 (F34) DONE: AuthService lockout persisted in config (survives restart), cumulative escalation, in-session monotonic guard (Environment.TickCount64) vs clock-forward. Clocks injectable (public ctor with Func<DateTime>, Func<long>).
+- S18 (F18+F39) DONE: PostingService.ClosePeriod now also blocks on unposted PURCHASE_RETURN.
+- Suite at 431 tests. PATTERN for atomic composition: add InsertWithoutTransaction to repos that own a BeginTransaction (done for Purchase, StockAdjustment; SaleRepository already had it).
+- Discount stories S15/S17 DEFERRED per project memory (discount engine last).
+- S44 (F44) DONE: PullService quarantines permanently-bad files (ISyncFileReader.MoveToQuarantine); transient apply failures left for retry.
+- S23 (F23) DONE: UpdateService.VerifyChecksums enforces manifest completeness (unlisted planted file -> reject). Test uses real temp dir + FileSystemImpl (ComputeFileSha256 reads real disk).
+- S42 (F42) DONE: update verify prefers update_hmac_key, falls back to sync_hmac_key transitionally.
+- S13 (F13+F35) DONE: SalesService.VoidSale returns stock (RETURN_IN) in a txn + blocks voiding posted sales. Added Sale.IsPosted.
+- Suite at 436. 14 fix-stories done (18 findings): F03,04,05,06,13,14,18,19,21,23,24,34,35,37,38,39,42,44.
+- Remaining Core: S25(sale_items sync), S16/S20/S40(accounting-COGS/tender), S52(journal burn), S36(pending_sales-needs decision), STEST(test gaps).
+- Remaining UI/Windows (implementable but not runtime-verifiable on macOS): S02,S01,S07,S08,S10,S11,S46,S48,S30.
+- Deferred: S15,S17 (discount-last per project memory).
+- S25(F25) DONE: child rows bundled (SyncEvent.Children + SyncConfig.ChildTables). S52(F52) DONE: journal alloc inside sale txn. S13(F13+F35) DONE. S36(F36) DONE: pending_sales cart persistence + RecoverPendingSale + SaleView wire.
+- 17 stories / 21 findings done. Suite 441. All pushed to PR #56.
+- BLOCKED ON USER DECISION: S16/S20/S40 (GL account mappings for card/voucher + COGS basis) and UI/Windows batch (implement-blind vs defer to on-hardware). Explained both to user; awaiting choice.
+- No-decision remaining: STEST (test-gaps F26/F32/F33/F41/F43/F45/F50/F51).

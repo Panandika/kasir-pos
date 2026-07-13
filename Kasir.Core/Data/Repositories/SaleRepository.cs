@@ -146,13 +146,21 @@ namespace Kasir.Data.Repositories
         }
 
         /// <summary>
-        /// Net cash that should be in the drawer for a given register/shift.
-        /// Sums (cash_amount - change_amount) for SALE rows, subtracts the same
-        /// for SALE_RETURN. Excludes voided rows (control=3) and edited/replaced
-        /// rows (control IN (4,5)) to avoid double-counting. Card / credit /
-        /// voucher portions are not in cash_amount so do not inflate the result.
+        /// Net cash that should be in the drawer for a given register/shift, scoped to
+        /// the shift's open→close time window. Sums (cash_amount - change_amount) for
+        /// SALE rows, subtracts the same for SALE_RETURN. Excludes voided rows (control=3)
+        /// and edited/replaced rows (control IN (4,5)) to avoid double-counting. Card /
+        /// credit / voucher portions are not in cash_amount so do not inflate the result.
         /// </summary>
-        public long GetCashSinceShift(string registerId, string shiftNumber)
+        /// <param name="openedAt">Shift open timestamp; only sales at/after this count.</param>
+        /// <param name="closedAt">Shift close timestamp, or null for an open shift (counts up to now).</param>
+        /// <remarks>
+        /// The shift number alone (a single char '1'/'2'/…) recurs every day, so filtering
+        /// on it without a time window summed ALL historical sales for that shift number
+        /// (F03). The open→close window on changed_at (the row's creation time) bounds it
+        /// to the current shift.
+        /// </remarks>
+        public long GetCashSinceShift(string registerId, string shiftNumber, string openedAt, string closedAt = null)
         {
             return SqlHelper.ExecuteScalar<long>(_db,
                 @"SELECT COALESCE(SUM(
@@ -166,9 +174,13 @@ namespace Kasir.Data.Repositories
                   FROM sales
                   WHERE register_id = @reg
                     AND shift = @shift
-                    AND control NOT IN (3, 4, 5)",
+                    AND control NOT IN (3, 4, 5)
+                    AND changed_at >= @openedAt
+                    AND (@closedAt IS NULL OR changed_at <= @closedAt)",
                 SqlHelper.Param("@reg", registerId),
-                SqlHelper.Param("@shift", shiftNumber));
+                SqlHelper.Param("@shift", shiftNumber),
+                SqlHelper.Param("@openedAt", openedAt),
+                SqlHelper.Param("@closedAt", closedAt));
         }
 
         public int GetDailyCount(string date)
@@ -206,6 +218,7 @@ namespace Kasir.Data.Repositories
                 VoucherAmount = SqlHelper.GetLong(reader, "voucher_amount"),
                 CreditAmount = SqlHelper.GetLong(reader, "credit_amount"),
                 Control = SqlHelper.GetInt(reader, "control"),
+                IsPosted = SqlHelper.GetString(reader, "is_posted"),
                 PrintCount = SqlHelper.GetInt(reader, "print_count"),
                 PeriodCode = SqlHelper.GetString(reader, "period_code"),
                 RegisterId = SqlHelper.GetString(reader, "register_id"),

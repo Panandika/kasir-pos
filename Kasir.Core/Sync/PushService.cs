@@ -49,7 +49,9 @@ namespace Kasir.Sync
                 return new PushResult { Success = true, EventCount = 0 };
             }
 
-            var batch = BuildBatch(registerId, pending);
+            var droppedIds = new List<int>();
+            var batch = BuildBatch(registerId, pending, droppedIds);
+            var droppedSet = new HashSet<int>(droppedIds);
             string json = SerializeBatch(batch);
             string signature = SignPayload(json);
             batch.Signature = signature;
@@ -69,16 +71,26 @@ namespace Kasir.Sync
                 _fileWriter.Write(tempPath, json);
                 _fileWriter.SafeMove(tempPath, destPath);
 
-                // Mark all events as synced
+                // Mark events synced, EXCEPT I/U events whose row could not be fetched
+                // (key mismatch / row deleted). Those are marked failed so the data loss
+                // is visible and retryable instead of silently swallowed.
                 foreach (var entry in pending)
                 {
-                    _queueRepo.MarkSynced(entry.Id);
+                    if (droppedSet.Contains(entry.Id))
+                    {
+                        _queueRepo.MarkFailed(entry.Id,
+                            "row not found for I/U event (record_key did not match) — not synced");
+                    }
+                    else
+                    {
+                        _queueRepo.MarkSynced(entry.Id);
+                    }
                 }
 
                 return new PushResult
                 {
                     Success = true,
-                    EventCount = pending.Count,
+                    EventCount = batch.Events.Count,
                     FilePath = destPath
                 };
             }
@@ -94,7 +106,7 @@ namespace Kasir.Sync
             }
         }
 
-        private SyncBatch BuildBatch(string registerId, List<SyncQueueEntry> entries)
+        private SyncBatch BuildBatch(string registerId, List<SyncQueueEntry> entries, List<int> droppedIds)
         {
             var batch = new SyncBatch
             {
@@ -131,6 +143,28 @@ namespace Kasir.Sync
                 {
                     // INSERT/UPDATE: fetch current row
                     evt.Data = FetchRowData(entry.TableName, entry.RecordKey);
+                    if (evt.Data == null)
+                    {
+                        // Row could not be resolved from record_key — record as dropped
+                        // so Push() marks it failed (visible) instead of synced (silent loss).
+                        droppedIds.Add(entry.Id);
+                        continue;
+                    }
+
+                    // Bundle child detail rows (e.g. sale_items) so they replicate with
+                    // their parent (F25).
+                    string childTable;
+                    if (SyncConfig.ChildTables.TryGetValue(entry.TableName, out childTable))
+                    {
+                        var children = FetchChildRows(childTable, entry.RecordKey);
+                        if (children.Count > 0)
+                        {
+                            evt.Children = new Dictionary<string, List<Dictionary<string, object>>>
+                            {
+                                { childTable, children }
+                            };
+                        }
+                    }
                 }
 
                 if (evt.Data != null)
@@ -174,6 +208,31 @@ namespace Kasir.Sync
             return data;
         }
 
+        // Fetch all child detail rows for a parent transaction, linked by journal_no.
+        private List<Dictionary<string, object>> FetchChildRows(string childTable, string journalNo)
+        {
+            var rows = new List<Dictionary<string, object>>();
+            string sql = string.Format("SELECT * FROM [{0}] WHERE [journal_no] = @jnl ORDER BY id", childTable);
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                cmd.Parameters.AddWithValue("@jnl", journalNo);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var row = new Dictionary<string, object>();
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        }
+                        rows.Add(row);
+                    }
+                }
+            }
+            return rows;
+        }
+
         internal static string GetKeyColumn(string tableName)
         {
             switch (tableName)
@@ -187,13 +246,16 @@ namespace Kasir.Sync
                 case "accounts": return "account_code";
                 case "locations": return "location_code";
                 case "credit_cards": return "id";
-                case "sales": return "id";
-                case "purchases": return "id";
-                case "cash_transactions": return "id";
-                case "memorial_journals": return "id";
-                case "orders": return "id";
-                case "stock_transfers": return "id";
-                case "stock_adjustments": return "id";
+                // Transaction tables: sync triggers enqueue record_key = NEW.journal_no
+                // (Schema.sql trg_*_sync_*), so lookups MUST key on journal_no, not the
+                // INTEGER PK — otherwise FetchRowData never matches and events are lost.
+                case "sales": return "journal_no";
+                case "purchases": return "journal_no";
+                case "cash_transactions": return "journal_no";
+                case "memorial_journals": return "journal_no";
+                case "orders": return "journal_no";
+                case "stock_transfers": return "journal_no";
+                case "stock_adjustments": return "journal_no";
                 default: return null;
             }
         }

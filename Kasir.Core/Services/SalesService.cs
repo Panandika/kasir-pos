@@ -23,6 +23,8 @@ namespace Kasir.Services
         private readonly IClock _clock;
 
         private readonly List<SaleItem> _currentItems;
+        private readonly PendingSaleRepository _pendingRepo;
+        private readonly string _draftKey;
         private string _currentShift;
         private string _cashierAlias;
         private int _cashierUserId;
@@ -40,9 +42,32 @@ namespace Kasir.Services
             _discountRepo = new DiscountRepository(db);
             _paymentCalc = new PaymentCalculator();
             _inventoryService = new InventoryService(db);
+            _pendingRepo = new PendingSaleRepository(db);
             _clock = clock;
             _currentItems = new List<SaleItem>();
             _currentShift = "1";
+            _draftKey = "PENDING-" + (_configRepo.Get("register_id") ?? "01");
+        }
+
+        // Persist the current cart so a crash mid-sale can recover it (F36).
+        private void PersistCart()
+        {
+            _pendingRepo.Save(_draftKey, _currentItems);
+        }
+
+        // Recover a cart persisted by a previous (crashed) session. Product names are
+        // re-looked-up since pending_sales stores only product_code. Returns the item count.
+        public int RecoverPendingSale()
+        {
+            var recovered = _pendingRepo.Load(_draftKey);
+            _currentItems.Clear();
+            foreach (var it in recovered)
+            {
+                var product = _productRepo.GetByCode(it.ProductCode);
+                it.ProductName = product != null ? product.Name : it.ProductCode;
+                _currentItems.Add(it);
+            }
+            return _currentItems.Count;
         }
 
         public List<SaleItem> CurrentItems
@@ -90,6 +115,7 @@ namespace Kasir.Services
                 IsPriceOverridden = true,
             };
             _currentItems.Add(item);
+            PersistCart();
             return item;
         }
 
@@ -146,6 +172,7 @@ namespace Kasir.Services
             };
 
             _currentItems.Add(item);
+            PersistCart();
             return item;
         }
 
@@ -154,6 +181,7 @@ namespace Kasir.Services
             if (index >= 0 && index < _currentItems.Count)
             {
                 _currentItems.RemoveAt(index);
+                PersistCart();
             }
         }
 
@@ -202,6 +230,8 @@ namespace Kasir.Services
                 item.DiscValue = discResult.CalculateDiscount(lineGross);
                 item.Value = lineGross - item.DiscValue;
             }
+
+            PersistCart();
         }
 
         public SaleTotals GetTotals()
@@ -254,7 +284,10 @@ namespace Kasir.Services
             // has been opened (e.g. tests). Real prod path always opens a shift first.
             var openShift = _shiftRepo.GetOpenShift(registerId);
             string activeShift = openShift != null ? openShift.ShiftNumber : (_currentShift ?? "1");
-            string journalNo = _counterRepo.GetNext("KLR", registerId);
+            // Journal number is allocated INSIDE the sale transaction below so a rolled-back
+            // or crashed sale does not burn a KLR number (F52). GetNext joins the ambient
+            // transaction, so its counter increment rolls back with the sale.
+            string journalNo = null;
             string today = _clock.Now.ToString("yyyy-MM-dd");
             string period = _clock.Now.ToString("yyyyMM");
 
@@ -290,6 +323,9 @@ namespace Kasir.Services
             {
                 try
                 {
+                    journalNo = _counterRepo.GetNext("KLR", registerId);
+                    sale.JournalNo = journalNo;
+
                     _saleRepo.InsertWithoutTransaction(sale, _currentItems);
 
                     // Create stock movements for each sold item
@@ -306,6 +342,10 @@ namespace Kasir.Services
                             _cashierUserId);
                     }
 
+                    // Clear the persisted draft cart atomically with the sale so a crash
+                    // right after commit does not recover an already-completed cart (F36).
+                    _pendingRepo.Clear(_draftKey);
+
                     txn.Commit();
                 }
                 catch
@@ -320,12 +360,52 @@ namespace Kasir.Services
 
         public void VoidSale(string journalNo)
         {
-            _saleRepo.VoidSale(journalNo, _cashierUserId);
+            var sale = _saleRepo.GetByJournalNo(journalNo);
+            if (sale == null)
+            {
+                throw new InvalidOperationException("Penjualan tidak ditemukan: " + journalNo);
+            }
+            if (sale.Control == 3)
+            {
+                return; // already voided — idempotent
+            }
+
+            // A sale whose GL journal was already posted must be reversed with a proper
+            // return/credit note, not silently voided — otherwise the GL and the sale
+            // diverge (F13). Block it here.
+            if (sale.IsPosted == "Y")
+            {
+                throw new InvalidOperationException(
+                    "Tidak bisa void penjualan yang sudah diposting ke jurnal; buat retur penjualan.");
+            }
+
+            var items = _saleRepo.GetItemsByJournalNo(journalNo);
+
+            using (var txn = _db.BeginTransaction())
+            {
+                try
+                {
+                    _saleRepo.VoidSale(journalNo, _cashierUserId);
+
+                    // Return the sold stock to inventory — a plain control=3 flip left the
+                    // stock permanently understated (F35).
+                    foreach (var item in items)
+                    {
+                        _inventoryService.RecordStockIn(
+                            item.ProductCode, item.Quantity, item.Cogs,
+                            "RETURN_IN", journalNo, sale.DocDate, _cashierUserId);
+                    }
+
+                    txn.Commit();
+                }
+                catch { txn.Rollback(); throw; }
+            }
         }
 
         public void ClearCurrentSale()
         {
             _currentItems.Clear();
+            PersistCart(); // also clears the persisted draft (F36)
         }
     }
 

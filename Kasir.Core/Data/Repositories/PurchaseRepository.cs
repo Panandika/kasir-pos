@@ -19,6 +19,18 @@ namespace Kasir.Data.Repositories
             {
                 try
                 {
+                    int id = InsertWithoutTransaction(purchase, items);
+                    txn.Commit();
+                    return id;
+                }
+                catch { txn.Rollback(); throw; }
+            }
+        }
+
+        // Body of Insert without its own transaction, so callers (e.g. PurchasingService)
+        // can enlist the purchase + its stock movements + AP entry in one atomic unit (F19).
+        public int InsertWithoutTransaction(Purchase purchase, List<PurchaseItem> items)
+        {
                     SqlHelper.ExecuteNonQuery(_db,
                         @"INSERT INTO purchases (doc_type, journal_no, doc_date, account_code, sub_code,
                           tax_invoice, delivery_note, tax_inv_date, ref_no, remark, warehouse, disc_pct, disc2_pct, vat_flag, gross_amount,
@@ -69,11 +81,7 @@ namespace Kasir.Data.Repositories
                             SqlHelper.Param("@discVal", item.DiscValue));
                     }
 
-                    txn.Commit();
-                    return (int)SqlHelper.LastInsertRowId(_db);
-                }
-                catch { txn.Rollback(); throw; }
-            }
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public Purchase GetByJournalNo(string journalNo)

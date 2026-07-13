@@ -26,6 +26,7 @@ namespace Kasir.Models
         public long VoucherAmount { get; set; }
         public long CreditAmount { get; set; }
         public int Control { get; set; }
+        public string IsPosted { get; set; }
         public int PrintCount { get; set; }
         public string PeriodCode { get; set; }
         public string RegisterId { get; set; }

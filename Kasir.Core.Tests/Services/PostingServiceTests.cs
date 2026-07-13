@@ -191,6 +191,18 @@ namespace Kasir.Tests.Services
                 .WithMessage("*unposted sales*");
         }
 
+        // F18/F39: a period must not close while purchase returns are still unposted,
+        // otherwise they become permanently unpostable.
+        [Test]
+        public void ClosePeriod_WithUnpostedPurchaseReturn_Throws()
+        {
+            InsertPurchaseReturn("RMS-01-2604-0009", 200000);
+
+            Action act = () => _service.ClosePeriod("202604");
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*unposted purchase returns*");
+        }
+
         [Test]
         public void ClosePeriod_AllPosted_Succeeds()
         {

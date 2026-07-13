@@ -1,9 +1,13 @@
+using System;
+using System.IO;
 using Microsoft.Data.Sqlite;
 using NUnit.Framework;
+using FluentAssertions;
 using Kasir.Services;
 using Kasir.Tests.TestHelpers;
 using Kasir.Tests.TestHelpers.Fakes;
 using Kasir.Data.Repositories;
+using Kasir.Utils;
 
 namespace Kasir.Tests.Services
 {
@@ -124,6 +128,60 @@ namespace Kasir.Tests.Services
             bool valid = _sut.VerifyChecksumHmac(@"\\SERVER\updates\latest");
 
             Assert.IsFalse(valid);
+        }
+
+        // F23: VerifyChecksums must reject a file that is physically present but NOT in the
+        // signed manifest, otherwise an attacker who writes to the update share could plant
+        // a malicious DLL that skips verification and is deployed — remote code execution.
+        // Uses a real temp dir because ComputeFileSha256 reads the real filesystem.
+        [Test]
+        public void VerifyChecksums_UnlistedPlantedFile_ReturnsFalse()
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "kasir_upd_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                var sut = new UpdateService(_db, new FileSystemImpl(), 5000);
+
+                string appFile = Path.Combine(dir, "Kasir.exe");
+                File.WriteAllText(appFile, "legit-binary");
+                string hash = UpdateService.ComputeFileSha256(appFile);
+                File.WriteAllText(Path.Combine(dir, "checksum.sha256"), hash + "  Kasir.exe");
+
+                sut.VerifyChecksums(dir).Should().BeTrue("only manifest-listed files are present");
+
+                // Attacker plants an unlisted file.
+                File.WriteAllText(Path.Combine(dir, "evil.dll"), "malicious");
+                sut.VerifyChecksums(dir).Should().BeFalse("an unlisted file must fail verification");
+            }
+            finally
+            {
+                Directory.Delete(dir, true);
+            }
+        }
+
+        // F42: update packages must verify against a DEDICATED update key, not the shared
+        // sync key. A package signed with only the sync key must be rejected once a
+        // dedicated update_hmac_key is provisioned.
+        [Test]
+        public void VerifyChecksumHmac_UsesDedicatedUpdateKey_RejectsSyncKeySignature()
+        {
+            var config = new ConfigRepository(_db);
+            config.Set("sync_hmac_key", "sync-key");
+            config.Set("update_hmac_key", "update-key");
+
+            const string dir = @"\\SERVER\updates\latest";
+            const string checksum = "abc123  Kasir.exe";
+            _fs.AddDirectory(dir);
+            _fs.AddFile(dir + @"\checksum.sha256", checksum);
+
+            // Signed with the SYNC key — must now FAIL (keys are separated).
+            _fs.AddFile(dir + @"\checksum.sha256.hmac", UpdateService.ComputeHmac(checksum, "sync-key"));
+            _sut.VerifyChecksumHmac(dir).Should().BeFalse("a sync-key signature must not authorize an update");
+
+            // Signed with the dedicated UPDATE key — passes.
+            _fs.AddFile(dir + @"\checksum.sha256.hmac", UpdateService.ComputeHmac(checksum, "update-key"));
+            _sut.VerifyChecksumHmac(dir).Should().BeTrue();
         }
 
         [Test]

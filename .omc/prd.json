@@ -1,166 +1,39 @@
 {
-  "title": "Design System v2 — Retail POS Migration",
-  "task": "Migrate Avalonia 12 / .NET 10 Indonesian POS app from terminal-CRT theme to v2 retail-POS design system per /Users/anan/Code/kasir/plans/DS-V2-RETAIL-POS.md",
-  "branch": "feat/design-system-v2",
-  "worktree": "/Users/anan/Code/kasir-worktrees/ds-v2",
+  "task": "Fix all remaining CONFIRMED defects from docs/DEEP-CODE-ANALYSIS.md (F01-F52). F06 done (secrets purged). F12, F47 REFUTED. F24 dormant behind F04. Implement fixes + tests, build green, one PR on branch fix/deep-analysis-remediation.",
+  "branch": "fix/deep-analysis-remediation",
+  "reviewer": "architect",
   "stories": [
-    {
-      "id": "P0",
-      "title": "Worktree verified + punch list grep baseline",
-      "passes": true,
-      "acceptanceCriteria": [
-        "Worktree at /Users/anan/Code/kasir-worktrees/ds-v2 exists, branch is feat/design-system-v2",
-        "dotnet build succeeds clean from worktree",
-        "dotnet test Kasir.Core.Tests passes >=247 tests",
-        "P0 grep #1 (ThemeConstants.*Brush --exclude=ThemeConstants.cs) returns exactly 7 callsites in 2 files",
-        "P0 grep #3 (Colors.*|Brush.Parse|new SolidColorBrush) returns exactly 5 callsites in 2 files",
-        "P0 grep #6 returns exactly 40 axaml files",
-        "Baseline saved to .omc/evidence/p0-baseline.txt"
-      ]
-    },
-    {
-      "id": "P1",
-      "title": "Token infrastructure: BaseTheme.axaml dual-variant rewrite",
-      "passes": true,
-      "acceptanceCriteria": [
-        "BaseTheme.axaml uses nested <Styles ThemeVariant=Light> and <Styles ThemeVariant=Dark> blocks",
-        "Both variants define all 20 color tokens (Bg0/1/2/Hover/Selected, AccentBg, BorderSubtle/Strong, FgPrimary/Secondary/Dim/Numeric/OnBrand, Brand/Strong/Soft, Success, Warning, Danger, FocusRing)",
-        "Within each variant, Color-to-Brush bindings use StaticResource (same scope)",
-        "Shared resources block (variant-independent) defines fonts, density (RowHeightCompact=28, RowHeight=32, RowHeightComfortable=40, ControlHeight=36, ControlHeightLg=44), radius (RadiusSm=4, Radius=6, RadiusMd=8, RadiusLg=12), font sizes (Fs xs/sm/base/md/lg/xl/2xl/3xl=40/4xl=56)",
-        "Style classes defined: DataGrid.compact, DataGrid.comfortable, Button.primary, Button.danger, Button.ghost, Button.lg, TextBlock.numeric, TextBlock.label",
-        "App.axaml RequestedThemeVariant=Dark default",
-        "ThemeConstants.cs static brush fields removed; only non-color constants remain",
-        "dotnet build clean"
-      ]
-    },
-    {
-      "id": "P2",
-      "title": "Fonts: bundle JetBrains Mono (Inter via NuGet)",
-      "passes": true,
-      "acceptanceCriteria": [
-        "Avalonia.Fonts.Inter NuGet present in Kasir.Avalonia.csproj (already 12.0.1)",
-        "JetBrainsMono-Regular.ttf and JetBrainsMono-Bold.ttf placed under Kasir.Avalonia/Assets/Fonts/",
-        "csproj has <AvaloniaResource Include=\"Assets/Fonts/**\" />",
-        "BaseTheme.axaml shared resources references avares://Kasir.Avalonia/Assets/Fonts/#JetBrains Mono and Inter via Inter NuGet",
-        "Program.cs / App.axaml.cs registers Inter font via AppBuilder.With(new FontManagerOptions ...) if needed",
-        "dotnet build clean and resources bundled"
-      ]
-    },
-    {
-      "id": "P3",
-      "title": "ThemeService + Ctrl+Shift+L toggle + persistence",
-      "passes": true,
-      "acceptanceCriteria": [
-        "Kasir.Avalonia/Infrastructure/ThemeService.cs created with Toggle(), Apply(), Load(), Save() methods",
-        "Theme persisted as theme.json in Environment.GetFolderPath(LocalApplicationData)/Kasir/",
-        "ShellWindow.axaml has sun/moon LucideIcon toggle button in title area",
-        "KeyboardRouter.cs has IsCtrlShiftL() helper distinct from existing IsCtrlL()",
-        "ShellWindow.axaml.cs wires KeyboardRouter.IsCtrlShiftL handler -> ThemeService.Toggle()",
-        "App.axaml.cs OnFrameworkInitializationCompleted reads theme preference and applies before MainWindow shown (no flash)",
-        "Manual smoke: pressing Ctrl+Shift+L flips entire UI without restart",
-        "dotnet build clean"
-      ]
-    },
-    {
-      "id": "P4",
-      "title": "Icons: Lucide.Avalonia + glyph mapping",
-      "passes": true,
-      "acceptanceCriteria": [
-        "Lucide.Avalonia 0.2.5 NuGet added to Kasir.Avalonia.csproj",
-        "ShellWindow.axaml uses xmlns:lucide=clr-namespace:Lucide.Avalonia;assembly=Lucide.Avalonia",
-        "Sun/Moon LucideIcon (Kind=Sun, Kind=Moon) used for theme toggle",
-        "MainMenuView.axaml tiles use <lucide:LucideIcon Kind=...> for menu glyphs (ShoppingCart=Penjualan, Truck=Pembelian, Package=Inventori, BookOpen=Akuntansi, Database=Master, Landmark=Bank, BarChart3=Laporan, Settings=Admin)",
-        "All LucideIcon usages use Kind property (not Icon)",
-        "dotnet build clean"
-      ]
-    },
-    {
-      "id": "P5a",
-      "title": "Code-behind cleanup: ThemeConstants brush + hardcoded colors",
-      "passes": true,
-      "acceptanceCriteria": [
-        "InputDialogWindow.axaml.cs lines 28,36,37 migrated from ThemeConstants.*Brush to Application.Current.FindResource() or AXAML DynamicResource binding",
-        "FirstRunView.axaml.cs lines 51,56 Brush.Parse(#008800)/Brush.Parse(#ff5050) replaced with Application.Current.FindResource(\"SuccessBrush\")/(\"DangerBrush\")",
-        "SaleView.axaml.cs lines 331,332,372 Colors.LimeGreen/OrangeRed migrated to FindResource",
-        "StockColorConverter.cs caches IBrush fields lazily, subscribes to Application.Current.ActualThemeVariantChanged for cache invalidation, returns cached brushes (not per-call FindResource)",
-        "P0 grep #1 returns 0 callsites after migration (excluding ThemeConstants.cs declarations now removed in P1)",
-        "P0 grep #3 returns 0 callsites in Forms/",
-        "dotnet build clean and dotnet test passes"
-      ]
-    },
-    {
-      "id": "P5b",
-      "title": "SaleView footer refactor + SUBTOTAL preservation",
-      "passes": true,
-      "acceptanceCriteria": [
-        "SaleView.axaml RowDefinitions changed from \"2.5*,7.5*,40,24\" to \"2.5*,7.5*,Auto,Auto\" (proportional + Auto)",
-        "SaleView SUBTOTAL row 0 retains FontSize=40 (label) and FontSize=56 (value) but bound via {DynamicResource Fs3xl} and {DynamicResource Fs4xl}",
-        "SaleView SUBTOTAL value uses {DynamicResource BrandBrush} (brand-color total per design)",
-        "Sale screen: 10+ items fit without scrolling at 1024x768 viewport, default density (32px row)",
-        "dotnet build clean"
-      ]
-    },
-    {
-      "id": "P5c",
-      "title": "Density classes per FOUNDATIONS.md",
-      "passes": true,
-      "acceptanceCriteria": [
-        "Classes=\"compact\" applied to Reports DataGrids: SalesReportView, InventoryReportView, ProductReportView, FinancialReportView, SupplierReportView",
-        "Classes=\"compact\" applied to Master DataGrids: ProductView, VendorView, DepartmentView, CreditCardView",
-        "Classes=\"compact\" applied to Inventory: OpnameView, StockOutView, TransferView",
-        "Sale screen has NO compact class (default 32px)",
-        "Default-density forms verified at 1024x768: SaleView, JournalView, PurchaseOrderView, GoodsReceiptView, PurchaseInvoiceView, AccountsView, CashReceiptView, CashDisbursementView, BankView, BankGiroView, ShiftView, PaymentWindow",
-        "dotnet build clean"
-      ]
-    },
-    {
-      "id": "P5d",
-      "title": "Full 40-form sweep: build + automated parse test",
-      "passes": true,
-      "acceptanceCriteria": [
-        "All 40 .axaml files compile clean (no XAML parse errors) under both Dark and Light variants",
-        "Automated test instantiates each form's InitializeComponent() in headless Avalonia under both variants without throwing",
-        "Manual visual smoke check on 8 representative forms (LoginView, MainMenuView, SaleView, PaymentWindow, ProductView, SalesReportView, JournalView, ShellWindow) under both themes",
-        "No remaining ThemeConstants.*Brush, Colors.*, Brush.Parse usages (verified by grep)"
-      ]
-    },
-    {
-      "id": "P6",
-      "title": "Sync chrome status bar badge",
-      "passes": true,
-      "acceptanceCriteria": [
-        "ShellWindow.axaml status bar carries a single sync Badge per FOUNDATIONS.md",
-        "5 badge states implemented: Online recent (ok+dot, \"Online · Sync Xd lalu\"), Online overdue (warn+dot, \"Sync tertunda\"), Offline transactable (warn no-dot, \"Offline · transaksi tersimpan lokal\"), Offline non-transactable (err+dot, \"Tidak dapat memproses\"), Syncing (spinner, \"Menyinkronkan…\")",
-        "Hint bar permanent at bottom of every screen with F-key chips for current context",
-        "dotnet build clean"
-      ]
-    },
-    {
-      "id": "P7",
-      "title": "Regression test project: theme token resolution",
-      "passes": true,
-      "acceptanceCriteria": [
-        "Kasir.Avalonia.Tests project created targeting net10.0",
-        "Avalonia.Headless.NUnit NuGet referenced",
-        "Test asserts all 20 token keys resolve to non-null brush/color in Dark variant",
-        "Test asserts all 20 token keys resolve to non-null brush/color in Light variant",
-        "Test asserts theme toggle changes Application.Current.ActualThemeVariant",
-        "dotnet test Kasir.Avalonia.Tests passes",
-        "dotnet test Kasir.Core.Tests still passes (no regression)"
-      ]
-    },
-    {
-      "id": "P8",
-      "title": "PR opened on Panandika account",
-      "passes": true,
-      "acceptanceCriteria": [
-        "All commits on feat/design-system-v2 branch pushed to origin",
-        "gh auth switch -u Panandika executed before push/PR",
-        "gh pr create succeeded with title \"feat(theme): Design System v2 — modern retail-POS migration\"",
-        "PR body documents 20-token migration, dark+light toggle, font bundling, Lucide icons, density classes, sync chrome",
-        "PR URL captured in progress.txt",
-        "CI run kicked off and not failing (gh run list shows pending or success, not failure)"
-      ]
-    }
+    {"id": "S04", "findings": ["F04", "F24"], "priority": 1, "title": "Sync key-column mismatch — transaction tables enqueue journal_no but PushService looks up by id", "files": ["Kasir.Core/Sync/PushService.cs", "Kasir.Core/Sync/PullService.cs"], "acceptanceCriteria": ["GetKeyColumn returns 'journal_no' for sales, purchases, cash_transactions, memorial_journals, orders, stock_transfers, stock_adjustments", "When FetchRowData returns null for an I/U event, the entry is marked failed (not synced)", "New test round-trips a sale through trigger -> PushService.FetchRowData and asserts row is found + batched", "F24: PullService.ApplyInsert excludes source autoincrement id from the INSERT column list for transaction tables", "dotnet build Kasir.Core green; new + existing Sync tests pass"], "passes": true},
+    {"id": "S05", "findings": ["F05", "F14"], "priority": 2, "title": "Failed sync rows never retried — one SMB outage permanently strands events", "files": ["Kasir.Core/Sync/PushService.cs", "Kasir.Core/Data/Repositories/SyncQueueRepository.cs"], "acceptanceCriteria": ["Transport failures leave rows retryable: GetPending includes status IN ('pending','failed') under a retry_count cap OR failed rows reset to pending", "A terminal 'dead' status exists for poison rows past the cap", "Test: a row marked failed by a transport error is returned by the next GetPending", "dotnet build + Sync tests pass"], "passes": true},
+    {"id": "S02", "findings": ["F02"], "priority": 3, "title": "Global exception handler + crash log; DatabaseCorruptException caught on startup", "files": ["Kasir.Avalonia/ShellWindow.axaml.cs", "Kasir.Avalonia/App.axaml.cs", "Kasir.Avalonia/Program.cs"], "acceptanceCriteria": ["AppDomain.UnhandledException + Dispatcher unhandled exception handlers installed writing a crash log file", "Startup DB open path catches DatabaseCorruptException and shows a recoverable error UI instead of silent crash", "dotnet build Kasir.Avalonia green"], "passes": false},
+    {"id": "S01", "findings": ["F01"], "priority": 4, "title": "CloudSync creds stored plaintext despite DPAPI claim", "files": ["Kasir.Avalonia/Infrastructure/CloudSyncCredsService.cs"], "acceptanceCriteria": ["Credentials encrypted at rest via DPAPI (ProtectedData, CurrentUser scope) on write and decrypted on read", "Plaintext legacy file is migrated then overwritten", "Test or manual note documents round-trip", "dotnet build green"], "passes": false},
+    {"id": "S03", "findings": ["F03"], "priority": 5, "title": "Shift cash expectation sums ALL historical sales with same shift number (no date filter)", "files": ["Kasir.Core/Data/Repositories/SaleRepository.cs"], "acceptanceCriteria": ["Shift cash-expected query filters by the shift's open/close datetime window (or shift id), not just shift number", "Test: two shifts reusing the same shift number produce independent cash-expected totals", "dotnet build + tests pass"], "passes": true},
+    {"id": "S19", "findings": ["F19"], "priority": 6, "title": "PurchasingService multi-step writes not in a transaction", "files": ["Kasir.Core/Services/PurchasingService.cs"], "acceptanceCriteria": ["Purchase persist + stock movements + AP entry wrapped in one DB transaction that rolls back atomically on failure", "Test: forced failure after purchase insert leaves no purchase row, no stock movement, no AP entry", "dotnet build + tests pass"], "passes": true},
+    {"id": "S21", "findings": ["F21"], "priority": 7, "title": "StockOpnameService writes movements outside adjustment transaction", "files": ["Kasir.Core/Services/StockOpnameService.cs"], "acceptanceCriteria": ["Adjustment document + stock movements wrapped in one transaction", "Test: forced failure leaves no orphaned OPNAME movements", "dotnet build + tests pass"], "passes": true},
+    {"id": "S25", "findings": ["F25"], "priority": 8, "title": "sale_items / child detail rows never synced", "files": ["Kasir.Core/Sync/PushService.cs"], "acceptanceCriteria": ["Child detail rows (sale_items etc.) are bundled into the pushed payload for their parent transaction", "Test asserts a synced sale carries its sale_items", "dotnet build + tests pass"], "passes": true},
+    {"id": "S16", "findings": ["F16"], "priority": 9, "title": "PostSaleJournal debits full sale to cash even for card/voucher", "files": ["Kasir.Core/Services/AccountingService.cs"], "acceptanceCriteria": ["Journal debits the correct account per tender type (cash vs card/voucher receivable/clearing)", "Test: a card sale posts to the card/clearing account, not cash", "dotnet build + tests pass"], "passes": false},
+    {"id": "S17", "findings": ["F17"], "priority": 10, "title": "PriceOverride discount computed from base Price not actual unit price", "files": ["Kasir.Core/Services/DiscountEngine.cs"], "acceptanceCriteria": ["PriceOverride discount computed from the actual unit price; line total can never go negative", "Test: override on a discounted unit price yields non-negative line total", "dotnet build + tests pass"], "passes": false},
+    {"id": "S20", "findings": ["F20"], "priority": 11, "title": "COGS posted from stale master CostPrice while ledger uses weighted-average", "files": ["Kasir.Core/Services/SalesService.cs"], "acceptanceCriteria": ["COGS GL posting uses the same weighted-average cost basis as the stock ledger", "Test: GL COGS equals ledger valuation for a sale after a cost change", "dotnet build + tests pass"], "passes": false},
+    {"id": "S40", "findings": ["F40"], "priority": 12, "title": "Inventory GL vs stock ledger valuation drift on purchase; invoice-only flow never books stock", "files": ["Kasir.Core/Services/PurchasingService.cs"], "acceptanceCriteria": ["Inventory GL debit basis matches stock ledger valuation basis", "Invoice-only flow books stock", "Test asserts parity + stock booking", "dotnet build + tests pass"], "passes": false},
+    {"id": "S15", "findings": ["F15"], "priority": 13, "title": "Percentage discount truncation creates unsettleable sub-rupiah totals", "files": ["Kasir.Core/Models/Discount.cs"], "acceptanceCriteria": ["Discounted totals round to whole rupiah so whole-rupiah cash can settle exactly", "Test: percentage discount yields a whole-rupiah payable total", "dotnet build + tests pass"], "passes": false},
+    {"id": "S13", "findings": ["F13", "F35"], "priority": 14, "title": "VoidSale does not reverse stock or GL", "files": ["Kasir.Core/Data/Repositories/SaleRepository.cs", "Kasir.Core/Services/SalesService.cs"], "acceptanceCriteria": ["VoidSale returns sold stock to inventory and reverses the GL journal within a transaction", "Tests cover stock reversal AND GL reversal, not just the control flag", "dotnet build + tests pass"], "passes": true},
+    {"id": "S38", "findings": ["F38"], "priority": 15, "title": "ValidatePayment gives cash change for card/voucher overpayment", "files": ["Kasir.Core/Services/PaymentCalculator.cs"], "acceptanceCriteria": ["Overpayment change is only produced for cash tender; card/voucher overpayment is rejected or zero-change", "Test covers card overpayment path", "dotnet build + tests pass"], "passes": true},
+    {"id": "S37", "findings": ["F37"], "priority": 16, "title": "Journal numbering hardcodes register 01 -> duplicate doc numbers", "files": ["Kasir.Core/Services/AccountingService.cs", "Kasir.Core/Services/PayablesService.cs"], "acceptanceCriteria": ["Journal/document numbering uses the actual register id, not a hardcoded '01'", "Test: two registers produce non-colliding journal numbers", "dotnet build + tests pass"], "passes": true},
+    {"id": "S30", "findings": ["F30"], "priority": 17, "title": "Purchasing views cast unit price to int cents -> overflow >= Rp 21.474.837", "files": ["Kasir.Avalonia/Forms/Purchasing/PurchaseOrderView.axaml.cs", "Kasir.Avalonia/Forms/Purchasing/PurchaseInvoiceView.axaml.cs"], "acceptanceCriteria": ["Price-to-cents conversion uses long (64-bit) throughout the purchasing views", "No int cast on money remains in these views", "dotnet build Kasir.Avalonia green"], "passes": false},
+    {"id": "S07", "findings": ["F07"], "priority": 18, "title": "Backup copies live WAL DB with File.Copy — torn/missing recent sales", "files": ["Kasir.Avalonia/Forms/Admin/BackupView.axaml.cs"], "acceptanceCriteria": ["Backup uses SQLite Online Backup API or a checkpointed consistent copy, not raw File.Copy of a hot WAL db", "Backup includes committed WAL content", "dotnet build green"], "passes": false},
+    {"id": "S08", "findings": ["F08", "F28"], "priority": 19, "title": "async void AddItemByCode (barcode hot path) has no exception handling", "files": ["Kasir.Avalonia/Forms/POS/SaleView.axaml.cs"], "acceptanceCriteria": ["AddItemByCode wraps its body in try/catch that surfaces a non-fatal error and does not crash the POS process", "dotnet build green"], "passes": false},
+    {"id": "STHREAD", "findings": ["F09", "F22", "F27", "F29", "F31"], "priority": 20, "title": "Background timers use the shared UI SqliteConnection / leak connections", "files": ["Kasir.Avalonia/Infrastructure/CloudSyncStatusModel.cs", "Kasir.Core/Services/UpdateService.cs", "Kasir.Avalonia/App.axaml.cs", "Kasir.Avalonia/Forms/POS/SaleView.axaml.cs", "Kasir.Avalonia/Infrastructure/PrinterStatusModel.cs"], "acceptanceCriteria": ["Background/timer DB access uses its own short-lived connection, never the shared UI connection", "PrinterStatusModel poll no longer leaks a connection every 30s and no longer sends real print bytes as a health probe", "dotnet build green"], "passes": false},
+    {"id": "S23", "findings": ["F23"], "priority": 21, "title": "Update-package integrity check does not enforce manifest completeness (RCE)", "files": ["Kasir.Core/Services/UpdateService.cs"], "acceptanceCriteria": ["Update verification rejects any file present in the package but absent from the signed manifest", "Test: a planted unlisted file fails verification", "dotnet build + tests pass"], "passes": true},
+    {"id": "S42", "findings": ["F42"], "priority": 22, "title": "Single HMAC key signs both sync batches and update packages", "files": ["Kasir.Core/Services/UpdateService.cs"], "acceptanceCriteria": ["Separate keys for sync-batch signing and update-package signing", "Test: an update signed with the sync key fails update verification", "dotnet build + tests pass"], "passes": true},
+    {"id": "S34", "findings": ["F34"], "priority": 23, "title": "Login brute-force protection trivially defeated", "files": ["Kasir.Core/Auth/AuthService.cs"], "acceptanceCriteria": ["Failed-attempt lockout is persisted (survives restart), monotonic-clock based, and escalates with a real backoff", "Test covers lockout persistence + escalation", "dotnet build + tests pass"], "passes": true},
+    {"id": "S18", "findings": ["F18", "F39"], "priority": 24, "title": "ClosePeriod skips unposted purchase returns — returns stranded forever", "files": ["Kasir.Core/Services/PostingService.cs"], "acceptanceCriteria": ["ClosePeriod blocks (or posts) when unposted purchase returns exist so they are never stranded", "Test: closing a period with an unposted purchase return is prevented/handled", "dotnet build + tests pass"], "passes": true},
+    {"id": "S44", "findings": ["F44"], "priority": 25, "title": "PullService poison files never quarantined — can deadlock inbox", "files": ["Kasir.Core/Sync/PullService.cs"], "acceptanceCriteria": ["Unparseable/poison inbox files are moved to a quarantine location so they cannot starve the inbox window", "Test covers poison-file quarantine", "dotnet build + tests pass"], "passes": true},
+    {"id": "S10", "findings": ["F10"], "priority": 26, "title": "LAN SMB sync never invoked; shell badge permanently claims Online", "files": ["Kasir.Avalonia/Infrastructure/SyncStatusModel.cs", "Kasir.Avalonia/ShellWindow.axaml.cs"], "acceptanceCriteria": ["Either LAN sync is actually invoked and drives SyncStatusModel.Update, or the badge reflects real state (no hardcoded Online 0d)", "dotnet build green"], "passes": false},
+    {"id": "S11", "findings": ["F11"], "priority": 27, "title": "Kasir.CloudSync worker is a permanent no-op", "files": ["Kasir.CloudSync/Program.cs"], "acceptanceCriteria": ["OutboxRouter, GenericSink, HealthEndpoint, SnapshotBuilder are wired into the host and run", "dotnet build Kasir.CloudSync green; a smoke test or manual note confirms wiring"], "passes": false},
+    {"id": "S46", "findings": ["F46"], "priority": 28, "title": "ApplyUpdate closes shared DB connection while timers use it", "files": ["Kasir.Avalonia/Forms/Admin/UpdateView.axaml.cs"], "acceptanceCriteria": ["Update apply stops background timers before touching the shared connection; no concurrent use/reopen race", "dotnet build green"], "passes": false},
+    {"id": "S48", "findings": ["F48", "F49"], "priority": 29, "title": "HealthEndpoint unbounded handlers share non-thread-safe connection; DbConnection singleton unsynchronized", "files": ["Kasir.CloudSync/Health/HealthEndpoint.cs", "Kasir.Core/Data/DbConnection.cs"], "acceptanceCriteria": ["HealthEndpoint handlers do not share one connection across threads (per-request connection or lock)", "DbConnection lazy init is synchronized", "dotnet build green"], "passes": false},
+    {"id": "S36", "findings": ["F36"], "priority": 30, "title": "In-progress sale only in memory; pending_sales table unused", "files": ["Kasir.Core/Services/SalesService.cs", "Kasir.Core/Data/Schema.sql"], "acceptanceCriteria": ["Cart state persisted to pending_sales so a crash mid-sale can recover, or the unused table is removed and documented as out of scope", "Test covers recovery if implemented", "dotnet build + tests pass"], "passes": true},
+    {"id": "S52", "findings": ["F52"], "priority": 31, "title": "Journal number consumed in own committed txn before sale txn — burns KLR numbers on crash", "files": ["Kasir.Core/Services/SalesService.cs", "Kasir.Core/Data/Repositories/CounterRepository.cs"], "acceptanceCriteria": ["Journal number allocation participates in the sale transaction so a rolled-back sale does not burn a number (or gaps are explicitly tolerated + documented + tested)", "Test covers rollback behavior", "dotnet build + tests pass"], "passes": true},
+    {"id": "STEST", "findings": ["F26", "F32", "F33", "F41", "F43", "F45", "F50", "F51"], "priority": 32, "title": "Test-gap findings — add missing coverage", "files": ["Kasir.Core.Tests", "Kasir.CloudSync"], "acceptanceCriteria": ["Updater backup-failure path (F26), snapshot-restore verification stages (F32), CompleteSale shift-binding path (F41), UpdateService apply/recovery (F43), PushService failure/drop paths (F45), CounterRepository FormatNumber (F50), CashDrawer fallback (F51) each get real tests", "F33: at least one integration test runs on a file-backed WAL SQLite db (not in-memory) exercising busy_timeout/concurrency", "All new tests pass; dotnet build green"], "passes": false}
   ]
 }
