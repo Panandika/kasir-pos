@@ -103,13 +103,58 @@ namespace Kasir.Services
                 ChangedBy = sale.ChangedBy
             };
 
-            // Debit: Cash/Bank for total sale value
-            entry.Lines.Add(new JournalLine
+            // Debit each tender to its own account (F16). Change is only ever given from
+            // cash, so the cash portion is net of change; card and voucher tenders go to
+            // their own accounts and no longer inflate cash.
+            long cashPortion = sale.CashAmount - sale.ChangeAmount;
+            long cardPortion = sale.NonCash;
+            long voucherPortion = sale.VoucherAmount;
+            long tenderSum = cashPortion + cardPortion + voucherPortion;
+
+            if (cashPortion >= 0 && tenderSum == sale.TotalValue)
             {
-                AccountCode = cashAccountCode,
-                Debit = sale.TotalValue,
-                Remark = "Cash sale"
-            });
+                // Proper tender breakdown — post each tender to its own account.
+                if (cashPortion > 0)
+                {
+                    entry.Lines.Add(new JournalLine
+                    {
+                        AccountCode = cashAccountCode,
+                        Debit = cashPortion,
+                        Remark = "Cash sale"
+                    });
+                }
+                if (cardPortion > 0)
+                {
+                    entry.Lines.Add(new JournalLine
+                    {
+                        AccountCode = GetCardClearingAccount(),
+                        Debit = cardPortion,
+                        Remark = "Card tender"
+                    });
+                }
+                if (voucherPortion > 0)
+                {
+                    entry.Lines.Add(new JournalLine
+                    {
+                        AccountCode = GetVoucherAccount(),
+                        Debit = voucherPortion,
+                        Remark = "Voucher tender"
+                    });
+                }
+            }
+            else
+            {
+                // Legacy / incomplete tender data (e.g. migrated sales whose cash_amount /
+                // non_cash / voucher_amount do not reconcile to total_value) — fall back to
+                // the original single cash debit so batch posting is never blocked by a
+                // historical row. New sales with proper tender data take the split path above.
+                entry.Lines.Add(new JournalLine
+                {
+                    AccountCode = cashAccountCode,
+                    Debit = sale.TotalValue,
+                    Remark = "Cash sale"
+                });
+            }
 
             // Credit: Sales revenue (aggregate by account)
             // For simplicity, use total value as revenue credit
@@ -359,6 +404,11 @@ namespace Kasir.Services
             return GetConfigAccount("PAYABLES", "2100");
         }
 
+        // Resolves a GL account from config (key "ACCOUNT_<key>"), falling back to
+        // defaultCode. FAIL-CLOSED: throws a clear, actionable error if the mapping is
+        // unset (null default) or resolves to a code that does not exist in the chart of
+        // accounts, rather than silently posting to a bogus account (F16). Callers only
+        // hit the card/voucher accounts when a card/voucher sale is actually posted.
         private string GetConfigAccount(string key, string defaultCode)
         {
             var config = SqlHelper.QuerySingle(_db,
@@ -366,7 +416,33 @@ namespace Kasir.Services
                 r => SqlHelper.GetString(r, "value"),
                 SqlHelper.Param("@key", "ACCOUNT_" + key));
 
-            return string.IsNullOrEmpty(config) ? defaultCode : config;
+            string code = string.IsNullOrEmpty(config) ? defaultCode : config;
+
+            if (string.IsNullOrEmpty(code))
+            {
+                throw new InvalidOperationException(string.Format(
+                    "GL account not configured: set config key 'ACCOUNT_{0}' to a valid account code before posting.",
+                    key));
+            }
+            if (_accountRepo.GetByCode(code) == null)
+            {
+                throw new InvalidOperationException(string.Format(
+                    "GL account 'ACCOUNT_{0}' = '{1}' does not exist in the chart of accounts. Fix the config.",
+                    key, code));
+            }
+            return code;
+        }
+
+        // Card and voucher tender accounts have NO default — they are required config when
+        // a card/voucher sale is posted, and fail-closed if unset (F16).
+        private string GetCardClearingAccount()
+        {
+            return GetConfigAccount("CARD_CLEARING", null);
+        }
+
+        private string GetVoucherAccount()
+        {
+            return GetConfigAccount("VOUCHER", null);
         }
     }
 }

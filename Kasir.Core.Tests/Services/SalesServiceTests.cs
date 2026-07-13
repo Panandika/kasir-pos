@@ -333,6 +333,24 @@ namespace Kasir.Tests.Services
             act.Should().Throw<System.InvalidOperationException>().WithMessage("*diposting*");
         }
 
+        // F20/F40: the stored line COGS must use the weighted-average cost from the stock
+        // ledger, not the master CostPrice, so GL COGS matches the inventory ledger.
+        [Test]
+        public void CompleteSale_UsesWeightedAverageCostForCogs_NotMasterCostPrice()
+        {
+            // P001 master CostPrice is 0 in the seed; establish a weighted-average of 1000.
+            new InventoryService(_db).RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-X", "2026-04-01", 1);
+
+            _service.AddItem("P001", 2);
+            var sale = _service.CompleteSale(10000000, 0, 0, "", "", "");
+
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT cogs FROM sale_items WHERE journal_no = @j AND product_code = 'P001'";
+            cmd.Parameters.AddWithValue("@j", sale.JournalNo);
+            System.Convert.ToInt64(cmd.ExecuteScalar()).Should().Be(2000,
+                "COGS = weighted-average (1000) × qty (2), not master CostPrice (0)");
+        }
+
         [Test]
         public void CompleteSale_InsufficientPayment_Throws()
         {
