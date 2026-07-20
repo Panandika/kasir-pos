@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.7.0](https://github.com/Panandika/kasir-pos/compare/v2.6.1...v2.7.0) (2026-07-20)
+
+
+### Features
+
+* **pos:** persist in-progress cart for crash recovery (F36) ([6d61486](https://github.com/Panandika/kasir-pos/commit/6d614863e67ef992d28501b70117ee38658e790b))
+
+
+### Bug Fixes
+
+* **accounting:** block period close on unposted purchase returns (F18, F39) ([c875588](https://github.com/Panandika/kasir-pos/commit/c875588832377243a7d1cde4ee6ce9164fab0015))
+* **accounting:** fall back to cash debit when tender data doesn't reconcile (review) ([63cb19a](https://github.com/Panandika/kasir-pos/commit/63cb19aa8f774bc1defa66b24a9995d7f830ff18))
+* **accounting:** tender-split GL posting + weighted-avg COGS + fail-closed accounts (F16, F20, F40) ([80eb151](https://github.com/Panandika/kasir-pos/commit/80eb151eaf26ef591856bd45f1afbbee4fe13a07))
+* **accounting:** tender-split GL posting, weighted-avg COGS, fail-closed accounts (F16, F20, F40) ([3fbd71d](https://github.com/Panandika/kasir-pos/commit/3fbd71d6210b22ef4d6cdd9dd5903ab8336a3eae))
+* **accounting:** use actual register id in journal numbering, not hardcoded 01 (F37) ([b93d840](https://github.com/Panandika/kasir-pos/commit/b93d8408bc20f78d070c811a967c52e1ac502408))
+* **auth:** persist + escalate + monotonic-guard login lockout (F34) ([733187f](https://github.com/Panandika/kasir-pos/commit/733187fa80ab951b6f650682bdb663f6189a702c))
+* DEEP-CODE-ANALYSIS remediation (F01–F52) ([6b91a76](https://github.com/Panandika/kasir-pos/commit/6b91a7660e4573821bce1f8e0ef5cb240e29d79e))
+* **inventory:** wrap stock-opname document + movements in a transaction (F21) ([0135274](https://github.com/Panandika/kasir-pos/commit/01352744edf538e679e299fabad0a950955e9a0f))
+* **pos:** allocate sale journal number inside the sale transaction (F52) ([9edb23a](https://github.com/Panandika/kasir-pos/commit/9edb23a382ae48e63fa3f9519896a9301555b232))
+* **pos:** only give change from cash, reject card/voucher overpayment (F38) ([fbe683d](https://github.com/Panandika/kasir-pos/commit/fbe683dafb6e71041accbaf96fd8cd0e0da8433e))
+* **pos:** scope shift cash expectation to the shift time window (F03) ([8f1e75e](https://github.com/Panandika/kasir-pos/commit/8f1e75ee59715d8b38096c52ea078fbe54910025))
+* **pos:** stamp sales.card_type from card master instead of hardcoded 'C' ([#53](https://github.com/Panandika/kasir-pos/issues/53)) ([50bf697](https://github.com/Panandika/kasir-pos/commit/50bf69796e3cc41f66d1d7651444318c0654d9fd))
+* **pos:** void sale returns stock and blocks voiding posted sales (F13, F35) ([b989372](https://github.com/Panandika/kasir-pos/commit/b9893725d6b648745a8ada68add8ad70d2c5deaf))
+* **purchasing:** wrap goods-receipt/invoice/return writes in a transaction (F19) ([5925027](https://github.com/Panandika/kasir-pos/commit/59250275e4cdfa2c9962810e0a6e2b41fdffb369))
+* **sync:** bundle child detail rows (sale_items etc.) with their parent (F25) ([fa46792](https://github.com/Panandika/kasir-pos/commit/fa46792ef550eca911fc15763e6e8f3ff48285b2))
+* **sync:** key transaction tables on journal_no; mark unresolved events failed (F04, F24) ([a8e8440](https://github.com/Panandika/kasir-pos/commit/a8e8440a912b946e9af19551034bb963e28bccb3))
+* **sync:** map transaction tables to journal_no key column (F04) ([2383d1e](https://github.com/Panandika/kasir-pos/commit/2383d1e1bfe33e74f6bb44035192c5ee0896a0e1))
+* **sync:** quarantine poison inbox files so they can't starve the pull window (F44) ([8eb9267](https://github.com/Panandika/kasir-pos/commit/8eb9267f388ee6937a025c525c09644e216b3315))
+* **sync:** retry failed queue rows under a cap instead of stranding them (F05, F14) ([9ee70d9](https://github.com/Panandika/kasir-pos/commit/9ee70d96ec09ab48f4a5254388bfd69e362c29af))
+* **sync:** transaction tables use journal_no key column (F04) ([a656e51](https://github.com/Panandika/kasir-pos/commit/a656e51e1c4e95384de1e4d528cd849c7accc3ad))
+* **update:** enforce manifest completeness to block planted-file RCE (F23) ([84361fe](https://github.com/Panandika/kasir-pos/commit/84361feefb236db00de0cbd5c1c89c3a00eb80df))
+* **update:** verify update packages with a dedicated key, not the sync key (F42) ([cc98a8b](https://github.com/Panandika/kasir-pos/commit/cc98a8b0943b34c731a97ea4b5c9fa03f647dcde))
+
 ## [2.6.0](https://github.com/Panandika/kasir-pos/compare/v2.5.1...v2.6.0) (2026-05-17)
 
 
