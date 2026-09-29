@@ -21,7 +21,7 @@ public partial class VendorView : UserControl
     private readonly SubsidiaryRepository _repo;
     private readonly int _userId;
 
-    public VendorView(int userId = 1)
+    public VendorView(int userId)
     {
         InitializeComponent();
         _userId = userId;

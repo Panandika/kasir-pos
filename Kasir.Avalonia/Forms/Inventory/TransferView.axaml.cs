@@ -22,8 +22,11 @@ public partial class TransferView : UserControl
     private readonly StockTransferService _service;
     private readonly ProductRepository _productRepo;
 
-    public TransferView()
+    private readonly int _userId;
+
+    public TransferView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
         var db = DbConnection.GetConnection();
         _service = new StockTransferService(db, new ClockImpl());
@@ -109,7 +112,7 @@ public partial class TransferView : UserControl
         bool confirmed = await MsgBox.Confirm(NavigationService.Owner, $"Transfer {_items.Count} item dari {from} ke {to}?");
         if (!confirmed) return;
 
-        string journalNo = _service.CreateTransfer(from, to, _items, 1);
+        string journalNo = _service.CreateTransfer(from, to, _items, _userId);
         await MsgBox.Show(NavigationService.Owner, $"Tersimpan: {journalNo}");
 
         _items.Clear();

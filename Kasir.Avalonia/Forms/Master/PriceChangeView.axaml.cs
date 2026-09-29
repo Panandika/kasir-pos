@@ -27,8 +27,11 @@ public partial class PriceChangeView : UserControl
     private readonly ProductRepository _productRepo;
     private readonly PriceChangeService _priceService;
 
-    public PriceChangeView()
+    private readonly int _userId;
+
+    public PriceChangeView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
         var conn = DbConnection.GetConnection();
         _productRepo = new ProductRepository(conn);
@@ -140,7 +143,7 @@ public partial class PriceChangeView : UserControl
         bool confirmed = await MsgBox.Confirm(NavigationService.Owner, $"Simpan {changes.Count} perubahan harga?");
         if (!confirmed) return;
 
-        int count = _priceService.ApplyBatchPriceChange(changes, 1);
+        int count = _priceService.ApplyBatchPriceChange(changes, _userId);
         await MsgBox.Show(NavigationService.Owner, $"{count} harga berhasil diubah.");
         LoadProducts();
     }

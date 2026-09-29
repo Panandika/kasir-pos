@@ -30,7 +30,7 @@ public partial class ProductView : UserControl
     private bool _isEditing;
     private int _userId;
 
-    public ProductView(int userId = 1)
+    public ProductView(int userId)
     {
         InitializeComponent();
         _userId = userId;

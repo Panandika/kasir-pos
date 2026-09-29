@@ -20,8 +20,11 @@ public partial class AccountsView : UserControl
     private readonly AccountRepository _accountRepo;
     private readonly bool _readOnly;
 
-    public AccountsView(bool readOnly = false)
+    private readonly int _userId;
+
+    public AccountsView(int userId, bool readOnly = false)
     {
+        _userId = userId;
         InitializeComponent();
         _readOnly = readOnly;
 
@@ -149,7 +152,7 @@ public partial class AccountsView : UserControl
             NormalBalance = string.IsNullOrEmpty(vals[4]) ? "D" : vals[4].ToUpper(),
             IsDetail      = int.TryParse(vals[5], out int d) ? d : 1,
             Level         = string.IsNullOrEmpty(vals[2].Trim()) ? 0 : 1,
-            ChangedBy     = 1
+            ChangedBy     = _userId
         };
 
         _accountRepo.Insert(account);
@@ -180,7 +183,7 @@ public partial class AccountsView : UserControl
         existing.AccountGroup  = int.TryParse(vals[3], out int g) ? g : existing.AccountGroup;
         existing.NormalBalance = string.IsNullOrEmpty(vals[4]) ? existing.NormalBalance : vals[4].ToUpper();
         existing.IsDetail      = int.TryParse(vals[5], out int d) ? d : existing.IsDetail;
-        existing.ChangedBy     = 1;
+        existing.ChangedBy     = _userId;
 
         _accountRepo.Update(existing);
         LoadData();

@@ -42,7 +42,7 @@ public partial class MainMenuView : UserControl, INavigationAware
     private TopLevel? _registeredTopLevel;
     private string? _updateBadgeVersion;
 
-    public MainMenuView(int userId = 1)
+    public MainMenuView(int userId)
     {
         InitializeComponent();
         _userId = userId;
@@ -104,23 +104,23 @@ public partial class MainMenuView : UserControl, INavigationAware
             new TileSpec { Label = "Supplier",         UnderlineIndex = 0, Hotkey = Key.S, Activate = () => NavigationService.Navigate(new VendorView(_userId)) },
             new TileSpec { Label = "Barang",           UnderlineIndex = 0, Hotkey = Key.B, Activate = () => NavigationService.Navigate(new ProductView(_userId)) },
             new TileSpec { Label = "Credit Card",      UnderlineIndex = 0, Hotkey = Key.C, Activate = () => NavigationService.Navigate(new CreditCardView(_userId)) },
-            new TileSpec { Label = "Ganti Harga Jual", UnderlineIndex = 0, Hotkey = Key.G, Activate = () => NavigationService.Navigate(new PriceChangeView()) },
-            new TileSpec { Label = "Stok Opname",      UnderlineIndex = 5, Hotkey = Key.O, Activate = () => NavigationService.Navigate(new OpnameView()) },
+            new TileSpec { Label = "Ganti Harga Jual", UnderlineIndex = 0, Hotkey = Key.G, Activate = () => NavigationService.Navigate(new PriceChangeView(_userId)) },
+            new TileSpec { Label = "Stok Opname",      UnderlineIndex = 5, Hotkey = Key.O, Activate = () => NavigationService.Navigate(new OpnameView(_userId)) },
         },
         "Transaksi" => new[]
         {
-            new TileSpec { Label = "Pemesanan/Order",        UnderlineIndex = 10, Hotkey = Key.O, Activate = () => NavigationService.Navigate(new PurchaseOrderView()) },
-            new TileSpec { Label = "Penerimaan Barang",      UnderlineIndex = 1,  Hotkey = Key.E, Activate = () => NavigationService.Navigate(new GoodsReceiptView()) },
-            new TileSpec { Label = "Nota Pembelian",         UnderlineIndex = 0,  Hotkey = Key.N, Activate = () => NavigationService.Navigate(new PurchaseInvoiceView()) },
-            new TileSpec { Label = "Hutang",                 UnderlineIndex = 0,  Hotkey = Key.H, Activate = () => NavigationService.Navigate(new PayablesView()) },
-            new TileSpec { Label = "Retur Pembelian",        UnderlineIndex = 0,  Hotkey = Key.R, Activate = () => NavigationService.Navigate(new ReturnView()) },
-            new TileSpec { Label = "Pemakaian/Rusak/Hilang", UnderlineIndex = 3,  Hotkey = Key.A, Activate = () => NavigationService.Navigate(new StockOutView()) },
+            new TileSpec { Label = "Pemesanan/Order",        UnderlineIndex = 10, Hotkey = Key.O, Activate = () => NavigationService.Navigate(new PurchaseOrderView(_userId)) },
+            new TileSpec { Label = "Penerimaan Barang",      UnderlineIndex = 1,  Hotkey = Key.E, Activate = () => NavigationService.Navigate(new GoodsReceiptView(_userId)) },
+            new TileSpec { Label = "Nota Pembelian",         UnderlineIndex = 0,  Hotkey = Key.N, Activate = () => NavigationService.Navigate(new PurchaseInvoiceView(_userId)) },
+            new TileSpec { Label = "Hutang",                 UnderlineIndex = 0,  Hotkey = Key.H, Activate = () => NavigationService.Navigate(new PayablesView(_userId)) },
+            new TileSpec { Label = "Retur Pembelian",        UnderlineIndex = 0,  Hotkey = Key.R, Activate = () => NavigationService.Navigate(new ReturnView(_userId)) },
+            new TileSpec { Label = "Pemakaian/Rusak/Hilang", UnderlineIndex = 3,  Hotkey = Key.A, Activate = () => NavigationService.Navigate(new StockOutView(_userId)) },
             new TileSpec { Label = "Penjualan",              UnderlineIndex = 0,  Hotkey = Key.P, Activate = () => NavigationService.Navigate(new SaleView(new AuthService(DbConnection.GetConnection()))) },
-            new TileSpec { Label = "Transfer",               UnderlineIndex = 0,  Hotkey = Key.T, Activate = () => NavigationService.Navigate(new TransferView()) },
+            new TileSpec { Label = "Transfer",               UnderlineIndex = 0,  Hotkey = Key.T, Activate = () => NavigationService.Navigate(new TransferView(_userId)) },
         },
         "Akuntansi" => new[]
         {
-            new TileSpec { Label = "Daftar Perkiraan", UnderlineIndex = 0, Hotkey = Key.D, Activate = () => NavigationService.Navigate(new AccountsView()) },
+            new TileSpec { Label = "Daftar Perkiraan", UnderlineIndex = 0, Hotkey = Key.D, Activate = () => NavigationService.Navigate(new AccountsView(_userId)) },
             new TileSpec { Label = "Jurnal Memorial",  UnderlineIndex = 0, Hotkey = Key.J, Activate = () => NavigationService.Navigate(new JournalView(userId: _userId)) },
             new TileSpec { Label = "Penerimaan Kas",   UnderlineIndex = 11, Hotkey = Key.K, Activate = () => NavigationService.Navigate(new CashReceiptView(userId: _userId)) },
             new TileSpec { Label = "Pengeluaran Kas",  UnderlineIndex = 0,  Hotkey = Key.P, Activate = () => NavigationService.Navigate(new CashDisbursementView(userId: _userId)) },
@@ -137,7 +137,7 @@ public partial class MainMenuView : UserControl, INavigationAware
         "Bank" => new[]
         {
             new TileSpec { Label = "Input Tabel Bank",        UnderlineIndex = 12, Hotkey = Key.B, Activate = () => NavigationService.Navigate(new BankView()) },
-            new TileSpec { Label = "Input Giro Tolakan/Cair", UnderlineIndex = 6,  Hotkey = Key.G, Activate = () => NavigationService.Navigate(new BankGiroView()) },
+            new TileSpec { Label = "Input Giro Tolakan/Cair", UnderlineIndex = 6,  Hotkey = Key.G, Activate = () => NavigationService.Navigate(new BankGiroView(_userId)) },
         },
         "Utility" => new[]
         {
