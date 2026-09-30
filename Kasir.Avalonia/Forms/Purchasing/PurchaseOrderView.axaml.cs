@@ -69,7 +69,7 @@ public partial class PurchaseOrderView : UserControl
         var product = _productRepo.GetByCode(codeVals[0].Trim().ToUpper());
         if (product == null) { await MsgBox.Show(NavigationService.Owner, "Barang tidak ditemukan."); return; }
 
-        string defaultPrice = (product.BuyingPrice / 100.0).ToString("F0");
+        string defaultPrice = Formatting.FormatRupiahCentsInput(product.BuyingPrice);
         var (ok2, vals) = await InputDialogWindow.Show(NavigationService.Owner, "Detail Item",
             new[] { "Qty", "Harga Beli" },
             new[] { "1", defaultPrice });
@@ -77,17 +77,16 @@ public partial class PurchaseOrderView : UserControl
 
         if (!int.TryParse(vals[0], out int qty) || qty <= 0)
         { await MsgBox.Show(NavigationService.Owner, "Qty tidak valid."); return; }
-        if (!Formatting.TryParseRupiah(vals[1], out long priceLong) || priceLong < 0)
-        { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid."); return; }
-        decimal price = priceLong;
+        if (!Formatting.TryParseRupiahCents(vals[1], out long priceCents) || priceCents < 0)
+        { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid. Contoh: 11.208 atau 11.208,67"); return; }
 
         var item = new OrderItem
         {
             ProductCode = product.ProductCode,
             ProductName = product.Name,
             Quantity = qty,
-            UnitPrice = (int)(price * 100m),
-            Value = (long)(price * 100m) * qty
+            UnitPrice = priceCents,
+            Value = priceCents * qty
         };
         _items.Add(item);
         RefreshGrid();

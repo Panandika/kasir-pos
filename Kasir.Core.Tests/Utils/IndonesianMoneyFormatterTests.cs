@@ -33,6 +33,31 @@ namespace Kasir.Tests.Utils
             IndonesianMoneyFormatter.FormatText(input).Should().Be(expected);
         }
 
+        // Decimal-aware live formatting (product price fields): keep a ",dd" sen part.
+        [TestCase("11208,67", "11.208,67")]
+        [TestCase("11208,6", "11.208,6")]
+        [TestCase("11208,", "11.208,")]
+        [TestCase("11.208,678", "11.208,67")]
+        [TestCase("1250000", "1.250.000")]
+        [TestCase("", "")]
+        public void FormatTextWithDecimals_KeepsSenPart(string input, string expected)
+        {
+            IndonesianMoneyFormatter.FormatTextWithDecimals(input).Should().Be(expected);
+        }
+
+        [TestCase("11208,67", "11.208,67")]
+        public void ReformatPreserveCaret_WithDecimals_KeepsSen(string input, string expected)
+        {
+            IndonesianMoneyFormatter.ReformatPreserveCaret(input, input.Length, allowDecimals: true)
+                .Formatted.Should().Be(expected);
+        }
+
+        [TestCase("50,000", "50.000")] // POS payment fields: comma never becomes a decimal
+        public void ReformatPreserveCaret_Default_StaysDigitsOnly(string input, string expected)
+        {
+            IndonesianMoneyFormatter.ReformatPreserveCaret(input, input.Length).Formatted.Should().Be(expected);
+        }
+
         [TestCase("0", true)]
         [TestCase("70000", true)]
         [TestCase("", false)]

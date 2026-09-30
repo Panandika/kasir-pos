@@ -63,6 +63,52 @@ namespace Kasir.Tests.Utils
             val.Should().Be(expectedVal);
         }
 
+        // Indonesian money input → cents: "." thousands, "," decimal (max 2 digits).
+        [TestCase("11.208,67", true, 1120867)]
+        [TestCase("1958,5", true, 195850)]
+        [TestCase("1958,05", true, 195805)]
+        [TestCase("11208", true, 1120800)]
+        [TestCase("11.208", true, 1120800)]
+        [TestCase("Rp 1.250.000", true, 125000000)]
+        [TestCase("1.250.000,00", true, 125000000)]
+        [TestCase("50,000", true, 5000000)]        // comma-as-thousands habit, exactly 3 digits
+        [TestCase("1,250,000", true, 125000000)]
+        [TestCase("0", true, 0)]
+        [TestCase("0,5", true, 50)]
+        [TestCase("11.5", false, 0)]               // ambiguous: not a thousands group
+        [TestCase("1.20.000", false, 0)]
+        [TestCase("1,2345", false, 0)]             // more than 2 decimals
+        [TestCase("1.000,000", false, 0)]
+        [TestCase("12,34,56", false, 0)]
+        [TestCase(",50", false, 0)]
+        [TestCase("abc", false, 0)]
+        [TestCase("", false, 0)]
+        [TestCase(null, false, 0)]
+        public void TryParseRupiahCents_ParsesIndonesianDecimals(string? input, bool expectedOk, long expectedCents)
+        {
+            bool ok = Formatting.TryParseRupiahCents(input, out long cents);
+            ok.Should().Be(expectedOk);
+            cents.Should().Be(expectedCents);
+        }
+
+        [TestCase("11.208,67", false)]   // whole-rupiah fields reject sen instead of reading 100x
+        [TestCase("11.208,00", true)]
+        public void TryParseRupiah_RejectsSen(string input, bool expectedOk)
+        {
+            Formatting.TryParseRupiah(input, out _).Should().Be(expectedOk);
+        }
+
+        [TestCase(1120867, "11.208,67")]
+        [TestCase(1120800, "11.208")]
+        [TestCase(195850, "1.958,50")]
+        [TestCase(0, "0")]
+        public void FormatRupiahCentsInput_RoundTrips(long cents, string expected)
+        {
+            Formatting.FormatRupiahCentsInput(cents).Should().Be(expected);
+            Formatting.TryParseRupiahCents(expected, out long back).Should().BeTrue();
+            back.Should().Be(cents);
+        }
+
         [TestCase(100000, "100.000")]
         [TestCase(0, "0")]
         [TestCase(1000000, "1.000.000")]

@@ -88,14 +88,14 @@ public partial class PayablesView : UserControl
             return;
         }
 
-        if (!Formatting.TryParseRupiah(paymentStr, out long paymentAmount) || paymentAmount <= 0)
+        if (!Formatting.TryParseRupiahCents(paymentStr, out long paymentAmount) || paymentAmount <= 0)
         {
-            await MsgBox.Show(NavigationService.Owner, "Jumlah pembayaran tidak valid.");
+            await MsgBox.Show(NavigationService.Owner, "Jumlah pembayaran tidak valid. Contoh: 100.000 atau 11.208,67");
             return;
         }
 
         bool confirmed = await MsgBox.Confirm(NavigationService.Owner,
-            $"Bayar hutang {_selectedVendor} sebesar {Formatting.FormatMoney(paymentAmount * 100)}?");
+            $"Bayar hutang {_selectedVendor} sebesar {Formatting.FormatMoney(paymentAmount)}?");
         if (!confirmed) return;
 
         string docDate    = Formatting.TodayIso();
@@ -105,7 +105,7 @@ public partial class PayablesView : UserControl
         {
             var result = _payablesService.AllocatePayment(
                 _selectedVendor,
-                paymentAmount * 100,
+                paymentAmount,
                 "1-1101",
                 docDate,
                 periodCode,

@@ -60,9 +60,9 @@ public partial class CashReceiptView : UserControl
 
         if (string.IsNullOrEmpty(accCode) || string.IsNullOrEmpty(amountStr)) return;
 
-        if (!Formatting.TryParseRupiah(amountStr, out long amount) || amount <= 0)
+        if (!Formatting.TryParseRupiahCents(amountStr, out long amount) || amount <= 0)
         {
-            await MsgBox.Show(NavigationService.Owner, "Jumlah tidak valid.");
+            await MsgBox.Show(NavigationService.Owner, "Jumlah tidak valid. Contoh: 100.000 atau 11.208,67");
             return;
         }
 
@@ -73,7 +73,7 @@ public partial class CashReceiptView : UserControl
         {
             AccountCode = accCode,
             Direction   = "K",
-            Value       = amount * 100,
+            Value       = amount,
             Remark      = remark
         };
 

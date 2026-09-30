@@ -81,8 +81,8 @@ public partial class JournalView : UserControl
         long td = 0, tc = 0;
         foreach (var r in _rows)
         {
-            Formatting.TryParseRupiah(r.Debit,  out long d);
-            Formatting.TryParseRupiah(r.Credit, out long c);
+            Formatting.TryParseRupiahCents(r.Debit,  out long d);
+            Formatting.TryParseRupiahCents(r.Credit, out long c);
             td += d;
             tc += c;
         }
@@ -149,8 +149,15 @@ public partial class JournalView : UserControl
         foreach (var r in _rows)
         {
             if (string.IsNullOrEmpty(r.AccCode)) continue;
-            Formatting.TryParseRupiah(r.Debit,  out long d);
-            Formatting.TryParseRupiah(r.Credit, out long c);
+            // Amounts are stored in cents; this used to save the typed rupiah as cents (100x too small).
+            if ((!string.IsNullOrWhiteSpace(r.Debit) && !Formatting.TryParseRupiahCents(r.Debit, out _))
+                || (!string.IsNullOrWhiteSpace(r.Credit) && !Formatting.TryParseRupiahCents(r.Credit, out _)))
+            {
+                await MsgBox.Show(NavigationService.Owner, $"Jumlah tidak valid pada akun {r.AccCode}. Contoh: 100.000 atau 11.208,67");
+                return;
+            }
+            Formatting.TryParseRupiahCents(r.Debit,  out long d);
+            Formatting.TryParseRupiahCents(r.Credit, out long c);
             entry.Lines.Add(new JournalLine
             {
                 AccountCode = r.AccCode,

@@ -79,7 +79,7 @@ public partial class GoodsReceiptView : UserControl
         var product = _productRepo.GetByCode(codeVals[0].Trim().ToUpper());
         if (product == null) { await MsgBox.Show(NavigationService.Owner, "Barang tidak ditemukan."); return; }
 
-        string defaultPrice = (product.BuyingPrice / 100.0).ToString("F0");
+        string defaultPrice = Formatting.FormatRupiahCentsInput(product.BuyingPrice);
         var (ok2, vals) = await InputDialogWindow.Show(NavigationService.Owner, "Detail Item",
             new[] { "Qty", "Harga Beli" },
             new[] { "1", defaultPrice });
@@ -87,17 +87,16 @@ public partial class GoodsReceiptView : UserControl
 
         if (!int.TryParse(vals[0], out int qty) || qty <= 0)
         { await MsgBox.Show(NavigationService.Owner, "Qty tidak valid."); return; }
-        if (!Formatting.TryParseRupiah(vals[1], out long priceLong) || priceLong < 0)
-        { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid."); return; }
-        decimal price = priceLong;
+        if (!Formatting.TryParseRupiahCents(vals[1], out long priceCents) || priceCents < 0)
+        { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid. Contoh: 11.208 atau 11.208,67"); return; }
 
         var item = new PurchaseItem
         {
             ProductCode = product.ProductCode,
             ProductName = product.Name,
             Quantity = qty,
-            UnitPrice = (long)(price * 100m),
-            Value = (long)(price * 100m) * qty
+            UnitPrice = priceCents,
+            Value = priceCents * qty
         };
         // A product that is on the loaded PO counts toward it; anything else is an extra, unlinked line.
         if (!string.IsNullOrEmpty(_orderNo)
@@ -151,7 +150,7 @@ public partial class GoodsReceiptView : UserControl
         if (row == null) return;
         var item = row.Tag;
 
-        string pricePrefill = (item.UnitPrice / 100).ToString();
+        string pricePrefill = Formatting.FormatRupiahCentsInput(item.UnitPrice);
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner, $"Ubah {item.ProductCode}",
             new[] { "Qty", "Harga Beli" },
             new[] { item.Quantity.ToString(), pricePrefill });
@@ -159,12 +158,11 @@ public partial class GoodsReceiptView : UserControl
 
         if (!int.TryParse(vals[0], out int qty) || qty <= 0)
         { await MsgBox.Show(NavigationService.Owner, "Qty tidak valid."); return; }
-        if (!Formatting.TryParseRupiah(vals[1], out long priceLong) || priceLong < 0)
-        { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid."); return; }
+        if (!Formatting.TryParseRupiahCents(vals[1], out long priceCents) || priceCents < 0)
+        { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid. Contoh: 11.208 atau 11.208,67"); return; }
 
         item.Quantity = qty;
-        // Keep the exact (possibly sen) price unless the user actually typed a new one.
-        if (priceLong != item.UnitPrice / 100) item.UnitPrice = priceLong * 100;
+        item.UnitPrice = priceCents;
         item.Value = item.UnitPrice * qty;
         RefreshGrid();
     }

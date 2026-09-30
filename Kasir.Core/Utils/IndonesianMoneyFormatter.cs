@@ -72,13 +72,30 @@ namespace Kasir.Utils
         }
 
         /// <summary>
+        /// Like <see cref="FormatText"/> but keeps a decimal part after the last comma
+        /// (at most 2 digits): "11208,67" → "11.208,67". For fields that allow sen.
+        /// </summary>
+        public static string FormatTextWithDecimals(string? text)
+        {
+            string raw = text ?? "";
+            int comma = raw.LastIndexOf(',');
+            if (comma < 0) return FormatText(raw);
+
+            string whole = FormatText(raw.Substring(0, comma));
+            if (whole.Length == 0) whole = "0";
+            string frac = DigitsOnly(raw.Substring(comma + 1));
+            if (frac.Length > 2) frac = frac.Substring(0, 2);
+            return whole + "," + frac;
+        }
+
+        /// <summary>
         /// Reformats <paramref name="text"/> while preserving the caret's
         /// distance from the right end of the string. Returns the formatted
         /// text and the new caret index.
         /// </summary>
         /// <param name="text">Current TextBox text.</param>
         /// <param name="caretIndex">Current caret index (0..text.Length).</param>
-        public static (string Formatted, int CaretIndex) ReformatPreserveCaret(string? text, int caretIndex)
+        public static (string Formatted, int CaretIndex) ReformatPreserveCaret(string? text, int caretIndex, bool allowDecimals = false)
         {
             string original = text ?? "";
             if (caretIndex < 0) caretIndex = 0;
@@ -93,7 +110,7 @@ namespace Kasir.Utils
                 if (c >= '0' && c <= '9') digitsRight++;
             }
 
-            string formatted = FormatText(original);
+            string formatted = allowDecimals ? FormatTextWithDecimals(original) : FormatText(original);
             if (formatted.Length == 0) return ("", 0);
 
             // Walk back from the right of the formatted string until we have

@@ -49,9 +49,9 @@ public partial class ProductView : UserControl
 
         // Numeric input behavior on numeric TextBoxes
         NumericInputBehavior.Attach(TxtDiscMax);
-        NumericInputBehavior.AttachLiveFormatting(TxtBuyingPrice);
-        NumericInputBehavior.AttachLiveFormatting(TxtCostPrice);
-        NumericInputBehavior.AttachLiveFormatting(TxtSellingPrice);
+        NumericInputBehavior.AttachLiveFormatting(TxtBuyingPrice, allowDecimals: true);
+        NumericInputBehavior.AttachLiveFormatting(TxtCostPrice, allowDecimals: true);
+        NumericInputBehavior.AttachLiveFormatting(TxtSellingPrice, allowDecimals: true);
 
         ViewShortcuts.WireGridEnter(DgvProducts, () =>
         {
@@ -164,9 +164,9 @@ public partial class ProductView : UserControl
 
     private static string FormatMoney(long cents)
     {
-        // Display whole rupiah with Indonesian thousands separators
-        long whole = cents / 100;
-        return whole.ToString("#,0", CultureInfo.GetCultureInfo("id-ID"));
+        // Indonesian format, keeping sen ("11.208,67"): showing whole rupiah and saving it
+        // back used to silently drop the sen from buying/cost/selling prices.
+        return Formatting.FormatRupiahCentsInput(cents);
     }
 
     private Product ReadDetail()
@@ -193,10 +193,7 @@ public partial class ProductView : UserControl
     private static long ParseMoney(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return 0L;
-        // Strip Indonesian thousands dots, then parse as whole rupiah
-        string digits = new string((text ?? "").Where(char.IsDigit).ToArray());
-        if (string.IsNullOrEmpty(digits)) return 0L;
-        return long.Parse(digits, CultureInfo.InvariantCulture) * 100L;
+        return Formatting.TryParseRupiahCents(text, out long cents) ? cents : 0L;
     }
 
     private static int ParsePct(string? text)
