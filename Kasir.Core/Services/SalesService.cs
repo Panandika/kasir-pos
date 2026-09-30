@@ -405,8 +405,10 @@ namespace Kasir.Services
                     // stock permanently understated (F35).
                     foreach (var item in items)
                     {
+                        // item.Cogs is the line total (unit cost × qty); the movement needs the unit cost.
+                        long unitCost = item.Quantity != 0 ? item.Cogs / item.Quantity : 0;
                         _inventoryService.RecordStockIn(
-                            item.ProductCode, item.Quantity, item.Cogs,
+                            item.ProductCode, item.Quantity, unitCost,
                             "RETURN_IN", journalNo, sale.DocDate, _cashierUserId);
                     }
 

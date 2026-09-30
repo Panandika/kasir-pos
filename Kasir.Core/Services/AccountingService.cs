@@ -249,7 +249,7 @@ namespace Kasir.Services
                 ChangedBy = purchase.ChangedBy
             };
 
-            long grni = GetReceiptValueBilled(purchase.JournalNo);
+            long grni = GetReceiptValueBilled(purchase);
             long inventory = purchase.TotalValue - grni;
 
             if (grni > 0)
@@ -275,53 +275,77 @@ namespace Kasir.Services
                 });
             }
 
-            entry.Lines.Add(new JournalLine
+            // A zero-value invoice (all bonus goods) has no AP; it only reverses the BPB value.
+            if (purchase.TotalValue < 0)
+                throw new InvalidOperationException("Purchase invoice total cannot be negative: " + purchase.JournalNo);
+            if (purchase.TotalValue > 0)
             {
-                AccountCode = GetPayablesAccount(),
-                SubCode = purchase.SubCode,
-                Credit = purchase.TotalValue,
-                Remark = "Accounts payable"
-            });
+                entry.Lines.Add(new JournalLine
+                {
+                    AccountCode = GetPayablesAccount(),
+                    SubCode = purchase.SubCode,
+                    Credit = purchase.TotalValue,
+                    Remark = "Accounts payable"
+                });
+            }
 
             ValidateJournalEntry(entry);
             PostGlLines(entry);
         }
 
-        // Value at which the invoice's BPB-linked lines were received: billed qty × the BPB
-        // unit price for that product. This is what the receipt put into GRNI.
-        private long GetReceiptValueBilled(string invoiceNo)
+        // Value at which the invoice's BPB-linked lines were received — what the receipt put
+        // into GRNI. Uses the BPB's weighted value per product (a BPB may carry the same
+        // product at several prices, e.g. a Rp 0 bonus line). Earlier invoices on the same BPB
+        // (lower id) are counted first, so the billing that completes a product clears exactly
+        // the remaining value and no rounding residue is left in GRNI.
+        private long GetReceiptValueBilled(Purchase invoice)
         {
             long total = 0;
-            var receiptPrices = new Dictionary<string, Dictionary<string, long>>();
-            foreach (var item in _purchaseRepo.GetItems(invoiceNo))
+            var billedByLink = _purchaseRepo.GetItems(invoice.JournalNo)
+                .Where(i => !string.IsNullOrEmpty(i.OrderRef))
+                .GroupBy(i => (i.OrderRef, i.ProductCode));
+
+            foreach (var link in billedByLink)
             {
-                if (string.IsNullOrEmpty(item.OrderRef)) continue;
+                var receipt = _purchaseRepo.GetByJournalNo(link.Key.OrderRef);
+                if (receipt?.DocType != "RECEIPT") continue;
 
-                if (!receiptPrices.TryGetValue(item.OrderRef, out var prices))
-                {
-                    var receipt = _purchaseRepo.GetByJournalNo(item.OrderRef);
-                    prices = receipt?.DocType == "RECEIPT"
-                        ? _purchaseRepo.GetItems(item.OrderRef)
-                            .GroupBy(i => i.ProductCode)
-                            .ToDictionary(g => g.Key, g => g.First().UnitPrice)
-                        : new Dictionary<string, long>();
-                    receiptPrices[item.OrderRef] = prices;
-                }
+                var received = _purchaseRepo.GetItems(link.Key.OrderRef)
+                    .Where(i => i.ProductCode == link.Key.ProductCode).ToList();
+                long receivedQty = received.Sum(i => (long)i.Quantity);
+                long receivedValue = received.Sum(i => i.Value);
+                if (receivedQty <= 0) continue;
 
-                if (prices.TryGetValue(item.ProductCode, out long price))
-                    total += price * item.Quantity;
+                long before = SqlHelper.ExecuteScalar<long>(_db,
+                    @"SELECT COALESCE(SUM(pi.quantity), 0) FROM purchase_items pi
+                      JOIN purchases p ON p.journal_no = pi.journal_no
+                      WHERE pi.order_ref = @ref AND pi.product_code = @product
+                        AND p.doc_type = 'PURCHASE' AND p.control != 3 AND p.id < @id",
+                    SqlHelper.Param("@ref", link.Key.OrderRef),
+                    SqlHelper.Param("@product", link.Key.ProductCode),
+                    SqlHelper.Param("@id", invoice.Id));
+                long after = before + link.Sum(i => (long)i.Quantity);
+
+                total += ValueUpTo(after, receivedQty, receivedValue) - ValueUpTo(before, receivedQty, receivedValue);
             }
             return total;
         }
 
+        private static long ValueUpTo(long qty, long receivedQty, long receivedValue)
+        {
+            return qty >= receivedQty ? receivedValue : receivedValue * qty / receivedQty;
+        }
+
         // Stock-out (usage/damage/loss) or opname: the net value that left (or entered)
         // stock on this document's movements is booked against the stock-adjustment account.
-        public void PostStockAdjustmentJournal(StockAdjustment adjustment)
+        // Returns false when there is no stock value to book (e.g. migrated legacy documents,
+        // which have no per-document movements, or items at zero cost).
+        public bool PostStockAdjustmentJournal(StockAdjustment adjustment)
         {
             long net = SqlHelper.ExecuteScalar<long>(_db,
                 "SELECT COALESCE(SUM(val_in), 0) - COALESCE(SUM(val_out), 0) FROM stock_movements WHERE journal_no = @jnl",
                 SqlHelper.Param("@jnl", adjustment.JournalNo));
-            if (net == 0) return;
+            if (net == 0) return false;
 
             var entry = new JournalEntry
             {
@@ -351,6 +375,7 @@ namespace Kasir.Services
 
             ValidateJournalEntry(entry);
             PostGlLines(entry);
+            return true;
         }
 
         public void PostReturnJournal(Purchase returnDoc)

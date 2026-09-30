@@ -126,6 +126,8 @@ public partial class PostingProgressView : UserControl
             Log($"Selesai: {r.PostedCount} diposting, {r.ErrorCount} error");
             foreach (var err in r.Errors)
                 Log("  ERROR: " + err);
+            foreach (var note in r.Notices)
+                Log("  INFO: " + note);
         }
         catch (Exception ex)
         {

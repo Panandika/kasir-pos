@@ -12,10 +12,12 @@ namespace Kasir.Services
         public int PostedCount { get; set; }
         public int ErrorCount { get; set; }
         public List<string> Errors { get; set; }
+        public List<string> Notices { get; set; }   // informational, not failures
 
         public PostingResult()
         {
             Errors = new List<string>();
+            Notices = new List<string>();
         }
     }
 
@@ -218,7 +220,11 @@ namespace Kasir.Services
                     {
                         try
                         {
-                            _accountingService.PostStockAdjustmentJournal(adjustment);
+                            if (!_accountingService.PostStockAdjustmentJournal(adjustment))
+                            {
+                                result.Notices.Add(adjustment.JournalNo
+                                    + ": tidak ada nilai mutasi stok — ditandai posted tanpa jurnal");
+                            }
                             SqlHelper.ExecuteNonQuery(_db,
                                 "UPDATE stock_adjustments SET is_posted = 'Y' WHERE journal_no = @jnl",
                                 SqlHelper.Param("@jnl", adjustment.JournalNo));

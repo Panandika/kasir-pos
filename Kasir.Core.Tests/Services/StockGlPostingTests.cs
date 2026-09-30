@@ -202,6 +202,95 @@ namespace Kasir.Tests.Services
             act.Should().Throw<InvalidOperationException>().WithMessage("*receipt*");
         }
 
+        [Test]
+        public void ReceiptWithBonusLineAtZero_FullyBilled_ClearsGrniExactly()
+        {
+            string gr = _purchasing.CreateGoodsReceipt(new Purchase { SubCode = "V001" },
+                new List<PurchaseItem>
+                {
+                    new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 100000 },
+                    new PurchaseItem { ProductCode = "P001", Quantity = 2, UnitPrice = 0 } // bonus
+                }, 1);
+            _purchasing.CreatePurchaseInvoice(new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 12, UnitPrice = 83333, OrderRef = gr } }, 1);
+
+            _posting.PostReceipts(Period);
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("2150").Should().Be(0);
+        }
+
+        [Test]
+        public void ReceiptBilledInTwoInvoices_WeightedValue_ClearsGrniExactly()
+        {
+            string gr = _purchasing.CreateGoodsReceipt(new Purchase { SubCode = "V001" },
+                new List<PurchaseItem>
+                {
+                    new PurchaseItem { ProductCode = "P001", Quantity = 2, UnitPrice = 100000 },
+                    new PurchaseItem { ProductCode = "P001", Quantity = 1, UnitPrice = 0 }
+                }, 1);
+            Invoice(1, 100000, gr);
+            Invoice(2, 50000, gr);
+
+            _posting.PostReceipts(Period);
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("2150").Should().Be(0, "last billing clears the exact remainder; no rounding residue");
+            _posting.CheckBalance(Period).IsBalanced.Should().BeTrue();
+        }
+
+        [Test]
+        public void ZeroTotalInvoiceBillingReceipt_Posts_AndDoesNotBlockClose()
+        {
+            string gr = Receive(5, 100000);
+            Invoice(5, 0, gr);
+
+            _posting.PostReceipts(Period);
+            var result = _posting.PostPurchases(Period);
+
+            result.ErrorCount.Should().Be(0);
+            Net("2150").Should().Be(0);
+            Net("1300").Should().Be(0, "goods turned out free: inventory value reversed");
+            Net("2100").Should().Be(0);
+        }
+
+        [Test]
+        public void PostReceipts_IsIdempotent()
+        {
+            Receive(10, 300000);
+
+            _posting.PostReceipts(Period);
+            _posting.PostReceipts(Period).PostedCount.Should().Be(0);
+
+            Net("1300").Should().Be(3000000);
+        }
+
+        [Test]
+        public void MixedInvoice_BpbLineAndNewLine_GlMatchesStock()
+        {
+            string gr = Receive(10, 300000);
+            _purchasing.CreatePurchaseInvoice(new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                new List<PurchaseItem>
+                {
+                    new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 300000, OrderRef = gr },
+                    new PurchaseItem { ProductCode = "P001", Quantity = 5, UnitPrice = 300000 } // extra, received on the invoice
+                }, 1);
+
+            _posting.PostReceipts(Period);
+            _posting.PostPurchases(Period);
+
+            long stockValue;
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "SELECT SUM(val_in) - SUM(val_out) FROM stock_movements";
+                stockValue = Convert.ToInt64(cmd.ExecuteScalar());
+            }
+            stockValue.Should().Be(4500000);
+            Net("1300").Should().Be(stockValue);
+            Net("2150").Should().Be(0);
+            Net("2100").Should().Be(-4500000);
+        }
+
         // ---------- Item 3: stock adjustments ----------
 
         [Test]
@@ -280,6 +369,25 @@ namespace Kasir.Tests.Services
             Action act = () => _posting.ClosePeriod(Period);
 
             act.Should().Throw<InvalidOperationException>().WithMessage("*stock adjustment*");
+        }
+
+        [Test]
+        public void AdjustmentWithoutStockMovements_IsMarkedPosted_WithNotice()
+        {
+            // Legacy (migrated) adjustments have no per-document stock movements.
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = @"INSERT INTO stock_adjustments (doc_type, journal_no, doc_date, total_value, period_code, legacy_source)
+                                    VALUES ('USAGE', 'OT-LEGACY-1', '2026-04-01', 500000, '202604', 'SM')";
+                cmd.ExecuteNonQuery();
+            }
+
+            var result = _posting.PostStockAdjustments(Period);
+
+            result.ErrorCount.Should().Be(0);
+            result.Notices.Should().ContainSingle(n => n.Contains("OT-LEGACY-1"));
+            IsPosted("stock_adjustments", "OT-LEGACY-1").Should().Be("Y");
+            Net("5900").Should().Be(0);
         }
 
         [Test]
