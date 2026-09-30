@@ -265,6 +265,16 @@ namespace Kasir.Services
             long unexplained = purchase.TotalValue - (lineValue - purchase.TotalDisc + purchase.VatAmount);
             long inventory = stockValue + unexplained;
 
+            // Only migrated legacy invoices (lines carry value 0, header total only) may leave
+            // part of the total unexplained. For anything else a mismatch means the document
+            // was changed after saving — refuse rather than hide it in inventory.
+            if (lineValue != 0 && unexplained != 0)
+            {
+                throw new InvalidOperationException(string.Format(
+                    "Purchase {0}: total {1} does not reconcile with lines/discount/VAT (difference {2}).",
+                    purchase.JournalNo, purchase.TotalValue, unexplained));
+            }
+
             AddSigned(entry, GetInventoryAccount, purchase.SubCode, inventory, "Purchase inventory");
             AddSigned(entry, GetGrniAccount, purchase.SubCode, billed.ReceiptValue, "Clear received not invoiced");
             AddSigned(entry, GetPriceVarianceAccount, purchase.SubCode, variance, "Purchase price difference vs BPB");
@@ -569,6 +579,39 @@ namespace Kasir.Services
         private string GetStockAdjustmentAccount()
         {
             return GetConfigAccount("STOCK_ADJUSTMENT", null);
+        }
+
+        // Every GL account setting posting may need, with a reason for each one that is unset
+        // or points outside the chart of accounts. Lets the posting screen list them all at once
+        // instead of failing document by document.
+        public List<string> GetMissingAccountConfig()
+        {
+            var checks = new (string Key, string Default, string UsedFor)[]
+            {
+                ("INVENTORY", "1300", "semua posting stok"),
+                ("PAYABLES", "2100", "nota pembelian / retur"),
+                ("SALES_REVENUE", "4100", "penjualan"),
+                ("COGS", "5100", "penjualan (HPP)"),
+                ("GRNI", null, "BPB / penerimaan barang"),
+                ("STOCK_ADJUSTMENT", null, "pemakaian/rusak/hilang/opname"),
+                ("PRICE_VARIANCE", null, "selisih harga nota vs BPB"),
+                ("PURCHASE_DISCOUNT", null, "diskon nota pembelian"),
+                ("VAT_IN", null, "PPN Masukan"),
+            };
+
+            var missing = new List<string>();
+            foreach (var check in checks)
+            {
+                try
+                {
+                    GetConfigAccount(check.Key, check.Default);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    missing.Add("ACCOUNT_" + check.Key + " (" + check.UsedFor + "): " + ex.Message);
+                }
+            }
+            return missing;
         }
 
         private string GetPriceVarianceAccount()

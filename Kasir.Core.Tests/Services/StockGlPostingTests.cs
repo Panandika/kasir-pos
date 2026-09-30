@@ -401,6 +401,98 @@ namespace Kasir.Tests.Services
             Net("2100").Should().Be(-55699944);
         }
 
+        [Test]
+        public void LegacyInvoiceWithZeroValueLines_PostsTotalToInventory()
+        {
+            // Most migrated MSK rows have lines with value 0 (unit_price mis-scaled) and only a
+            // header total. Posting must use the header total, never unit_price × qty.
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, legacy_source)
+                                    VALUES ('PURCHASE', 'DSRI54', '2026-04-01', 'V001', 34000000, '202604', 'SM');
+                                    INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, value)
+                                    VALUES ('DSRI54', 'P001', 100, 34000000, 0);";
+                cmd.ExecuteNonQuery();
+            }
+
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("1300").Should().Be(34000000);
+            Net("2100").Should().Be(-34000000);
+        }
+
+        [Test]
+        public void InvoiceWhoseTotalDoesNotReconcileWithLines_FailsClosed()
+        {
+            string inv = Invoice(10, 300000);
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "UPDATE purchases SET total_value = total_value + 5000 WHERE journal_no = @j";
+                cmd.Parameters.AddWithValue("@j", inv);
+                cmd.ExecuteNonQuery();
+            }
+
+            var result = _posting.PostPurchases(Period);
+
+            result.ErrorCount.Should().Be(1);
+            IsPosted("purchases", inv).Should().Be("N");
+        }
+
+        [Test]
+        public void PriceVarianceWithoutAccount_FailsClosed()
+        {
+            _configRepo.Set("ACCOUNT_PRICE_VARIANCE", "");
+            string gr = Receive(10, 300000);
+            string inv = Invoice(10, 310000, gr);
+
+            _posting.PostReceipts(Period);
+            var result = _posting.PostPurchases(Period);
+
+            result.Errors.Single().Should().Contain("ACCOUNT_PRICE_VARIANCE");
+            IsPosted("purchases", inv).Should().Be("N");
+        }
+
+        [Test]
+        public void MixedInvoice_BpbPoAndNewLines_WithDiscountAndVat_InventoryEqualsStock()
+        {
+            string po = _purchasing.CreatePurchaseOrder(new Order { SubCode = "V001" },
+                new List<OrderItem> { new OrderItem { ProductCode = "P001", Quantity = 4, UnitPrice = 250000 } }, 1);
+            string gr = Receive(10, 300000);
+            _purchasing.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", TotalDisc = 50000, VatAmount = 440000 },
+                new List<PurchaseItem>
+                {
+                    new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 320000, OrderRef = gr }, // BPB, +200.000 variance
+                    new PurchaseItem { ProductCode = "P001", Quantity = 4, UnitPrice = 250000, OrderRef = po },  // received on invoice vs PO
+                    new PurchaseItem { ProductCode = "P001", Quantity = 2, UnitPrice = 100000 }                  // received on invoice
+                }, 1);
+
+            _posting.PostReceipts(Period);
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("1300").Should().Be(StockValue());
+            Net("1300").Should().Be(3000000 + 1000000 + 200000);
+            Net("2150").Should().Be(0);
+            Net("5910").Should().Be(200000);
+            Net("4910").Should().Be(-50000);
+            Net("1410").Should().Be(440000);
+            Net("2100").Should().Be(-(3200000 + 1000000 + 200000 - 50000 + 440000));
+            _posting.CheckBalance(Period).IsBalanced.Should().BeTrue();
+        }
+
+        [Test]
+        public void GetMissingAccountConfig_ListsEveryUnsetKey()
+        {
+            _configRepo.Set("ACCOUNT_VAT_IN", "");
+            _configRepo.Set("ACCOUNT_GRNI", "9999"); // not in the chart
+
+            var missing = _posting.GetMissingAccountConfig();
+
+            missing.Should().Contain(m => m.Contains("ACCOUNT_VAT_IN"));
+            missing.Should().Contain(m => m.Contains("ACCOUNT_GRNI"));
+            missing.Should().NotContain(m => m.Contains("ACCOUNT_INVENTORY"));
+        }
+
         // ---------- Item 3: stock adjustments ----------
 
         [Test]

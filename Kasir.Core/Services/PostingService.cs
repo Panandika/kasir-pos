@@ -285,6 +285,11 @@ namespace Kasir.Services
             return result;
         }
 
+        public List<string> GetMissingAccountConfig()
+        {
+            return _accountingService.GetMissingAccountConfig();
+        }
+
         public void ClosePeriod(string periodCode)
         {
             var period = _periodRepo.GetByCode(periodCode);
