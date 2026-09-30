@@ -33,6 +33,69 @@ namespace Kasir.Tests.Utils
             IndonesianMoneyFormatter.FormatText(input).Should().Be(expected);
         }
 
+        // Decimal-aware live formatting (product price fields): keep a ",dd" sen part.
+        [TestCase("11208,67", "11.208,67")]
+        [TestCase("11208,6", "11.208,6")]
+        [TestCase("11208,", "11.208,")]
+        [TestCase("11.208,678", "11.208,678")]  // never drop a digit: left for the parser to reject
+        [TestCase("50,0", "50,0")]
+        [TestCase("50,000", "50.000")]          // comma-as-thousands habit, same as the parser
+        [TestCase("1,250,000", "1.250.000")]
+        [TestCase("11.208,67,", "11.208,67,")]  // second comma: unchanged, rejected on save
+        [TestCase("11,.208", "11,.208")]
+        [TestCase("1250000", "1.250.000")]
+        [TestCase("", "")]
+        public void FormatTextWithDecimals_KeepsSenPart(string input, string expected)
+        {
+            IndonesianMoneyFormatter.FormatTextWithDecimals(input).Should().Be(expected);
+        }
+
+        [TestCase("11208,67", "11.208,67")]
+        public void ReformatPreserveCaret_WithDecimals_KeepsSen(string input, string expected)
+        {
+            IndonesianMoneyFormatter.ReformatPreserveCaret(input, input.Length, allowDecimals: true)
+                .Formatted.Should().Be(expected);
+        }
+
+        [Test]
+        public void ReformatPreserveCaret_EditLeftOfComma_KeepsCaretBeforeComma()
+        {
+            // "1.000,50" with caret before the comma; typing "0" gives "1.0000,50".
+            var (formatted, caret) = IndonesianMoneyFormatter.ReformatPreserveCaret("1.0000,50", 6, allowDecimals: true);
+            formatted.Should().Be("10.000,50");
+            caret.Should().Be(6, "caret stays just before the comma");
+
+            var (formatted2, _) = IndonesianMoneyFormatter.ReformatPreserveCaret("10.0000,50", caret + 1, allowDecimals: true);
+            formatted2.Should().Be("100.000,50");
+        }
+
+        [Test]
+        public void ReformatPreserveCaret_EditRightOfComma_KeepsCaretInSen()
+        {
+            var (formatted, caret) = IndonesianMoneyFormatter.ReformatPreserveCaret("11208,6", 7, allowDecimals: true);
+            formatted.Should().Be("11.208,6");
+            caret.Should().Be(8);
+        }
+
+        // Whatever the price formatter produces must parse to the same amount it shows.
+        [TestCase("11208,67")]
+        [TestCase("50,000")]
+        [TestCase("1,250,000")]
+        [TestCase("11208,")]
+        [TestCase("1250000")]
+        [TestCase("0,5")]
+        public void FormatterOutput_AlwaysParses(string typed)
+        {
+            string shown = IndonesianMoneyFormatter.FormatTextWithDecimals(typed);
+            Formatting.TryParseRupiahCents(shown, out _).Should().BeTrue();
+        }
+
+        [TestCase("50,000", "50.000")] // POS payment fields: comma never becomes a decimal
+        public void ReformatPreserveCaret_Default_StaysDigitsOnly(string input, string expected)
+        {
+            IndonesianMoneyFormatter.ReformatPreserveCaret(input, input.Length).Formatted.Should().Be(expected);
+        }
+
         [TestCase("0", true)]
         [TestCase("70000", true)]
         [TestCase("", false)]

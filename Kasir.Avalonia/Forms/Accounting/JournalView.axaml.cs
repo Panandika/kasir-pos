@@ -72,8 +72,9 @@ public partial class JournalView : UserControl
                     DgvLines.ItemsSource = _rows;
                 }
             }
-            UpdateTotals();
         }
+        // Refresh after any cell edit, not only the account column, so debit/credit totals follow.
+        if (e.EditAction == DataGridEditAction.Commit) UpdateTotals();
     }
 
     private void UpdateTotals()
@@ -81,15 +82,15 @@ public partial class JournalView : UserControl
         long td = 0, tc = 0;
         foreach (var r in _rows)
         {
-            Formatting.TryParseRupiah(r.Debit,  out long d);
-            Formatting.TryParseRupiah(r.Credit, out long c);
+            Formatting.TryParseRupiahCents(r.Debit,  out long d);
+            Formatting.TryParseRupiahCents(r.Credit, out long c);
             td += d;
             tc += c;
         }
-        LblDebit.Text  = $"Debit: {Formatting.FormatMoney(td)}";
-        LblCredit.Text = $"Kredit: {Formatting.FormatMoney(tc)}";
+        LblDebit.Text  = $"Debit: {Formatting.FormatRupiahCentsInput(td)}";
+        LblCredit.Text = $"Kredit: {Formatting.FormatRupiahCentsInput(tc)}";
         long diff = td - tc;
-        LblDiff.Text = $"Selisih: {Formatting.FormatMoney(Math.Abs(diff))}";
+        LblDiff.Text = $"Selisih: {Formatting.FormatRupiahCentsInput(Math.Abs(diff))}";
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -149,8 +150,15 @@ public partial class JournalView : UserControl
         foreach (var r in _rows)
         {
             if (string.IsNullOrEmpty(r.AccCode)) continue;
-            Formatting.TryParseRupiah(r.Debit,  out long d);
-            Formatting.TryParseRupiah(r.Credit, out long c);
+            // Amounts are stored in cents; this used to save the typed rupiah as cents (100x too small).
+            if ((!string.IsNullOrWhiteSpace(r.Debit) && !Formatting.TryParseRupiahCents(r.Debit, out _))
+                || (!string.IsNullOrWhiteSpace(r.Credit) && !Formatting.TryParseRupiahCents(r.Credit, out _)))
+            {
+                await MsgBox.Show(NavigationService.Owner, $"Jumlah tidak valid pada akun {r.AccCode}. Contoh: 100.000 atau 11.208,67");
+                return;
+            }
+            Formatting.TryParseRupiahCents(r.Debit,  out long d);
+            Formatting.TryParseRupiahCents(r.Credit, out long c);
             entry.Lines.Add(new JournalLine
             {
                 AccountCode = r.AccCode,

@@ -37,12 +37,17 @@ public static class NumericInputBehavior
     /// every TextChanged. Caret position is preserved by counting digits from
     /// the right.
     /// </summary>
-    public static void AttachLiveFormatting(TextBox textBox)
+    /// <param name="allowDecimals">Keep a ",dd" sen part (price fields). Leave false for
+    /// cash/tender fields so a typed "50,000" can never become Rp 50.</param>
+    public static void AttachLiveFormatting(TextBox textBox, bool allowDecimals = false)
     {
         if (textBox == null) return;
         Attach(textBox);
+        if (allowDecimals) _decimalBoxes.AddOrUpdate(textBox, new StrongBox<bool>(true));
         textBox.TextChanged += OnTextChanged;
     }
+
+    private static readonly ConditionalWeakTable<TextBox, StrongBox<bool>> _decimalBoxes = new();
 
     private static void OnGotFocus(object? sender, RoutedEventArgs e)
     {
@@ -73,7 +78,8 @@ public static class NumericInputBehavior
         string original = tb.Text ?? "";
         int caret = tb.CaretIndex;
 
-        var (formatted, newCaret) = IndonesianMoneyFormatter.ReformatPreserveCaret(original, caret);
+        bool allowDecimals = _decimalBoxes.TryGetValue(tb, out _);
+        var (formatted, newCaret) = IndonesianMoneyFormatter.ReformatPreserveCaret(original, caret, allowDecimals);
         if (formatted == original) return;
 
         flag.Value = true;

@@ -7,6 +7,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Kasir.Avalonia.Behaviors;
 using Kasir.Models;
+using Kasir.Utils;
 
 namespace Kasir.Avalonia.Forms.Master;
 
@@ -22,10 +23,10 @@ public partial class WholesaleTierOverlay : UserControl
         InitializeComponent();
         _product = product;
 
-        NumericInputBehavior.AttachLiveFormatting(TxtPrice1);
-        NumericInputBehavior.AttachLiveFormatting(TxtPrice2);
-        NumericInputBehavior.AttachLiveFormatting(TxtPrice3);
-        NumericInputBehavior.AttachLiveFormatting(TxtPrice4);
+        NumericInputBehavior.AttachLiveFormatting(TxtPrice1, allowDecimals: true);
+        NumericInputBehavior.AttachLiveFormatting(TxtPrice2, allowDecimals: true);
+        NumericInputBehavior.AttachLiveFormatting(TxtPrice3, allowDecimals: true);
+        NumericInputBehavior.AttachLiveFormatting(TxtPrice4, allowDecimals: true);
         NumericInputBehavior.Attach(TxtQtyBreak2);
         NumericInputBehavior.Attach(TxtQtyBreak3);
 
@@ -58,6 +59,17 @@ public partial class WholesaleTierOverlay : UserControl
 
     private void OnSave()
     {
+        // An unparseable price would save as 0: keep the overlay open on the bad field instead.
+        foreach (var box in new[] { TxtPrice1, TxtPrice2, TxtPrice3, TxtPrice4 })
+        {
+            if (!string.IsNullOrWhiteSpace(box.Text) && !Formatting.TryParseRupiahCents(box.Text, out _))
+            {
+                box.BorderBrush = global::Avalonia.Media.Brushes.IndianRed;
+                box.Focus();
+                box.SelectAll();
+                return;
+            }
+        }
         _product.Price1 = ParseMoney(TxtPrice1.Text);
         _product.Price2 = ParseMoney(TxtPrice2.Text);
         _product.Price3 = ParseMoney(TxtPrice3.Text);
@@ -69,18 +81,16 @@ public partial class WholesaleTierOverlay : UserControl
 
     public Task<bool> Result => _tcs.Task;
 
+    // Keep sen: showing whole rupiah and saving it back used to drop them silently.
     private static string FormatMoney(long cents)
     {
-        long whole = cents / 100;
-        return whole.ToString("#,0", CultureInfo.GetCultureInfo("id-ID"));
+        return Formatting.FormatRupiahCentsInput(cents);
     }
 
     private static long ParseMoney(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return 0L;
-        string digits = new string((text ?? "").Where(char.IsDigit).ToArray());
-        if (string.IsNullOrEmpty(digits)) return 0L;
-        return long.Parse(digits, CultureInfo.InvariantCulture) * 100L;
+        return Formatting.TryParseRupiahCents(text, out long cents) ? cents : 0L;
     }
 
     private static int ParseInt(string? text)

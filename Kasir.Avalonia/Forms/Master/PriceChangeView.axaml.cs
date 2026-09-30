@@ -7,6 +7,7 @@ using Kasir.Data;
 using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Services;
+using Kasir.Utils;
 using Kasir.Avalonia.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
@@ -63,8 +64,8 @@ public partial class PriceChangeView : UserControl
         var products = _productRepo.GetAll(1000, 0);
         foreach (var p in products)
         {
-            string oldP = (p.Price / 100.0).ToString("F0");
-            string buyP = (p.BuyingPrice / 100.0).ToString("F0");
+            string oldP = Formatting.FormatRupiahCentsInput(p.Price);
+            string buyP = Formatting.FormatRupiahCentsInput(p.BuyingPrice);
             _allRows.Add(new PriceRow(p.ProductCode, p.Name, oldP, oldP, buyP, p));
         }
         ApplyFilter();
@@ -98,10 +99,10 @@ public partial class PriceChangeView : UserControl
 
         if (!ok || string.IsNullOrWhiteSpace(vals[0])) return;
 
-        if (!decimal.TryParse(vals[0], out decimal newPriceVal) || newPriceVal < 0)
-        { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid."); return; }
+        if (!Formatting.TryParseRupiahCents(vals[0], out long newPriceCents) || newPriceCents < 0)
+        { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid. Contoh: 100.000 atau 11.208,67"); return; }
 
-        row.NewPrice = ((long)(newPriceVal * 100m) / 100.0).ToString("F0");
+        row.NewPrice = Formatting.FormatRupiahCentsInput(newPriceCents);
 
         // Refresh to show updated NewPrice in grid
         int idx = _rows.IndexOf(row);
@@ -132,8 +133,7 @@ public partial class PriceChangeView : UserControl
         var changes = new List<PriceChangeEntry>();
         foreach (var row in _allRows)
         {
-            if (!decimal.TryParse(row.NewPrice, out decimal newVal)) continue;
-            long newPrice = (long)(newVal * 100m);
+            if (!Formatting.TryParseRupiahCents(row.NewPrice, out long newPrice)) continue;
             if (newPrice == row.Tag.Price) continue;
             changes.Add(new PriceChangeEntry { ProductCode = row.Tag.ProductCode, NewPrice = newPrice });
         }
