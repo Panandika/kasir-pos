@@ -25,8 +25,11 @@ public partial class ReturnView : UserControl
     private readonly ProductRepository _productRepo;
     private string _vendorCode = "";
 
-    public ReturnView()
+    private readonly int _userId;
+
+    public ReturnView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
         var conn = DbConnection.GetConnection();
         _service = new PurchasingService(conn, new ClockImpl());
@@ -131,7 +134,7 @@ public partial class ReturnView : UserControl
             DocDate = TxtDate.Text?.Trim() ?? "",
             RefNo = TxtRefInvoice.Text?.Trim() ?? ""
         };
-        string jnl = _service.CreatePurchaseReturn(ret, _items, withInvoice, 1);
+        string jnl = _service.CreatePurchaseReturn(ret, _items, withInvoice, _userId);
 
         string msg = $"Retur disimpan: {jnl}\nStok disesuaikan.";
         if (withInvoice) msg += "\nAP offset diterapkan.";

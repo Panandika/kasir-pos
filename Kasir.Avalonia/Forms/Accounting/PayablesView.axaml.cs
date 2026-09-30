@@ -21,8 +21,11 @@ public partial class PayablesView : UserControl
     private readonly PayablesService _payablesService;
     private string? _selectedVendor;
 
-    public PayablesView()
+    private readonly int _userId;
+
+    public PayablesView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
 
         var db = DbConnection.GetConnection();
@@ -106,7 +109,7 @@ public partial class PayablesView : UserControl
                 "1-1101",
                 docDate,
                 periodCode,
-                1,
+                _userId,
                 null);
 
             await MsgBox.Show(NavigationService.Owner,

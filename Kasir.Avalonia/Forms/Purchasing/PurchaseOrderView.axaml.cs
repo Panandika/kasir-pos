@@ -25,8 +25,11 @@ public partial class PurchaseOrderView : UserControl
     private readonly ProductRepository _productRepo;
     private string _vendorCode = "";
 
-    public PurchaseOrderView()
+    private readonly int _userId;
+
+    public PurchaseOrderView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
         var conn = DbConnection.GetConnection();
         _service = new PurchasingService(conn, new ClockImpl());
@@ -124,7 +127,7 @@ public partial class PurchaseOrderView : UserControl
         if (_items.Count == 0) { await MsgBox.Show(NavigationService.Owner, "Tambah item dulu."); return; }
 
         var order = new Order { SubCode = _vendorCode, DocDate = TxtDate.Text?.Trim() ?? "" };
-        string jnl = _service.CreatePurchaseOrder(order, _items, 1);
+        string jnl = _service.CreatePurchaseOrder(order, _items, _userId);
         await MsgBox.Show(NavigationService.Owner, $"PO disimpan: {jnl}");
         _items.Clear();
         RefreshGrid();

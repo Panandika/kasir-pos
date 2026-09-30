@@ -25,8 +25,11 @@ public partial class PurchaseInvoiceView : UserControl
     private readonly ProductRepository _productRepo;
     private string _vendorCode = "";
 
-    public PurchaseInvoiceView()
+    private readonly int _userId;
+
+    public PurchaseInvoiceView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
         var conn = DbConnection.GetConnection();
         _service = new PurchasingService(conn, new ClockImpl());
@@ -196,7 +199,7 @@ public partial class PurchaseInvoiceView : UserControl
             TotalDisc = disc,
             VatAmount = vat
         };
-        string jnl = _service.CreatePurchaseInvoice(invoice, _items, 1);
+        string jnl = _service.CreatePurchaseInvoice(invoice, _items, _userId);
         await MsgBox.Show(NavigationService.Owner, $"Invoice disimpan: {jnl}\nAP entry dibuat.");
         _items.Clear();
         RefreshGrid();

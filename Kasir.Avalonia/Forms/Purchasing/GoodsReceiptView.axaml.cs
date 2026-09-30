@@ -25,8 +25,11 @@ public partial class GoodsReceiptView : UserControl
     private readonly ProductRepository _productRepo;
     private string _vendorCode = "";
 
-    public GoodsReceiptView()
+    private readonly int _userId;
+
+    public GoodsReceiptView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
         var conn = DbConnection.GetConnection();
         _service = new PurchasingService(conn, new ClockImpl());
@@ -129,7 +132,7 @@ public partial class GoodsReceiptView : UserControl
             DocDate = TxtDate.Text?.Trim() ?? "",
             RefNo = TxtInvoiceNo.Text?.Trim() ?? ""
         };
-        string jnl = _service.CreateGoodsReceipt(receipt, _items, 1);
+        string jnl = _service.CreateGoodsReceipt(receipt, _items, _userId);
         await MsgBox.Show(NavigationService.Owner, $"Goods Receipt disimpan: {jnl}\nStok diperbarui.");
         _items.Clear();
         RefreshGrid();

@@ -25,7 +25,7 @@ public partial class CashDisbursementView : UserControl
     private readonly bool _isBankMode;
     private readonly int _currentUserId;
 
-    public CashDisbursementView(bool bankMode = false, int userId = 1)
+    public CashDisbursementView(int userId, bool bankMode = false)
     {
         InitializeComponent();
         _isBankMode    = bankMode;

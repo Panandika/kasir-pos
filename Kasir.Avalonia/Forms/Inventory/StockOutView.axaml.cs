@@ -22,8 +22,11 @@ public partial class StockOutView : UserControl
     private readonly StockOpnameService _service;
     private readonly ProductRepository _productRepo;
 
-    public StockOutView()
+    private readonly int _userId;
+
+    public StockOutView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
         var db = DbConnection.GetConnection();
         _service = new StockOpnameService(db, new ClockImpl());
@@ -103,7 +106,7 @@ public partial class StockOutView : UserControl
         bool confirmed = await MsgBox.Confirm(NavigationService.Owner, $"Simpan {_items.Count} item mutasi keluar ({docType})?");
         if (!confirmed) return;
 
-        string journalNo = _service.CreateStockOut(docType, "TOKO", _items, 1);
+        string journalNo = _service.CreateStockOut(docType, "TOKO", _items, _userId);
         await MsgBox.Show(NavigationService.Owner, $"Tersimpan: {journalNo}");
 
         _items.Clear();

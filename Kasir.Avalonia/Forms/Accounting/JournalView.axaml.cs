@@ -31,7 +31,7 @@ public partial class JournalView : UserControl
     private readonly bool _readOnly;
     private readonly int _userId;
 
-    public JournalView(bool readOnly = false, int userId = 1)
+    public JournalView(int userId, bool readOnly = false)
     {
         _readOnly = readOnly;
         _userId   = userId;

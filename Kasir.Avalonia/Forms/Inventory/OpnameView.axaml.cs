@@ -21,8 +21,11 @@ public partial class OpnameView : UserControl
     private readonly List<OpnameLine> _lines = new();
     private readonly StockOpnameService _service;
 
-    public OpnameView()
+    private readonly int _userId;
+
+    public OpnameView(int userId)
     {
+        _userId = userId;
         InitializeComponent();
         var db = DbConnection.GetConnection();
         _service = new StockOpnameService(db, new ClockImpl());
@@ -111,7 +114,7 @@ public partial class OpnameView : UserControl
         bool confirmed = await MsgBox.Confirm(NavigationService.Owner, $"Simpan opname dengan {varCount} selisih?");
         if (!confirmed) return;
 
-        string journalNo = _service.CreateOpnameAdjustment(_lines, 1);
+        string journalNo = _service.CreateOpnameAdjustment(_lines, _userId);
         await MsgBox.Show(NavigationService.Owner, $"Penyesuaian tersimpan: {journalNo}");
 
         _lines.Clear();

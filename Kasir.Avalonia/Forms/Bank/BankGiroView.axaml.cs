@@ -19,8 +19,11 @@ public partial class BankGiroView : UserControl
     private readonly GiroRepository _giroRepo;
     private readonly bool _readOnly;
 
-    public BankGiroView(bool readOnly = false)
+    private readonly int _userId;
+
+    public BankGiroView(int userId, bool readOnly = false)
     {
+        _userId = userId;
         InitializeComponent();
         _readOnly = readOnly;
         _giroRepo = new GiroRepository(DbConnection.GetConnection());
@@ -78,7 +81,7 @@ public partial class BankGiroView : UserControl
         bool confirmed = await MsgBox.Confirm(NavigationService.Owner, $"Clear giro {sel.GiroNo}?");
         if (!confirmed) return;
 
-        _giroRepo.ClearGiro(sel.Tag.Id, 1);
+        _giroRepo.ClearGiro(sel.Tag.Id, _userId);
         LoadGiros();
     }
 
