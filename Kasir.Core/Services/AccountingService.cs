@@ -378,7 +378,7 @@ namespace Kasir.Services
             bool loss = net < 0;
             entry.Lines.Add(new JournalLine
             {
-                AccountCode = GetStockAdjustmentAccount(),
+                AccountCode = adjustment.DocType == "OPNAME" ? GetStockOpnameAccount() : GetStockAdjustmentAccount(),
                 Debit = loss ? amount : 0,
                 Credit = loss ? 0 : amount,
                 Remark = loss ? "Stock loss / usage" : "Stock surplus"
@@ -597,6 +597,8 @@ namespace Kasir.Services
                 ("PRICE_VARIANCE", null, "selisih harga nota vs BPB"),
                 ("PURCHASE_DISCOUNT", null, "diskon nota pembelian"),
                 ("VAT_IN", null, "PPN Masukan"),
+                ("CARD_CLEARING", null, "penjualan kartu debit/kredit/QRIS"),
+                ("VOUCHER", null, "penjualan dengan voucher"),
             };
 
             var missing = new List<string>();
@@ -612,6 +614,14 @@ namespace Kasir.Services
                 }
             }
             return missing;
+        }
+
+        // Opname differences may have their own account (legacy: 530.004 SELISIH STOK OPNAME);
+        // falls back to the stock-adjustment account when unset.
+        private string GetStockOpnameAccount()
+        {
+            string code = _configRepo.Get("ACCOUNT_STOCK_OPNAME");
+            return string.IsNullOrEmpty(code) ? GetStockAdjustmentAccount() : GetConfigAccount("STOCK_OPNAME", null);
         }
 
         private string GetPriceVarianceAccount()
