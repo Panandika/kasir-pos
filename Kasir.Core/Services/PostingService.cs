@@ -285,6 +285,11 @@ namespace Kasir.Services
             return result;
         }
 
+        public List<string> GetMissingAccountConfig()
+        {
+            return _accountingService.GetMissingAccountConfig();
+        }
+
         public void ClosePeriod(string periodCode)
         {
             var period = _periodRepo.GetByCode(periodCode);
@@ -430,6 +435,9 @@ namespace Kasir.Services
                     JournalNo = SqlHelper.GetString(r, "journal_no"),
                     DocDate = SqlHelper.GetString(r, "doc_date"),
                     SubCode = SqlHelper.GetString(r, "sub_code"),
+                    GrossAmount = SqlHelper.GetLong(r, "gross_amount"),
+                    TotalDisc = SqlHelper.GetLong(r, "total_disc"),
+                    VatAmount = SqlHelper.GetLong(r, "vat_amount"),
                     TotalValue = SqlHelper.GetLong(r, "total_value"),
                     PeriodCode = SqlHelper.GetString(r, "period_code"),
                     ChangedBy = SqlHelper.GetInt(r, "changed_by")

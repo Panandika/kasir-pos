@@ -21,6 +21,15 @@ public partial class PostingProgressView : UserControl
         InitializeComponent();
         _postingService = new PostingService(DbConnection.GetConnection());
         FooterStatus.RegisterDefault(StatusLabel, "F1=Post POS  F2=Post Pembelian  F3=Post Kas  F4=Post Penyesuaian Stok  F5=Tutup Periode  F10=Cek Saldo  Esc=Keluar");
+
+        // List every unset GL account up front; documents needing one will fail to post.
+        var missing = _postingService.GetMissingAccountConfig();
+        if (missing.Count > 0)
+        {
+            Log("PERHATIAN: akun GL belum diatur (dokumen yang memakainya akan gagal diposting):");
+            foreach (var m in missing)
+                Log("  " + m);
+        }
     }
 
     private void Log(string msg)

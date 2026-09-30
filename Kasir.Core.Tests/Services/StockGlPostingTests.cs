@@ -44,12 +44,18 @@ namespace Kasir.Tests.Services
             _configRepo.Set("ACCOUNT_PAYABLES", "2100");
             _configRepo.Set("ACCOUNT_GRNI", "2150");
             _configRepo.Set("ACCOUNT_STOCK_ADJUSTMENT", "5900");
+            _configRepo.Set("ACCOUNT_PRICE_VARIANCE", "5910");
+            _configRepo.Set("ACCOUNT_PURCHASE_DISCOUNT", "4910");
+            _configRepo.Set("ACCOUNT_VAT_IN", "1410");
 
             var accounts = new AccountRepository(_db);
             accounts.Insert(new Account { AccountCode = "1300", AccountName = "Persediaan", AccountGroup = 1, NormalBalance = "D", IsDetail = 1 });
             accounts.Insert(new Account { AccountCode = "2100", AccountName = "Hutang Dagang", AccountGroup = 2, NormalBalance = "K", IsDetail = 1 });
             accounts.Insert(new Account { AccountCode = "2150", AccountName = "Barang Diterima Belum Ditagih", AccountGroup = 2, NormalBalance = "K", IsDetail = 1 });
             accounts.Insert(new Account { AccountCode = "5900", AccountName = "Selisih Persediaan", AccountGroup = 5, NormalBalance = "D", IsDetail = 1 });
+            accounts.Insert(new Account { AccountCode = "5910", AccountName = "Selisih Harga Pembelian", AccountGroup = 5, NormalBalance = "D", IsDetail = 1 });
+            accounts.Insert(new Account { AccountCode = "4910", AccountName = "Potongan Pembelian", AccountGroup = 4, NormalBalance = "K", IsDetail = 1 });
+            accounts.Insert(new Account { AccountCode = "1410", AccountName = "PPN Masukan", AccountGroup = 1, NormalBalance = "D", IsDetail = 1 });
 
             new ProductRepository(_db).Insert(new Product
             {
@@ -82,6 +88,13 @@ namespace Kasir.Tests.Services
         private long Net(string account) // debit − credit over the period
         {
             return _glRepo.GetDebitTotalForAccount(Period, account) - _glRepo.GetCreditTotalForAccount(Period, account);
+        }
+
+        private long StockValue()
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT COALESCE(SUM(val_in), 0) - COALESCE(SUM(val_out), 0) FROM stock_movements";
+            return Convert.ToInt64(cmd.ExecuteScalar());
         }
 
         private string IsPosted(string table, string journalNo)
@@ -137,7 +150,7 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
-        public void InvoicePriceHigherThanReceipt_DifferenceGoesToInventory()
+        public void InvoicePriceHigherThanReceipt_DifferenceGoesToVarianceAccount()
         {
             string gr = Receive(10, 300000);
             Invoice(10, 310000, gr);
@@ -147,12 +160,13 @@ namespace Kasir.Tests.Services
 
             Net("2150").Should().Be(0);
             Net("2100").Should().Be(-3100000);
-            Net("1300").Should().Be(3100000);
+            Net("1300").Should().Be(StockValue(), "inventory stays at the BPB (stock) value");
+            Net("5910").Should().Be(100000, "10 × Rp 100 price increase is a variance expense");
             _posting.CheckBalance(Period).IsBalanced.Should().BeTrue();
         }
 
         [Test]
-        public void InvoicePriceLowerThanReceipt_CreditsInventory()
+        public void InvoicePriceLowerThanReceipt_CreditsVarianceAccount()
         {
             string gr = Receive(10, 300000);
             Invoice(10, 290000, gr);
@@ -162,7 +176,8 @@ namespace Kasir.Tests.Services
 
             Net("2150").Should().Be(0);
             Net("2100").Should().Be(-2900000);
-            Net("1300").Should().Be(2900000);
+            Net("1300").Should().Be(StockValue());
+            Net("5910").Should().Be(-100000, "price decrease is a variance credit");
             _posting.CheckBalance(Period).IsBalanced.Should().BeTrue();
         }
 
@@ -250,7 +265,8 @@ namespace Kasir.Tests.Services
 
             result.ErrorCount.Should().Be(0);
             Net("2150").Should().Be(0);
-            Net("1300").Should().Be(0, "goods turned out free: inventory value reversed");
+            Net("1300").Should().Be(StockValue(), "stock stays at BPB value");
+            Net("5910").Should().Be(-500000, "goods turned out free: whole BPB value is a variance credit");
             Net("2100").Should().Be(0);
         }
 
@@ -302,6 +318,179 @@ namespace Kasir.Tests.Services
             Net("1300").Should().Be(stockValue);
             Net("2150").Should().Be(0);
             Net("2100").Should().Be(-4500000);
+        }
+
+        // ---------- Price variance, header discount, PPN Masukan (PKP) ----------
+
+        [Test]
+        public void CombinedInvoice_WithDiscountAndVat_SplitsToOwnAccounts_InventoryEqualsStock()
+        {
+            _purchasing.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", TotalDisc = 60000, VatAmount = 323400 },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 300000 } }, 1);
+
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("1300").Should().Be(3000000);
+            Net("1300").Should().Be(StockValue());
+            Net("1410").Should().Be(323400, "PPN Masukan");
+            Net("4910").Should().Be(-60000, "purchase discount credited");
+            Net("2100").Should().Be(-3263400);
+            _posting.CheckBalance(Period).IsBalanced.Should().BeTrue();
+        }
+
+        [Test]
+        public void BpbInvoice_WithPriceChangeDiscountAndVat_AllSeparated()
+        {
+            string gr = Receive(10, 300000);
+            _purchasing.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", TotalDisc = 62000, VatAmount = 334200 },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 310000, OrderRef = gr } }, 1);
+
+            _posting.PostReceipts(Period);
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("1300").Should().Be(StockValue());
+            Net("2150").Should().Be(0);
+            Net("5910").Should().Be(100000);
+            Net("4910").Should().Be(-62000);
+            Net("1410").Should().Be(334200);
+            Net("2100").Should().Be(-3372200);
+        }
+
+        [Test]
+        public void InvoiceWithoutVatOrDiscount_DoesNotNeedThoseAccounts()
+        {
+            _configRepo.Set("ACCOUNT_VAT_IN", "");
+            _configRepo.Set("ACCOUNT_PURCHASE_DISCOUNT", "");
+            _configRepo.Set("ACCOUNT_PRICE_VARIANCE", "");
+            Invoice(5, 300000);
+
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+        }
+
+        [Test]
+        public void InvoiceWithVat_WithoutVatAccount_FailsClosed()
+        {
+            _configRepo.Set("ACCOUNT_VAT_IN", "");
+            string inv = _purchasing.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", VatAmount = 33000 },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 1, UnitPrice = 300000 } }, 1);
+
+            var result = _posting.PostPurchases(Period);
+
+            result.ErrorCount.Should().Be(1);
+            result.Errors.Single().Should().Contain("ACCOUNT_VAT_IN");
+            IsPosted("purchases", inv).Should().Be("N");
+        }
+
+        [Test]
+        public void LegacyInvoiceWithoutLines_PostsTotalToInventory_AsBefore()
+        {
+            // Migrated MSK rows carry only a header total, no purchase_items.
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, legacy_source)
+                                    VALUES ('PURCHASE', 'TIRTA1911', '2026-04-01', 'V001', 55699944, '202604', 'SM')";
+                cmd.ExecuteNonQuery();
+            }
+
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("1300").Should().Be(55699944);
+            Net("2100").Should().Be(-55699944);
+        }
+
+        [Test]
+        public void LegacyInvoiceWithZeroValueLines_PostsTotalToInventory()
+        {
+            // Most migrated MSK rows have lines with value 0 (unit_price mis-scaled) and only a
+            // header total. Posting must use the header total, never unit_price × qty.
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, legacy_source)
+                                    VALUES ('PURCHASE', 'DSRI54', '2026-04-01', 'V001', 34000000, '202604', 'SM');
+                                    INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, value)
+                                    VALUES ('DSRI54', 'P001', 100, 34000000, 0);";
+                cmd.ExecuteNonQuery();
+            }
+
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("1300").Should().Be(34000000);
+            Net("2100").Should().Be(-34000000);
+        }
+
+        [Test]
+        public void InvoiceWhoseTotalDoesNotReconcileWithLines_FailsClosed()
+        {
+            string inv = Invoice(10, 300000);
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "UPDATE purchases SET total_value = total_value + 5000 WHERE journal_no = @j";
+                cmd.Parameters.AddWithValue("@j", inv);
+                cmd.ExecuteNonQuery();
+            }
+
+            var result = _posting.PostPurchases(Period);
+
+            result.ErrorCount.Should().Be(1);
+            IsPosted("purchases", inv).Should().Be("N");
+        }
+
+        [Test]
+        public void PriceVarianceWithoutAccount_FailsClosed()
+        {
+            _configRepo.Set("ACCOUNT_PRICE_VARIANCE", "");
+            string gr = Receive(10, 300000);
+            string inv = Invoice(10, 310000, gr);
+
+            _posting.PostReceipts(Period);
+            var result = _posting.PostPurchases(Period);
+
+            result.Errors.Single().Should().Contain("ACCOUNT_PRICE_VARIANCE");
+            IsPosted("purchases", inv).Should().Be("N");
+        }
+
+        [Test]
+        public void MixedInvoice_BpbPoAndNewLines_WithDiscountAndVat_InventoryEqualsStock()
+        {
+            string po = _purchasing.CreatePurchaseOrder(new Order { SubCode = "V001" },
+                new List<OrderItem> { new OrderItem { ProductCode = "P001", Quantity = 4, UnitPrice = 250000 } }, 1);
+            string gr = Receive(10, 300000);
+            _purchasing.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", TotalDisc = 50000, VatAmount = 440000 },
+                new List<PurchaseItem>
+                {
+                    new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 320000, OrderRef = gr }, // BPB, +200.000 variance
+                    new PurchaseItem { ProductCode = "P001", Quantity = 4, UnitPrice = 250000, OrderRef = po },  // received on invoice vs PO
+                    new PurchaseItem { ProductCode = "P001", Quantity = 2, UnitPrice = 100000 }                  // received on invoice
+                }, 1);
+
+            _posting.PostReceipts(Period);
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            Net("1300").Should().Be(StockValue());
+            Net("1300").Should().Be(3000000 + 1000000 + 200000);
+            Net("2150").Should().Be(0);
+            Net("5910").Should().Be(200000);
+            Net("4910").Should().Be(-50000);
+            Net("1410").Should().Be(440000);
+            Net("2100").Should().Be(-(3200000 + 1000000 + 200000 - 50000 + 440000));
+            _posting.CheckBalance(Period).IsBalanced.Should().BeTrue();
+        }
+
+        [Test]
+        public void GetMissingAccountConfig_ListsEveryUnsetKey()
+        {
+            _configRepo.Set("ACCOUNT_VAT_IN", "");
+            _configRepo.Set("ACCOUNT_GRNI", "9999"); // not in the chart
+
+            var missing = _posting.GetMissingAccountConfig();
+
+            missing.Should().Contain(m => m.Contains("ACCOUNT_VAT_IN"));
+            missing.Should().Contain(m => m.Contains("ACCOUNT_GRNI"));
+            missing.Should().NotContain(m => m.Contains("ACCOUNT_INVENTORY"));
         }
 
         // ---------- Item 3: stock adjustments ----------
