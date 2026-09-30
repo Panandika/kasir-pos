@@ -165,16 +165,16 @@ namespace Kasir.Tests.Services
                 new List<OrderItem> { new OrderItem { ProductCode = "P001", Quantity = 20, UnitPrice = 300000 } },
                 1);
 
-            // 2. Receive goods
+            // 2. Receive goods against the PO
             string grJnl = _service.CreateGoodsReceipt(
                 new Purchase { SubCode = "V001", RefNo = poJnl },
-                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 20, UnitPrice = 300000 } },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 20, UnitPrice = 300000, OrderRef = poJnl } },
                 1);
 
-            // 3. Create invoice
+            // 3. Create invoice billing the receipt (lines linked to the BPB, so no second stock-in)
             string invJnl = _service.CreatePurchaseInvoice(
                 new Purchase { SubCode = "V001", DueDate = "2026-05-04", RefNo = grJnl },
-                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 20, UnitPrice = 300000 } },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 20, UnitPrice = 300000, OrderRef = grJnl } },
                 1);
 
             // 4. Return 5 units

@@ -68,9 +68,9 @@ namespace Kasir.Data.Repositories
                     foreach (var item in items)
                     {
                         SqlHelper.ExecuteNonQuery(_db,
-                            @"INSERT INTO purchase_items (journal_no, product_code, remark, quantity,
-                              value, unit_price, disc_pct, disc_value)
-                              VALUES (@jnl, @product, @remark, @qty, @val, @price, @disc, @discVal)",
+                            @"INSERT INTO purchase_items (journal_no, order_ref, product_code, remark, quantity,
+                              value, unit_price, disc_pct, disc_value, qty_order)
+                              VALUES (@jnl, @orderRef, @product, @remark, @qty, @val, @price, @disc, @discVal, @qtyOrder)",
                             SqlHelper.Param("@jnl", purchase.JournalNo),
                             SqlHelper.Param("@product", item.ProductCode),
                             SqlHelper.Param("@remark", item.Remark ?? ""),
@@ -78,7 +78,9 @@ namespace Kasir.Data.Repositories
                             SqlHelper.Param("@val", item.Value),
                             SqlHelper.Param("@price", item.UnitPrice),
                             SqlHelper.Param("@disc", item.DiscPct),
-                            SqlHelper.Param("@discVal", item.DiscValue));
+                            SqlHelper.Param("@discVal", item.DiscValue),
+                            SqlHelper.Param("@orderRef", item.OrderRef ?? ""),
+                            SqlHelper.Param("@qtyOrder", item.QtyOrder));
                     }
 
             return (int)SqlHelper.LastInsertRowId(_db);
@@ -99,6 +101,44 @@ namespace Kasir.Data.Repositories
                 MapPurchase,
                 SqlHelper.Param("@from", dateFrom),
                 SqlHelper.Param("@to", dateTo),
+                SqlHelper.Param("@type", docType));
+        }
+
+        // Qty per product on non-voided lines whose order_ref points at refNo, limited to
+        // the given document types. Used to derive PO receipt and BPB billing progress.
+        public Dictionary<string, int> GetLinkedQuantities(string refNo, params string[] docTypes)
+        {
+            var parameters = new List<SqliteParameter> { SqlHelper.Param("@ref", refNo) };
+            var typeParams = new List<string>();
+            for (int i = 0; i < docTypes.Length; i++)
+            {
+                typeParams.Add("@t" + i);
+                parameters.Add(SqlHelper.Param("@t" + i, docTypes[i]));
+            }
+
+            var rows = SqlHelper.Query(_db,
+                @"SELECT pi.product_code, SUM(pi.quantity) AS qty
+                  FROM purchase_items pi
+                  JOIN purchases p ON p.journal_no = pi.journal_no
+                  WHERE pi.order_ref = @ref AND p.control != 3
+                    AND p.doc_type IN (" + string.Join(", ", typeParams) + @")
+                  GROUP BY pi.product_code",
+                r => new KeyValuePair<string, int>(
+                    SqlHelper.GetString(r, "product_code"), SqlHelper.GetInt(r, "qty")),
+                parameters.ToArray());
+
+            var result = new Dictionary<string, int>();
+            foreach (var row in rows) result[row.Key] = row.Value;
+            return result;
+        }
+
+        public List<Purchase> GetActiveByVendor(string vendorCode, string docType)
+        {
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM purchases WHERE sub_code = @sub AND doc_type = @type AND control != 3
+                  ORDER BY doc_date, journal_no",
+                MapPurchase,
+                SqlHelper.Param("@sub", vendorCode),
                 SqlHelper.Param("@type", docType));
         }
 
@@ -156,6 +196,8 @@ namespace Kasir.Data.Repositories
                 UnitPrice = SqlHelper.GetLong(r, "unit_price"),
                 DiscPct = SqlHelper.GetInt(r, "disc_pct"),
                 DiscValue = SqlHelper.GetLong(r, "disc_value"),
+                OrderRef = SqlHelper.GetString(r, "order_ref"),
+                QtyOrder = SqlHelper.GetInt(r, "qty_order"),
                 Unit = SqlHelper.GetString(r, "unit")
             };
         }

@@ -11,6 +11,8 @@ namespace Kasir.Models
         public long UnitPrice { get; set; }
         public int DiscPct { get; set; }
         public long DiscValue { get; set; }
+        public string OrderRef { get; set; }   // PO no on receipt lines; receipt (BPB) no on invoice lines
+        public int QtyOrder { get; set; }      // ordered qty on the linked PO line (receipt lines only)
         public string Unit { get; set; }
 
         // Transient

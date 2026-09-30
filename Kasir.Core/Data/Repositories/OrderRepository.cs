@@ -72,6 +72,14 @@ namespace Kasir.Data.Repositories
                 MapOrder, SqlHelper.Param("@sub", vendorCode));
         }
 
+        public List<Order> GetActivePurchaseOrders(string vendorCode)
+        {
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM orders WHERE sub_code = @sub AND doc_type = 'PURCHASE_ORDER' AND control != 3
+                  ORDER BY doc_date, journal_no",
+                MapOrder, SqlHelper.Param("@sub", vendorCode));
+        }
+
         public List<OrderItem> GetItems(string journalNo)
         {
             return SqlHelper.Query(_db,

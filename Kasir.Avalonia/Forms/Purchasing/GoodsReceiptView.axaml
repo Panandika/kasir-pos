@@ -78,6 +78,7 @@
               x:CompileBindings="False">
       <DataGrid.Columns>
         <DataGridTextColumn Header="No"     Binding="{Binding No}"    Width="0.4*" CanUserSort="False" />
+        <DataGridTextColumn Header="PO"     Binding="{Binding Ref}"   Width="1.3*" CanUserSort="False" />
         <DataGridTextColumn Header="Kode"   Binding="{Binding Code}"  Width="1.4*" CanUserSort="False" />
         <DataGridTextColumn Header="Nama"   Binding="{Binding Name}"  Width="2.5*" CanUserSort="False" />
         <DataGridTextColumn Header="Qty"    Binding="{Binding Qty}"   Width="0.8*" CanUserSort="False" />
