@@ -166,6 +166,82 @@ namespace Kasir.Services
             return result;
         }
 
+        // Goods receipts (BPB): Dr Inventory / Cr GRNI. Post these before purchase invoices
+        // so GRNI is credited before invoices clear it.
+        public PostingResult PostReceipts(string periodCode)
+        {
+            EnsurePeriodOpen(periodCode);
+            var result = new PostingResult();
+
+            foreach (var receipt in GetUnpostedPurchases(periodCode, "RECEIPT"))
+            {
+                try
+                {
+                    using (var txn = _db.BeginTransaction())
+                    {
+                        try
+                        {
+                            _accountingService.PostReceiptJournal(receipt, _purchaseRepo.GetItems(receipt.JournalNo));
+                            MarkPurchasePosted(receipt.JournalNo);
+                            txn.Commit();
+                            result.PostedCount++;
+                        }
+                        catch
+                        {
+                            txn.Rollback();
+                            throw;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.ErrorCount++;
+                    result.Errors.Add(receipt.JournalNo + ": " + ex.Message);
+                }
+            }
+
+            return result;
+        }
+
+        // Stock-out (usage/damage/loss) and opname documents: book the stock value change
+        // against the stock-adjustment account so the inventory GL follows the stock.
+        public PostingResult PostStockAdjustments(string periodCode)
+        {
+            EnsurePeriodOpen(periodCode);
+            var result = new PostingResult();
+
+            foreach (var adjustment in GetUnpostedStockAdjustments(periodCode))
+            {
+                try
+                {
+                    using (var txn = _db.BeginTransaction())
+                    {
+                        try
+                        {
+                            _accountingService.PostStockAdjustmentJournal(adjustment);
+                            SqlHelper.ExecuteNonQuery(_db,
+                                "UPDATE stock_adjustments SET is_posted = 'Y' WHERE journal_no = @jnl",
+                                SqlHelper.Param("@jnl", adjustment.JournalNo));
+                            txn.Commit();
+                            result.PostedCount++;
+                        }
+                        catch
+                        {
+                            txn.Rollback();
+                            throw;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.ErrorCount++;
+                    result.Errors.Add(adjustment.JournalNo + ": " + ex.Message);
+                }
+            }
+
+            return result;
+        }
+
         public PostingResult PostCashTransactions(string periodCode)
         {
             EnsurePeriodOpen(periodCode);
@@ -238,6 +314,20 @@ namespace Kasir.Services
             {
                 throw new InvalidOperationException(
                     string.Format("{0} unposted purchase returns in period {1}", unpostedReturns.Count, periodCode));
+            }
+
+            var unpostedReceipts = GetUnpostedPurchases(periodCode, "RECEIPT");
+            if (unpostedReceipts.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    string.Format("{0} unposted goods receipts in period {1}", unpostedReceipts.Count, periodCode));
+            }
+
+            var unpostedAdjustments = GetUnpostedStockAdjustments(periodCode);
+            if (unpostedAdjustments.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    string.Format("{0} unposted stock adjustments in period {1}", unpostedAdjustments.Count, periodCode));
             }
 
             var unpostedCash = _cashTxnRepo.GetUnpostedByPeriod(periodCode);
@@ -340,6 +430,24 @@ namespace Kasir.Services
                 },
                 SqlHelper.Param("@period", periodCode),
                 SqlHelper.Param("@type", docType));
+        }
+
+        private List<StockAdjustment> GetUnpostedStockAdjustments(string periodCode)
+        {
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM stock_adjustments
+                  WHERE period_code = @period AND is_posted = 'N' AND control = 1
+                  ORDER BY journal_no",
+                r => new StockAdjustment
+                {
+                    Id = SqlHelper.GetInt(r, "id"),
+                    DocType = SqlHelper.GetString(r, "doc_type"),
+                    JournalNo = SqlHelper.GetString(r, "journal_no"),
+                    DocDate = SqlHelper.GetString(r, "doc_date"),
+                    PeriodCode = SqlHelper.GetString(r, "period_code"),
+                    ChangedBy = SqlHelper.GetInt(r, "changed_by")
+                },
+                SqlHelper.Param("@period", periodCode));
         }
 
         private void MarkSalePosted(string journalNo)
