@@ -59,6 +59,17 @@ public partial class WholesaleTierOverlay : UserControl
 
     private void OnSave()
     {
+        // An unparseable price would save as 0: keep the overlay open on the bad field instead.
+        foreach (var box in new[] { TxtPrice1, TxtPrice2, TxtPrice3, TxtPrice4 })
+        {
+            if (!string.IsNullOrWhiteSpace(box.Text) && !Formatting.TryParseRupiahCents(box.Text, out _))
+            {
+                box.BorderBrush = global::Avalonia.Media.Brushes.IndianRed;
+                box.Focus();
+                box.SelectAll();
+                return;
+            }
+        }
         _product.Price1 = ParseMoney(TxtPrice1.Text);
         _product.Price2 = ParseMoney(TxtPrice2.Text);
         _product.Price3 = ParseMoney(TxtPrice3.Text);

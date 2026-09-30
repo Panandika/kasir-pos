@@ -217,6 +217,15 @@ public partial class ProductView : UserControl
     private async void SaveProduct()
     {
         if (!_isEditing) return;
+        foreach (var (box, label) in new[] { (TxtBuyingPrice, "Harga beli"), (TxtCostPrice, "Harga pokok"), (TxtSellingPrice, "Harga jual") })
+        {
+            if (!string.IsNullOrWhiteSpace(box.Text) && !Formatting.TryParseRupiahCents(box.Text, out _))
+            {
+                await MsgBox.Show(NavigationService.Owner, $"{label} tidak valid: \"{box.Text}\". Contoh: 100.000 atau 11.208,67");
+                box.Focus();
+                return;
+            }
+        }
         var p = ReadDetail();
         if (string.IsNullOrEmpty(p.ProductCode) || string.IsNullOrEmpty(p.Name))
         {

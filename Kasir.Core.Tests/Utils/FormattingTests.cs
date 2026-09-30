@@ -81,6 +81,18 @@ namespace Kasir.Tests.Utils
         [TestCase("1.000,000", false, 0)]
         [TestCase("12,34,56", false, 0)]
         [TestCase(",50", false, 0)]
+        [TestCase("11.208,", true, 1120800)]       // trailing comma while typing = no sen
+        [TestCase("Rp. 50.000", true, 5000000)]
+        [TestCase("rp50.000", true, 5000000)]
+        [TestCase("50.000,-", true, 5000000)]      // ",-" suffix as written on nota
+        [TestCase(" 1.000 ", true, 100000)]
+        [TestCase("1,5", true, 150)]
+        [TestCase("100,00", true, 10000)]
+        [TestCase("1.000.000,5", true, 100000050)]
+        [TestCase("-5.000", true, -500000)]
+        [TestCase("1rp000", false, 0)]             // "Rp" only as a prefix
+        [TestCase("11.208,67,", false, 0)]
+        [TestCase("99999999999999999999", false, 0)]
         [TestCase("abc", false, 0)]
         [TestCase("", false, 0)]
         [TestCase(null, false, 0)]

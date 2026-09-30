@@ -95,7 +95,7 @@ public partial class PayablesView : UserControl
         }
 
         bool confirmed = await MsgBox.Confirm(NavigationService.Owner,
-            $"Bayar hutang {_selectedVendor} sebesar {Formatting.FormatMoney(paymentAmount)}?");
+            $"Bayar hutang {_selectedVendor} sebesar Rp {Formatting.FormatRupiahCentsInput(paymentAmount)}?");
         if (!confirmed) return;
 
         string docDate    = Formatting.TodayIso();

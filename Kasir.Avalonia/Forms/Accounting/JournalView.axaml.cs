@@ -72,8 +72,9 @@ public partial class JournalView : UserControl
                     DgvLines.ItemsSource = _rows;
                 }
             }
-            UpdateTotals();
         }
+        // Refresh after any cell edit, not only the account column, so debit/credit totals follow.
+        if (e.EditAction == DataGridEditAction.Commit) UpdateTotals();
     }
 
     private void UpdateTotals()
@@ -86,10 +87,10 @@ public partial class JournalView : UserControl
             td += d;
             tc += c;
         }
-        LblDebit.Text  = $"Debit: {Formatting.FormatMoney(td)}";
-        LblCredit.Text = $"Kredit: {Formatting.FormatMoney(tc)}";
+        LblDebit.Text  = $"Debit: {Formatting.FormatRupiahCentsInput(td)}";
+        LblCredit.Text = $"Kredit: {Formatting.FormatRupiahCentsInput(tc)}";
         long diff = td - tc;
-        LblDiff.Text = $"Selisih: {Formatting.FormatMoney(Math.Abs(diff))}";
+        LblDiff.Text = $"Selisih: {Formatting.FormatRupiahCentsInput(Math.Abs(diff))}";
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

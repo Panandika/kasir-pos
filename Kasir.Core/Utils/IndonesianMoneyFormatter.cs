@@ -6,8 +6,8 @@ namespace Kasir.Utils
 {
     /// <summary>
     /// Helpers for the Indonesian thousands-separator format used by money
-    /// inputs ("1250000" → "1.250.000"). Display values are whole Rupiah; the
-    /// caller multiplies by 100 to get INTEGER cents per the project pattern.
+    /// inputs ("1250000" → "1.250.000"). FormatText is whole Rupiah; FormatTextWithDecimals
+    /// keeps a ",dd" sen part for price fields (parse those with Formatting.TryParseRupiahCents).
     /// </summary>
     public static class IndonesianMoneyFormatter
     {
@@ -78,14 +78,22 @@ namespace Kasir.Utils
         public static string FormatTextWithDecimals(string? text)
         {
             string raw = text ?? "";
-            int comma = raw.LastIndexOf(',');
-            if (comma < 0) return FormatText(raw);
+            if (raw.IndexOf(',') < 0) return FormatText(raw);
+            if (Formatting.IsCommaThousands(raw)) return FormatText(raw); // "50,000" = fifty thousand
 
-            string whole = FormatText(raw.Substring(0, comma));
-            if (whole.Length == 0) whole = "0";
-            string frac = DigitsOnly(raw.Substring(comma + 1));
-            if (frac.Length > 2) frac = frac.Substring(0, 2);
-            return whole + "," + frac;
+            // Exactly one comma with 0-2 sen digits: format the whole part, keep the sen.
+            // Anything else (a second comma, 3+ sen digits, stray characters) is left exactly
+            // as typed: never drop or move a digit; the parser rejects it on save.
+            int comma = raw.IndexOf(',');
+            if (raw.IndexOf(',', comma + 1) >= 0) return raw;
+            string whole = raw.Substring(0, comma);
+            string frac = raw.Substring(comma + 1);
+            if (frac.Length > 2 || !IsDigitsOnly(frac) && frac.Length > 0) return raw;
+            foreach (char c in whole)
+                if (!(c >= '0' && c <= '9') && c != '.') return raw;
+
+            string formattedWhole = FormatText(whole);
+            return (formattedWhole.Length == 0 ? "0" : formattedWhole) + "," + frac;
         }
 
         /// <summary>
@@ -113,6 +121,28 @@ namespace Kasir.Utils
             string formatted = allowDecimals ? FormatTextWithDecimals(original) : FormatText(original);
             if (formatted.Length == 0) return ("", 0);
 
+            // With sen, anchor the caret on the comma: left of it, keep the digit count up to
+            // the comma; right of it, keep the offset from the comma. Otherwise an edit in the
+            // whole part would push the caret into the sen.
+            int oc = original.IndexOf(',');
+            int fc = formatted.IndexOf(',');
+            if (allowDecimals && oc >= 0 && fc >= 0)
+            {
+                if (caretIndex > oc)
+                    return (formatted, System.Math.Min(formatted.Length, fc + (caretIndex - oc)));
+                int digitsBeforeComma = 0;
+                for (int i = caretIndex; i < oc; i++)
+                    if (original[i] >= '0' && original[i] <= '9') digitsBeforeComma++;
+                return (formatted, CaretForDigitsRight(formatted.Substring(0, fc), digitsBeforeComma));
+            }
+
+            return (formatted, CaretForDigitsRight(formatted, digitsRight));
+        }
+
+        // Caret index in <paramref name="formatted"/> with <paramref name="digitsRight"/>
+        // digits to its right.
+        private static int CaretForDigitsRight(string formatted, int digitsRight)
+        {
             // Walk back from the right of the formatted string until we have
             // counted the same number of digits to the right of the new caret.
             int seen = 0;
@@ -127,7 +157,7 @@ namespace Kasir.Utils
             if (digitsRight == 0) newCaret = formatted.Length;
             if (newCaret < 0) newCaret = 0;
             if (newCaret > formatted.Length) newCaret = formatted.Length;
-            return (formatted, newCaret);
+            return newCaret;
         }
     }
 }

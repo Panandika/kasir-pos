@@ -62,8 +62,6 @@ namespace Kasir.Utils
             return DateTime.Now.ToString("yyyy-MM-dd");
         }
 
-        // Parse Indonesian-formatted rupiah input (strips dots, commas, "Rp", whitespace).
-        // Returns true if a non-negative integer rupiah amount could be parsed.
         // Parses a whole-rupiah amount ("100.000", "Rp 50.000"). Input with sen ("11.208,67")
         // is rejected rather than misread: use TryParseRupiahCents for fields that allow sen.
         public static bool TryParseRupiah(string? text, out long rupiah)
@@ -83,7 +81,12 @@ namespace Kasir.Utils
         {
             cents = 0;
             if (string.IsNullOrWhiteSpace(text)) return false;
-            string s = text.Replace("Rp", "", StringComparison.OrdinalIgnoreCase).Replace(" ", "").Trim();
+            string s = text.Trim();
+            // "Rp" / "Rp." only as a prefix; ",-" suffix as written on notas ("50.000,-").
+            if (s.StartsWith("Rp.", StringComparison.OrdinalIgnoreCase)) s = s.Substring(3);
+            else if (s.StartsWith("Rp", StringComparison.OrdinalIgnoreCase)) s = s.Substring(2);
+            s = s.Replace(" ", "").Replace("\u00A0", "");
+            if (s.EndsWith(",-")) s = s.Substring(0, s.Length - 2);
             bool negative = s.StartsWith("-");
             if (negative) s = s.Substring(1);
             if (s.Length == 0) return false;
@@ -93,14 +96,11 @@ namespace Kasir.Utils
             string[] commaParts = s.Split(',');
             if (commaParts.Length > 1)
             {
-                bool thousandsCommas = !s.Contains('.')
-                    && commaParts[0].Length >= 1 && commaParts[0].Length <= 3
-                    && commaParts.Skip(1).All(g => g.Length == 3);
-                if (thousandsCommas)
+                if (IsCommaThousands(s))
                 {
                     intPart = string.Concat(commaParts);
                 }
-                else if (commaParts.Length == 2 && commaParts[1].Length >= 1 && commaParts[1].Length <= 2)
+                else if (commaParts.Length == 2 && commaParts[1].Length <= 2) // "11.208," = no sen yet
                 {
                     intPart = commaParts[0];
                     fracPart = commaParts[1];
@@ -132,6 +132,17 @@ namespace Kasir.Utils
             }
             if (negative) cents = -cents;
             return true;
+        }
+
+        // True for "50,000" / "1,250,000": commas used as thousands separators (no dots,
+        // 1-3 leading digits, then groups of exactly 3). Shared with the live formatter so
+        // what the screen shows and what is parsed always agree.
+        public static bool IsCommaThousands(string text)
+        {
+            if (string.IsNullOrEmpty(text) || text.Contains('.') || !text.Contains(',')) return false;
+            string[] groups = text.Split(',');
+            return groups[0].Length >= 1 && groups[0].Length <= 3 && groups[0].All(char.IsDigit)
+                && groups.Skip(1).All(g => g.Length == 3 && g.All(char.IsDigit));
         }
 
         // Formats cents for an input prefill: "11.208,67", or "11.208" when there are no sen.

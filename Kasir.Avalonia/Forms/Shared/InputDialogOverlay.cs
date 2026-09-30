@@ -107,6 +107,8 @@ public class InputDialogOverlay : UserControl
                 Height = 30,
             };
 
+            // Fields labelled "Rp" are whole-rupiah (digits-only live formatting). Don't label a
+            // field that allows sen with "Rp": a typed ",67" would be merged into the rupiah.
             if (labels[i].Contains("Rp", StringComparison.OrdinalIgnoreCase))
             {
                 bool reentry = false;

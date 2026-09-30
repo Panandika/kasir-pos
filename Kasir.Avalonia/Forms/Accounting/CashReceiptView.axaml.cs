@@ -78,7 +78,7 @@ public partial class CashReceiptView : UserControl
         };
 
         _lines.Add(line);
-        _rows.Add(new LineRow(accCode, accName, Formatting.FormatMoney(line.Value), remark));
+        _rows.Add(new LineRow(accCode, accName, Formatting.FormatRupiahCentsInput(line.Value), remark));
         UpdateTotal();
     }
 
@@ -86,7 +86,7 @@ public partial class CashReceiptView : UserControl
     {
         long total = 0;
         foreach (var l in _lines) total += l.Value;
-        LblTotal.Text = "Total: " + Formatting.FormatMoney(total);
+        LblTotal.Text = "Total: " + Formatting.FormatRupiahCentsInput(total);
     }
 
     private async void SaveTransaction()
