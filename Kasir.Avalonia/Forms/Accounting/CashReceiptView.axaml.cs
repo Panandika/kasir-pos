@@ -25,7 +25,7 @@ public partial class CashReceiptView : UserControl
     private readonly bool _isBankMode;
     private readonly int _currentUserId;
 
-    public CashReceiptView(bool bankMode = false, int userId = 1)
+    public CashReceiptView(int userId, bool bankMode = false)
     {
         InitializeComponent();
         _isBankMode   = bankMode;
