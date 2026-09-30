@@ -264,6 +264,87 @@ namespace Kasir.Tests.Services
 
         // --- Helpers ---
 
+        // --- Tender split: card / voucher must not be booked as cash ---
+
+        private void SeedTenderAccounts()
+        {
+            SeedAccount("1122", "Piutang Debit Card", 1, "D");
+            SeedAccount("1123", "Piutang Credit Card", 1, "D");
+            SeedAccount("6118", "Voucher", 5, "D");
+            var config = new ConfigRepository(_db);
+            config.Set("ACCOUNT_CARD_CLEARING", "1122");
+            config.Set("ACCOUNT_CARD_CLEARING_CREDIT", "1123");
+            config.Set("ACCOUNT_VOUCHER", "6118");
+        }
+
+        private void InsertTenderSale(string journalNo, long total, long cash, long change,
+            long card, string cardType, long voucher)
+        {
+            _saleRepo.Insert(new Sale
+            {
+                DocType = "SALE", JournalNo = journalNo, DocDate = "2026-04-04",
+                TotalValue = total, CashAmount = cash, ChangeAmount = change,
+                NonCash = card, CardType = cardType, VoucherAmount = voucher,
+                Control = 1, PeriodCode = "202604", RegisterId = "01", ChangedBy = 1
+            }, new List<SaleItem>
+            {
+                new SaleItem { ProductCode = "P001", Quantity = 1, Value = total, UnitPrice = (int)total, Cogs = 0 }
+            });
+        }
+
+        private long Debit(string account) => _glRepo.GetDebitTotalForAccount("202604", account);
+
+        [Test]
+        public void PostSales_CashWithChangePlusDebitCard_SplitsTenders()
+        {
+            SeedTenderAccounts();
+            // Total 800.000: cash 500.000 given, 100.000 change back, 400.000 on debit card.
+            InsertTenderSale("JFA-01-2604-0101", 80000000, 50000000, 10000000, 40000000, "D", 0);
+
+            _service.PostSales("202604").ErrorCount.Should().Be(0);
+
+            Debit("1100").Should().Be(40000000, "cash kept = tendered − change");
+            Debit("1122").Should().Be(40000000, "debit card goes to card clearing, not cash");
+        }
+
+        [Test]
+        public void PostSales_QrisUsesDebitCardClearing_CreditCardUsesCreditAccount()
+        {
+            SeedTenderAccounts();
+            InsertTenderSale("JFA-01-2604-0102", 1000000, 0, 0, 1000000, "Q", 0);
+            InsertTenderSale("JFA-01-2604-0103", 2000000, 0, 0, 2000000, "C", 0);
+
+            _service.PostSales("202604").ErrorCount.Should().Be(0);
+
+            Debit("1122").Should().Be(1000000);
+            Debit("1123").Should().Be(2000000);
+            Debit("1100").Should().Be(0);
+        }
+
+        [Test]
+        public void PostSales_Voucher_GoesToVoucherAccount()
+        {
+            SeedTenderAccounts();
+            InsertTenderSale("JFA-01-2604-0104", 1500000, 1000000, 0, 0, "", 500000);
+
+            _service.PostSales("202604").ErrorCount.Should().Be(0);
+
+            Debit("1100").Should().Be(1000000);
+            Debit("6118").Should().Be(500000);
+        }
+
+        [Test]
+        public void PostSales_CreditCardWithoutCreditAccount_FallsBackToCardClearing()
+        {
+            SeedTenderAccounts();
+            new ConfigRepository(_db).Set("ACCOUNT_CARD_CLEARING_CREDIT", "");
+            InsertTenderSale("JFA-01-2604-0105", 2000000, 0, 0, 2000000, "C", 0);
+
+            _service.PostSales("202604").ErrorCount.Should().Be(0);
+
+            Debit("1122").Should().Be(2000000);
+        }
+
         private void InsertSale(string journalNo, long totalValue)
         {
             _saleRepo.Insert(new Sale

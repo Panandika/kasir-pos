@@ -130,7 +130,7 @@ namespace Kasir.Services
                 {
                     entry.Lines.Add(new JournalLine
                     {
-                        AccountCode = GetCardClearingAccount(),
+                        AccountCode = sale.CardType == "C" ? GetCreditCardClearingAccount() : GetCardClearingAccount(),
                         Debit = cardPortion,
                         Remark = "Card tender"
                     });
@@ -673,6 +673,14 @@ namespace Kasir.Services
         private string GetCardClearingAccount()
         {
             return GetConfigAccount("CARD_CLEARING", null);
+        }
+
+        // Credit cards may clear through their own receivable (legacy 112.003 PIUTANG CREDIT
+        // CARD); debit and QRIS use ACCOUNT_CARD_CLEARING. Falls back when unset.
+        private string GetCreditCardClearingAccount()
+        {
+            string code = _configRepo.Get("ACCOUNT_CARD_CLEARING_CREDIT");
+            return string.IsNullOrEmpty(code) ? GetCardClearingAccount() : GetConfigAccount("CARD_CLEARING_CREDIT", null);
         }
 
         private string GetVoucherAccount()

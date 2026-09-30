@@ -415,7 +415,10 @@ namespace Kasir.Services
                     DocDate = SqlHelper.GetString(r, "doc_date"),
                     TotalValue = SqlHelper.GetLong(r, "total_value"),
                     CashAmount = SqlHelper.GetLong(r, "cash_amount"),
+                    ChangeAmount = SqlHelper.GetLong(r, "change_amount"),
                     NonCash = SqlHelper.GetLong(r, "non_cash"),
+                    CardType = SqlHelper.GetString(r, "card_type"),
+                    VoucherAmount = SqlHelper.GetLong(r, "voucher_amount"),
                     PeriodCode = SqlHelper.GetString(r, "period_code"),
                     ChangedBy = SqlHelper.GetInt(r, "changed_by")
                 },

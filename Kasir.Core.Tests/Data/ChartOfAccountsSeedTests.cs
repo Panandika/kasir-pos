@@ -65,6 +65,29 @@ namespace Kasir.Tests.Data
         }
 
         [Test]
+        public void TenderAccounts_AreSeeded_SoNothingIsMissing()
+        {
+            new Migration_010().Up(_db);
+            new Migration_011().Up(_db);
+
+            _config.Get("ACCOUNT_CARD_CLEARING").Should().Be("112.002");
+            _config.Get("ACCOUNT_CARD_CLEARING_CREDIT").Should().Be("112.003");
+            _config.Get("ACCOUNT_VOUCHER").Should().Be("610.018");
+            new AccountingService(_db).GetMissingAccountConfig().Should().BeEmpty();
+        }
+
+        [Test]
+        public void TenderAccounts_DoNotOverwriteConfiguredValues()
+        {
+            new Migration_010().Up(_db);
+            _config.Set("ACCOUNT_CARD_CLEARING", "111.101");
+
+            new Migration_011().Up(_db);
+
+            _config.Get("ACCOUNT_CARD_CLEARING").Should().Be("111.101");
+        }
+
+        [Test]
         public void Seed_IsIdempotent_AndNeverOverwritesConfiguredValues()
         {
             _config.Set("ACCOUNT_INVENTORY", "135");
