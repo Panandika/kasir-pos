@@ -289,6 +289,9 @@ namespace Kasir.Services
                 });
             }
 
+            // Free goods on a free BPB: nothing moved in value, nothing to journal.
+            if (entry.Lines.Count == 0) return;
+
             ValidateJournalEntry(entry);
             PostGlLines(entry);
         }
@@ -300,6 +303,11 @@ namespace Kasir.Services
         // the remaining value and no rounding residue is left in GRNI.
         private long GetReceiptValueBilled(Purchase invoice)
         {
+            // The earlier-invoice ordering needs the row id; callers building a Purchase by
+            // hand may not set it.
+            if (invoice.Id <= 0)
+                invoice.Id = _purchaseRepo.GetByJournalNo(invoice.JournalNo)?.Id ?? 0;
+
             long total = 0;
             var billedByLink = _purchaseRepo.GetItems(invoice.JournalNo)
                 .Where(i => !string.IsNullOrEmpty(i.OrderRef))

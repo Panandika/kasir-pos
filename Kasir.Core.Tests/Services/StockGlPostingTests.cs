@@ -255,6 +255,19 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
+        public void AllBonusReceiptBilledByZeroInvoice_PostsWithoutJournal_AndDoesNotBlockClose()
+        {
+            string gr = Receive(3, 0);
+            string inv = Invoice(3, 0, gr);
+
+            _posting.PostReceipts(Period).ErrorCount.Should().Be(0);
+            _posting.PostPurchases(Period).ErrorCount.Should().Be(0);
+
+            IsPosted("purchases", inv).Should().Be("Y");
+            _glRepo.GetByJournalNo(inv).Should().BeEmpty();
+        }
+
+        [Test]
         public void PostReceipts_IsIdempotent()
         {
             Receive(10, 300000);
