@@ -315,6 +315,22 @@ namespace Kasir.Tests.Services
             System.Convert.ToInt32(cmd.ExecuteScalar()).Should().Be(3, "sale is marked void");
         }
 
+        // The void's stock-in must be valued at the unit cost, not the line COGS total,
+        // or stock value is inflated by (qty - 1) x the line cost.
+        [Test]
+        public void VoidSale_RestoresStockValue_AtUnitCost()
+        {
+            new InventoryService(_db).RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-X", "2026-04-01", 1);
+            _service.AddItem("P001", 3);
+            var sale = _service.CompleteSale(10000000, 0, 0, "", "", "");
+
+            _service.VoidSale(sale.JournalNo);
+
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT SUM(val_in) - SUM(val_out) FROM stock_movements WHERE product_code = 'P001'";
+            System.Convert.ToInt64(cmd.ExecuteScalar()).Should().Be(10000, "sale + void net to zero value");
+        }
+
         // F13: a sale whose GL journal is already posted must not be silently voided.
         [Test]
         public void VoidSale_PostedSale_Throws()

@@ -20,7 +20,7 @@ public partial class PostingProgressView : UserControl
         _periodCode = DateTime.Now.ToString("yyyyMM");
         InitializeComponent();
         _postingService = new PostingService(DbConnection.GetConnection());
-        FooterStatus.RegisterDefault(StatusLabel, "F1=Post POS  F2=Post Pembelian  F3=Post Kas  F5=Tutup Periode  F10=Cek Saldo  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "F1=Post POS  F2=Post Pembelian  F3=Post Kas  F4=Post Penyesuaian Stok  F5=Tutup Periode  F10=Cek Saldo  Esc=Keluar");
     }
 
     private void Log(string msg)
@@ -47,6 +47,11 @@ public partial class PostingProgressView : UserControl
         {
             e.Handled = true;
             RunPostCash();
+        }
+        else if (KeyboardRouter.IsF4(e))
+        {
+            e.Handled = true;
+            RunPostStockAdjustments();
         }
         else if (KeyboardRouter.IsF5(e))
         {
@@ -86,6 +91,13 @@ public partial class PostingProgressView : UserControl
     {
         try
         {
+            // Receipts first: they credit GRNI, which the invoices then clear.
+            Log($"Posting penerimaan barang (BPB) {_periodCode}...");
+            var r0 = _postingService.PostReceipts(_periodCode);
+            Log($"Selesai posting BPB: {r0.PostedCount} diposting, {r0.ErrorCount} error");
+            foreach (var err in r0.Errors)
+                Log("  ERROR: " + err);
+
             Log($"Posting pembelian {_periodCode}...");
             var r = _postingService.PostPurchases(_periodCode);
             Log($"Selesai posting pembelian: {r.PostedCount} diposting, {r.ErrorCount} error");
@@ -97,6 +109,25 @@ public partial class PostingProgressView : UserControl
             Log($"Selesai posting retur: {r2.PostedCount} diposting, {r2.ErrorCount} error");
             foreach (var err in r2.Errors)
                 Log("  ERROR: " + err);
+        }
+        catch (Exception ex)
+        {
+            Log("GAGAL: " + ex.Message);
+        }
+        await System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    private async void RunPostStockAdjustments()
+    {
+        try
+        {
+            Log($"Posting penyesuaian stok (pemakaian/rusak/hilang/opname) {_periodCode}...");
+            var r = _postingService.PostStockAdjustments(_periodCode);
+            Log($"Selesai: {r.PostedCount} diposting, {r.ErrorCount} error");
+            foreach (var err in r.Errors)
+                Log("  ERROR: " + err);
+            foreach (var note in r.Notices)
+                Log("  INFO: " + note);
         }
         catch (Exception ex)
         {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using Kasir.Data;
 using Kasir.Data.Repositories;
@@ -16,6 +17,7 @@ namespace Kasir.Services
         private readonly FiscalPeriodRepository _periodRepo;
         private readonly CounterRepository _counterRepo;
         private readonly ConfigRepository _configRepo;
+        private readonly PurchaseRepository _purchaseRepo;
 
         public AccountingService(SqliteConnection db)
         {
@@ -26,6 +28,7 @@ namespace Kasir.Services
             _periodRepo = new FiscalPeriodRepository(db);
             _counterRepo = new CounterRepository(db);
             _configRepo = new ConfigRepository(db);
+            _purchaseRepo = new PurchaseRepository(db);
         }
 
         private string RegisterId => _configRepo.Get("register_id") ?? "01";
@@ -197,6 +200,44 @@ namespace Kasir.Services
             PostGlLines(entry);
         }
 
+        // Goods receipt (BPB): stock is in, the supplier has not billed yet.
+        // Dr Inventory / Cr GRNI at the receipt's line value.
+        public void PostReceiptJournal(Purchase receipt, List<PurchaseItem> items)
+        {
+            long value = items.Sum(i => i.Value);
+            if (value == 0) return;
+
+            var entry = new JournalEntry
+            {
+                JournalNo = receipt.JournalNo,
+                DocDate = receipt.DocDate,
+                Remark = "Goods receipt " + receipt.JournalNo,
+                PeriodCode = receipt.PeriodCode,
+                ChangedBy = receipt.ChangedBy
+            };
+
+            entry.Lines.Add(new JournalLine
+            {
+                AccountCode = GetInventoryAccount(),
+                SubCode = receipt.SubCode,
+                Debit = value,
+                Remark = "Goods received"
+            });
+            entry.Lines.Add(new JournalLine
+            {
+                AccountCode = GetGrniAccount(),
+                SubCode = receipt.SubCode,
+                Credit = value,
+                Remark = "Received not invoiced"
+            });
+
+            ValidateJournalEntry(entry);
+            PostGlLines(entry);
+        }
+
+        // Purchase invoice (MSK). Lines billing a BPB clear GRNI at the BPB's value; the rest
+        // of the invoice total (unlinked / PO lines, price differences, header discount, VAT)
+        // goes to inventory — a credit when the invoice comes in below the BPB value.
         public void PostPurchaseJournal(Purchase purchase)
         {
             var entry = new JournalEntry
@@ -208,26 +249,141 @@ namespace Kasir.Services
                 ChangedBy = purchase.ChangedBy
             };
 
-            // Debit: Inventory account
+            long grni = GetReceiptValueBilled(purchase);
+            long inventory = purchase.TotalValue - grni;
+
+            if (grni > 0)
+            {
+                entry.Lines.Add(new JournalLine
+                {
+                    AccountCode = GetGrniAccount(),
+                    SubCode = purchase.SubCode,
+                    Debit = grni,
+                    Remark = "Clear received not invoiced"
+                });
+            }
+
+            if (inventory != 0)
+            {
+                entry.Lines.Add(new JournalLine
+                {
+                    AccountCode = GetInventoryAccount(),
+                    SubCode = purchase.SubCode,
+                    Debit = inventory > 0 ? inventory : 0,
+                    Credit = inventory < 0 ? -inventory : 0,
+                    Remark = grni > 0 ? "Purchase inventory / price difference" : "Purchase inventory"
+                });
+            }
+
+            // A zero-value invoice (all bonus goods) has no AP; it only reverses the BPB value.
+            if (purchase.TotalValue < 0)
+                throw new InvalidOperationException("Purchase invoice total cannot be negative: " + purchase.JournalNo);
+            if (purchase.TotalValue > 0)
+            {
+                entry.Lines.Add(new JournalLine
+                {
+                    AccountCode = GetPayablesAccount(),
+                    SubCode = purchase.SubCode,
+                    Credit = purchase.TotalValue,
+                    Remark = "Accounts payable"
+                });
+            }
+
+            // Free goods on a free BPB: nothing moved in value, nothing to journal.
+            if (entry.Lines.Count == 0) return;
+
+            ValidateJournalEntry(entry);
+            PostGlLines(entry);
+        }
+
+        // Value at which the invoice's BPB-linked lines were received — what the receipt put
+        // into GRNI. Uses the BPB's weighted value per product (a BPB may carry the same
+        // product at several prices, e.g. a Rp 0 bonus line). Earlier invoices on the same BPB
+        // (lower id) are counted first, so the billing that completes a product clears exactly
+        // the remaining value and no rounding residue is left in GRNI.
+        private long GetReceiptValueBilled(Purchase invoice)
+        {
+            // The earlier-invoice ordering needs the row id; callers building a Purchase by
+            // hand may not set it.
+            if (invoice.Id <= 0)
+                invoice.Id = _purchaseRepo.GetByJournalNo(invoice.JournalNo)?.Id ?? 0;
+
+            long total = 0;
+            var billedByLink = _purchaseRepo.GetItems(invoice.JournalNo)
+                .Where(i => !string.IsNullOrEmpty(i.OrderRef))
+                .GroupBy(i => (i.OrderRef, i.ProductCode));
+
+            foreach (var link in billedByLink)
+            {
+                var receipt = _purchaseRepo.GetByJournalNo(link.Key.OrderRef);
+                if (receipt?.DocType != "RECEIPT") continue;
+
+                var received = _purchaseRepo.GetItems(link.Key.OrderRef)
+                    .Where(i => i.ProductCode == link.Key.ProductCode).ToList();
+                long receivedQty = received.Sum(i => (long)i.Quantity);
+                long receivedValue = received.Sum(i => i.Value);
+                if (receivedQty <= 0) continue;
+
+                long before = SqlHelper.ExecuteScalar<long>(_db,
+                    @"SELECT COALESCE(SUM(pi.quantity), 0) FROM purchase_items pi
+                      JOIN purchases p ON p.journal_no = pi.journal_no
+                      WHERE pi.order_ref = @ref AND pi.product_code = @product
+                        AND p.doc_type = 'PURCHASE' AND p.control != 3 AND p.id < @id",
+                    SqlHelper.Param("@ref", link.Key.OrderRef),
+                    SqlHelper.Param("@product", link.Key.ProductCode),
+                    SqlHelper.Param("@id", invoice.Id));
+                long after = before + link.Sum(i => (long)i.Quantity);
+
+                total += ValueUpTo(after, receivedQty, receivedValue) - ValueUpTo(before, receivedQty, receivedValue);
+            }
+            return total;
+        }
+
+        private static long ValueUpTo(long qty, long receivedQty, long receivedValue)
+        {
+            return qty >= receivedQty ? receivedValue : receivedValue * qty / receivedQty;
+        }
+
+        // Stock-out (usage/damage/loss) or opname: the net value that left (or entered)
+        // stock on this document's movements is booked against the stock-adjustment account.
+        // Returns false when there is no stock value to book (e.g. migrated legacy documents,
+        // which have no per-document movements, or items at zero cost).
+        public bool PostStockAdjustmentJournal(StockAdjustment adjustment)
+        {
+            long net = SqlHelper.ExecuteScalar<long>(_db,
+                "SELECT COALESCE(SUM(val_in), 0) - COALESCE(SUM(val_out), 0) FROM stock_movements WHERE journal_no = @jnl",
+                SqlHelper.Param("@jnl", adjustment.JournalNo));
+            if (net == 0) return false;
+
+            var entry = new JournalEntry
+            {
+                JournalNo = adjustment.JournalNo,
+                DocDate = adjustment.DocDate,
+                Remark = "Stock adjustment " + adjustment.DocType + " " + adjustment.JournalNo,
+                PeriodCode = adjustment.PeriodCode,
+                ChangedBy = adjustment.ChangedBy
+            };
+
+            long amount = Math.Abs(net);
+            bool loss = net < 0;
+            entry.Lines.Add(new JournalLine
+            {
+                AccountCode = GetStockAdjustmentAccount(),
+                Debit = loss ? amount : 0,
+                Credit = loss ? 0 : amount,
+                Remark = loss ? "Stock loss / usage" : "Stock surplus"
+            });
             entry.Lines.Add(new JournalLine
             {
                 AccountCode = GetInventoryAccount(),
-                SubCode = purchase.SubCode,
-                Debit = purchase.TotalValue,
-                Remark = "Purchase inventory"
-            });
-
-            // Credit: AP account
-            entry.Lines.Add(new JournalLine
-            {
-                AccountCode = GetPayablesAccount(),
-                SubCode = purchase.SubCode,
-                Credit = purchase.TotalValue,
-                Remark = "Accounts payable"
+                Debit = loss ? 0 : amount,
+                Credit = loss ? amount : 0,
+                Remark = "Inventory adjustment"
             });
 
             ValidateJournalEntry(entry);
             PostGlLines(entry);
+            return true;
         }
 
         public void PostReturnJournal(Purchase returnDoc)
@@ -402,6 +558,17 @@ namespace Kasir.Services
         private string GetPayablesAccount()
         {
             return GetConfigAccount("PAYABLES", "2100");
+        }
+
+        // No defaults: required config only once a BPB / stock adjustment is actually posted.
+        private string GetGrniAccount()
+        {
+            return GetConfigAccount("GRNI", null);
+        }
+
+        private string GetStockAdjustmentAccount()
+        {
+            return GetConfigAccount("STOCK_ADJUSTMENT", null);
         }
 
         // Resolves a GL account from config (key "ACCOUNT_<key>"), falling back to
