@@ -533,6 +533,25 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
+        public void Opname_UsesOpnameAccount_WhenConfigured()
+        {
+            new AccountRepository(_db).Insert(new Account { AccountCode = "5920", AccountName = "Selisih Stok Opname", AccountGroup = 5, NormalBalance = "D", IsDetail = 1 });
+            _configRepo.Set("ACCOUNT_STOCK_OPNAME", "5920");
+            Receive(10, 300000);
+            _opname.CreateOpnameAdjustment(new List<OpnameLine>
+            {
+                new OpnameLine { ProductCode = "P001", SystemQty = 10, PhysicalQty = 9 }
+            }, 1);
+            _opname.CreateStockOut("DAMAGE", "TOKO",
+                new List<StockAdjustmentItem> { new StockAdjustmentItem { ProductCode = "P001", Quantity = 1 } }, 1);
+
+            _posting.PostStockAdjustments(Period).ErrorCount.Should().Be(0);
+
+            Net("5920").Should().Be(300000, "opname shortage");
+            Net("5900").Should().Be(300000, "damage stays on the stock-adjustment account");
+        }
+
+        [Test]
         public void PostStockAdjustments_IsIdempotent()
         {
             Receive(10, 300000);
