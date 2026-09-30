@@ -235,9 +235,15 @@ namespace Kasir.Services
             PostGlLines(entry);
         }
 
-        // Purchase invoice (MSK). Lines billing a BPB clear GRNI at the BPB's value; the rest
-        // of the invoice total (unlinked / PO lines, price differences, header discount, VAT)
-        // goes to inventory — a credit when the invoice comes in below the BPB value.
+        // Purchase invoice (MSK). Keeps the inventory account equal to the stock ledger:
+        //   Dr Inventory        value of lines that add stock here (unlinked / PO-linked)
+        //   Dr GRNI             BPB value of lines billing a goods receipt
+        //   Dr/Cr Price var.    invoice value of BPB lines − their BPB value
+        //   Dr PPN Masukan      VatAmount
+        //   Cr Purch. discount  TotalDisc
+        //   Cr AP               TotalValue
+        // Any part of TotalValue the lines, discount and VAT do not explain (migrated legacy
+        // invoices carry only a header total, no lines) goes to inventory, as it always did.
         public void PostPurchaseJournal(Purchase purchase)
         {
             var entry = new JournalEntry
@@ -249,45 +255,22 @@ namespace Kasir.Services
                 ChangedBy = purchase.ChangedBy
             };
 
-            long grni = GetReceiptValueBilled(purchase);
-            long inventory = purchase.TotalValue - grni;
-
-            if (grni > 0)
-            {
-                entry.Lines.Add(new JournalLine
-                {
-                    AccountCode = GetGrniAccount(),
-                    SubCode = purchase.SubCode,
-                    Debit = grni,
-                    Remark = "Clear received not invoiced"
-                });
-            }
-
-            if (inventory != 0)
-            {
-                entry.Lines.Add(new JournalLine
-                {
-                    AccountCode = GetInventoryAccount(),
-                    SubCode = purchase.SubCode,
-                    Debit = inventory > 0 ? inventory : 0,
-                    Credit = inventory < 0 ? -inventory : 0,
-                    Remark = grni > 0 ? "Purchase inventory / price difference" : "Purchase inventory"
-                });
-            }
-
-            // A zero-value invoice (all bonus goods) has no AP; it only reverses the BPB value.
             if (purchase.TotalValue < 0)
                 throw new InvalidOperationException("Purchase invoice total cannot be negative: " + purchase.JournalNo);
-            if (purchase.TotalValue > 0)
-            {
-                entry.Lines.Add(new JournalLine
-                {
-                    AccountCode = GetPayablesAccount(),
-                    SubCode = purchase.SubCode,
-                    Credit = purchase.TotalValue,
-                    Remark = "Accounts payable"
-                });
-            }
+
+            var billed = GetReceiptValueBilled(purchase);
+            long lineValue = _purchaseRepo.GetItems(purchase.JournalNo).Sum(i => i.Value);
+            long stockValue = lineValue - billed.InvoiceValue;
+            long variance = billed.InvoiceValue - billed.ReceiptValue;
+            long unexplained = purchase.TotalValue - (lineValue - purchase.TotalDisc + purchase.VatAmount);
+            long inventory = stockValue + unexplained;
+
+            AddSigned(entry, GetInventoryAccount, purchase.SubCode, inventory, "Purchase inventory");
+            AddSigned(entry, GetGrniAccount, purchase.SubCode, billed.ReceiptValue, "Clear received not invoiced");
+            AddSigned(entry, GetPriceVarianceAccount, purchase.SubCode, variance, "Purchase price difference vs BPB");
+            AddSigned(entry, GetVatInAccount, purchase.SubCode, purchase.VatAmount, "PPN Masukan");
+            AddSigned(entry, GetPurchaseDiscountAccount, purchase.SubCode, -purchase.TotalDisc, "Purchase discount");
+            AddSigned(entry, GetPayablesAccount, purchase.SubCode, -purchase.TotalValue, "Accounts payable");
 
             // Free goods on a free BPB: nothing moved in value, nothing to journal.
             if (entry.Lines.Count == 0) return;
@@ -296,12 +279,27 @@ namespace Kasir.Services
             PostGlLines(entry);
         }
 
+        // Adds a debit (amount > 0) or credit (amount < 0) line; skips zero amounts so an
+        // account is only resolved — and only required in config — when it is actually used.
+        private static void AddSigned(JournalEntry entry, Func<string> account, string subCode, long amount, string remark)
+        {
+            if (amount == 0) return;
+            entry.Lines.Add(new JournalLine
+            {
+                AccountCode = account(),
+                SubCode = subCode,
+                Debit = amount > 0 ? amount : 0,
+                Credit = amount < 0 ? -amount : 0,
+                Remark = remark
+            });
+        }
+
         // Value at which the invoice's BPB-linked lines were received — what the receipt put
         // into GRNI. Uses the BPB's weighted value per product (a BPB may carry the same
         // product at several prices, e.g. a Rp 0 bonus line). Earlier invoices on the same BPB
         // (lower id) are counted first, so the billing that completes a product clears exactly
         // the remaining value and no rounding residue is left in GRNI.
-        private long GetReceiptValueBilled(Purchase invoice)
+        private (long ReceiptValue, long InvoiceValue) GetReceiptValueBilled(Purchase invoice)
         {
             // The earlier-invoice ordering needs the row id; callers building a Purchase by
             // hand may not set it.
@@ -309,6 +307,7 @@ namespace Kasir.Services
                 invoice.Id = _purchaseRepo.GetByJournalNo(invoice.JournalNo)?.Id ?? 0;
 
             long total = 0;
+            long invoiceValue = 0;
             var billedByLink = _purchaseRepo.GetItems(invoice.JournalNo)
                 .Where(i => !string.IsNullOrEmpty(i.OrderRef))
                 .GroupBy(i => (i.OrderRef, i.ProductCode));
@@ -322,6 +321,7 @@ namespace Kasir.Services
                     .Where(i => i.ProductCode == link.Key.ProductCode).ToList();
                 long receivedQty = received.Sum(i => (long)i.Quantity);
                 long receivedValue = received.Sum(i => i.Value);
+                invoiceValue += link.Sum(i => i.Value);
                 if (receivedQty <= 0) continue;
 
                 long before = SqlHelper.ExecuteScalar<long>(_db,
@@ -336,7 +336,7 @@ namespace Kasir.Services
 
                 total += ValueUpTo(after, receivedQty, receivedValue) - ValueUpTo(before, receivedQty, receivedValue);
             }
-            return total;
+            return (total, invoiceValue);
         }
 
         private static long ValueUpTo(long qty, long receivedQty, long receivedValue)
@@ -569,6 +569,21 @@ namespace Kasir.Services
         private string GetStockAdjustmentAccount()
         {
             return GetConfigAccount("STOCK_ADJUSTMENT", null);
+        }
+
+        private string GetPriceVarianceAccount()
+        {
+            return GetConfigAccount("PRICE_VARIANCE", null);
+        }
+
+        private string GetPurchaseDiscountAccount()
+        {
+            return GetConfigAccount("PURCHASE_DISCOUNT", null);
+        }
+
+        private string GetVatInAccount()
+        {
+            return GetConfigAccount("VAT_IN", null);
         }
 
         // Resolves a GL account from config (key "ACCOUNT_<key>"), falling back to
