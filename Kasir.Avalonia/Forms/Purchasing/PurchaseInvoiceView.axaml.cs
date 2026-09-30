@@ -184,9 +184,10 @@ public partial class PurchaseInvoiceView : UserControl
         if (row == null) return;
         var item = row.Tag;
 
+        string pricePrefill = (item.UnitPrice / 100).ToString();
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner, $"Ubah {item.ProductCode}",
             new[] { "Qty", "Harga" },
-            new[] { item.Quantity.ToString(), (item.UnitPrice / 100).ToString() });
+            new[] { item.Quantity.ToString(), pricePrefill });
         if (!ok) return;
 
         if (!int.TryParse(vals[0], out int qty) || qty <= 0)
@@ -195,7 +196,8 @@ public partial class PurchaseInvoiceView : UserControl
         { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid."); return; }
 
         item.Quantity = qty;
-        item.UnitPrice = priceLong * 100;
+        // Keep the exact (possibly sen) price unless the user actually typed a new one.
+        if (vals[1].Trim() != pricePrefill) item.UnitPrice = priceLong * 100;
         item.Value = item.UnitPrice * qty;
         RefreshGrid();
     }
@@ -299,14 +301,18 @@ public partial class PurchaseInvoiceView : UserControl
             && !await MsgBox.Confirm(NavigationService.Owner, string.Join("\n", match.Warnings) + "\n\nTetap simpan?", "Harga Berbeda"))
             return;
 
-        // Unlinked lines add stock. If this vendor has goods received on a BPB that is not billed
-        // yet, the user probably meant to bill that BPB — adding stock again would double count.
-        bool hasUnlinked = _items.Any(i => string.IsNullOrEmpty(i.OrderRef));
-        var unbilled = hasUnlinked ? _service.GetUninvoicedReceipts(_vendorCode) : new List<Purchase>();
+        // Unlinked and PO-linked lines add stock. If this vendor has goods received on a BPB
+        // that is not billed yet (and not fully billed by this invoice), the user probably
+        // meant to bill that BPB — adding stock again would double count.
+        bool addsStock = _items.Any(i => string.IsNullOrEmpty(i.OrderRef)
+                                         || _service.GetLinkableDocType(i.OrderRef) == "PURCHASE_ORDER");
+        var unbilled = addsStock
+            ? _service.GetUninvoicedReceipts(_vendorCode).Where(r => !IsFullyBilledHere(r.JournalNo)).ToList()
+            : new List<Purchase>();
         if (unbilled.Count > 0
             && !await MsgBox.Confirm(NavigationService.Owner,
                 "Supplier ini punya BPB yang belum ditagih: " + string.Join(", ", unbilled.Select(r => r.JournalNo))
-                + ".\nItem tanpa BPB/PO akan MENAMBAH STOK lagi.\nGunakan F3 untuk menagih BPB.\n\nTetap simpan sebagai penerimaan baru?",
+                + ".\nItem tanpa BPB (termasuk dari PO) akan MENAMBAH STOK lagi.\nGunakan F3 untuk menagih BPB.\n\nTetap simpan sebagai penerimaan baru?",
                 "Cek BPB"))
             return;
 
@@ -335,6 +341,16 @@ public partial class PurchaseInvoiceView : UserControl
         TxtDiscPct.Text = "0";
         TxtVatFlag.Text = "N";
         FooterStatus.Reset(StatusLabel);
+    }
+
+    // True when the lines on this invoice bill every unbilled unit of the given BPB.
+    private bool IsFullyBilledHere(string receiptNo)
+    {
+        var billedHere = _items.Where(i => i.OrderRef == receiptNo)
+            .GroupBy(i => i.ProductCode)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+        return _service.GetReceiptInvoiceStatus(receiptNo)
+            .All(l => l.Uninvoiced == 0 || (billedHere.TryGetValue(l.ProductCode, out int q) && q >= l.Uninvoiced));
     }
 
     private void SetStatus(string text) => FooterStatus.Show(StatusLabel, text);

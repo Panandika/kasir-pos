@@ -399,6 +399,53 @@ namespace Kasir.Tests.Services
             _service.GetLinkableDocType("NOPE").Should().BeNull();
         }
 
+        [Test]
+        public void RejectedReceipt_DoesNotConsumeDocumentNumber()
+        {
+            string po = CreatePo();
+            string first = Receive(po, ("P001", 8, 300000));
+            System.Action reject = () => Receive(po, ("P001", 5, 300000));
+            reject.Should().Throw<PurchaseValidationException>();
+
+            string next = Receive(po, ("P001", 2, 300000));
+
+            Seq(next).Should().Be(Seq(first) + 1, "a rejected BPB must not leave a gap in the numbering");
+        }
+
+        [Test]
+        public void RejectedInvoice_DoesNotConsumeDocumentNumber()
+        {
+            string gr = Receive(CreatePo(), ("P001", 5, 300000));
+            string first = _service.CreatePurchaseInvoice(new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                InvoiceLines(gr, ("P001", 2, 300000)), 1);
+            System.Action reject = () => _service.CreatePurchaseInvoice(new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                InvoiceLines(gr, ("P001", 9, 300000)), 1);
+            reject.Should().Throw<PurchaseValidationException>();
+
+            string next = _service.CreatePurchaseInvoice(new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                InvoiceLines(gr, ("P001", 3, 300000)), 1);
+
+            Seq(next).Should().Be(Seq(first) + 1);
+        }
+
+        [Test]
+        public void PoWithoutItems_IsOpen_NotDone()
+        {
+            string po = _service.CreatePurchaseOrder(new Order { SubCode = "V001" }, new List<OrderItem>(), 1);
+
+            _service.GetOrderStatus(po).Should().Be(PurchasingService.OrderStatusOpen);
+        }
+
+        [Test]
+        public void OrderRefIndex_ExistsAfterMigrations()
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_purchase_items_order_ref'";
+            System.Convert.ToInt32(cmd.ExecuteScalar()).Should().Be(1);
+        }
+
+        private static int Seq(string journalNo) => int.Parse(journalNo.Substring(journalNo.LastIndexOf('-') + 1));
+
         private int CountRows(string table)
         {
             using var cmd = _db.CreateCommand();

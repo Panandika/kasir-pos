@@ -60,11 +60,11 @@ public partial class GoodsReceiptView : UserControl
         if (!ok || string.IsNullOrWhiteSpace(vals[0])) return;
         var vendor = _vendorRepo.GetByCode(vals[0].Trim().ToUpper());
         if (vendor == null) { await MsgBox.Show(NavigationService.Owner, "Supplier tidak ditemukan."); return; }
-        if (vendor.SubCode != _vendorCode && _items.Any(i => !string.IsNullOrEmpty(i.OrderRef)))
+        if (vendor.SubCode != _vendorCode)
         {
-            _items.RemoveAll(i => !string.IsNullOrEmpty(i.OrderRef));
+            // A PO belongs to one vendor: drop its link and lines when the vendor changes.
             _orderNo = "";
-            RefreshGrid();
+            if (_items.RemoveAll(i => !string.IsNullOrEmpty(i.OrderRef)) > 0) RefreshGrid();
         }
         _vendorCode = vendor.SubCode;
         TxtVendor.Text = $"{vendor.SubCode} — {vendor.Name}";
@@ -101,7 +101,7 @@ public partial class GoodsReceiptView : UserControl
         };
         // A product that is on the loaded PO counts toward it; anything else is an extra, unlinked line.
         if (!string.IsNullOrEmpty(_orderNo)
-            && _service.GetOrderReceiptStatus(_orderNo).Any(l => l.ProductCode == product.ProductCode))
+            && _service.GetOrderReceiptStatus(_orderNo).Any(l => l.ProductCode == product.ProductCode && l.Remaining > 0))
         {
             item.OrderRef = _orderNo;
         }
@@ -151,9 +151,10 @@ public partial class GoodsReceiptView : UserControl
         if (row == null) return;
         var item = row.Tag;
 
+        string pricePrefill = (item.UnitPrice / 100).ToString();
         var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner, $"Ubah {item.ProductCode}",
             new[] { "Qty", "Harga Beli" },
-            new[] { item.Quantity.ToString(), (item.UnitPrice / 100).ToString() });
+            new[] { item.Quantity.ToString(), pricePrefill });
         if (!ok) return;
 
         if (!int.TryParse(vals[0], out int qty) || qty <= 0)
@@ -162,7 +163,8 @@ public partial class GoodsReceiptView : UserControl
         { await MsgBox.Show(NavigationService.Owner, "Harga tidak valid."); return; }
 
         item.Quantity = qty;
-        item.UnitPrice = priceLong * 100;
+        // Keep the exact (possibly sen) price unless the user actually typed a new one.
+        if (vals[1].Trim() != pricePrefill) item.UnitPrice = priceLong * 100;
         item.Value = item.UnitPrice * qty;
         RefreshGrid();
     }
@@ -207,6 +209,19 @@ public partial class GoodsReceiptView : UserControl
             DocDate = TxtDate.Text?.Trim() ?? "",
             RefNo = TxtInvoiceNo.Text?.Trim() ?? ""
         };
+        // Unlinked lines don't count toward any PO; if the vendor has open POs the user
+        // probably forgot F3, and the PO would stay open and later be received twice.
+        if (_items.Any(i => string.IsNullOrEmpty(i.OrderRef)))
+        {
+            var openOrders = _service.GetOpenPurchaseOrders(_vendorCode);
+            if (openOrders.Count > 0
+                && !await MsgBox.Confirm(NavigationService.Owner,
+                    "Supplier ini punya PO terbuka: " + string.Join(", ", openOrders.Select(o => o.JournalNo))
+                    + ".\nItem tanpa PO tidak mengurangi sisa PO.\nGunakan F3 untuk menerima dari PO.\n\nTetap simpan tanpa PO?",
+                    "Cek PO"))
+                return;
+        }
+
         string jnl;
         try
         {

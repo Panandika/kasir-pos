@@ -66,6 +66,12 @@ namespace Kasir.Services
 
         public string CreateGoodsReceipt(Purchase receipt, List<PurchaseItem> items, int userId)
         {
+            // Lines linked to a PO must match it: same vendor, product on the PO, no over-receipt.
+            // Validate before taking a document number so a rejected save leaves no gap.
+            var errors = new List<string>();
+            ValidateAgainstOrders(receipt.SubCode, items.Where(i => !string.IsNullOrEmpty(i.OrderRef)), errors);
+            if (errors.Count > 0) throw new PurchaseValidationException(errors);
+
             string registerId = _configRepo.Get("register_id") ?? "01";
             string journalNo = _counterRepo.GetNext("BPB", registerId);
             string today = _clock.Now.ToString("yyyy-MM-dd");
@@ -88,11 +94,6 @@ namespace Kasir.Services
             }
             receipt.GrossAmount = gross;
             receipt.TotalValue = gross - receipt.TotalDisc + receipt.VatAmount;
-
-            // Lines linked to a PO must match it: same vendor, product on the PO, no over-receipt.
-            var errors = new List<string>();
-            ValidateAgainstOrders(receipt.SubCode, items.Where(i => !string.IsNullOrEmpty(i.OrderRef)), errors);
-            if (errors.Count > 0) throw new PurchaseValidationException(errors);
 
             // Atomic: the receipt and its stock-in movements must all land or none (F19).
             using (var txn = _db.BeginTransaction())
@@ -123,6 +124,12 @@ namespace Kasir.Services
 
         public string CreatePurchaseInvoice(Purchase invoice, List<PurchaseItem> items, int userId)
         {
+            // Lines billing a BPB were already received; every other line is a combined
+            // receive-and-bill (legacy MSK) and moves stock in below. Match before taking a
+            // document number so a rejected save leaves no gap.
+            var match = MatchInvoiceLines(invoice.SubCode, items, out var receiptRefs);
+            if (match.IsBlocked) throw new PurchaseValidationException(match.Errors);
+
             string registerId = _configRepo.Get("register_id") ?? "01";
             string journalNo = _counterRepo.GetNext("MSK", registerId);
             string today = _clock.Now.ToString("yyyy-MM-dd");
@@ -145,11 +152,6 @@ namespace Kasir.Services
             }
             invoice.GrossAmount = gross;
             invoice.TotalValue = gross - invoice.TotalDisc + invoice.VatAmount;
-
-            // Lines billing a BPB were already received; every other line is a combined
-            // receive-and-bill (legacy MSK) and moves stock in here.
-            var match = MatchInvoiceLines(invoice.SubCode, items, out var receiptRefs);
-            if (match.IsBlocked) throw new PurchaseValidationException(match.Errors);
 
             // Atomic: the invoice, its AP entry and any stock-in must all land or none (F19).
             using (var txn = _db.BeginTransaction())
@@ -281,6 +283,7 @@ namespace Kasir.Services
             if (order == null || order.Control == 3) return OrderStatusVoid;
 
             var lines = GetOrderReceiptStatus(orderNo);
+            if (lines.Count == 0) return OrderStatusOpen;
             if (lines.All(l => l.Remaining == 0)) return OrderStatusDone;
             if (lines.Any(l => l.Received > 0)) return OrderStatusPartial;
             return OrderStatusOpen;

@@ -665,7 +665,7 @@ CREATE TABLE purchases (
 CREATE TABLE purchase_items (
     id              INTEGER PRIMARY KEY,
     journal_no      TEXT    NOT NULL REFERENCES purchases(journal_no) ON DELETE RESTRICT,
-    order_ref       TEXT    DEFAULT '',         -- OKL/OMS C(15)
+    order_ref       TEXT    DEFAULT '',         -- OKL/OMS C(15); BPB line: PO no, MSK line: BPB or PO no
     account_code    TEXT    DEFAULT '',
     sub_code        TEXT    DEFAULT '',
     product_code    TEXT    NOT NULL,
@@ -682,7 +682,7 @@ CREATE TABLE purchase_items (
     disc2_pct       INTEGER DEFAULT 0,         -- DISCD2 N(5,2) × 100 — MSD only
     unit_price      INTEGER DEFAULT 0,
     inv_price       INTEGER DEFAULT 0,         -- PRICEINV N(9,0) — MSD only
-    qty_order       INTEGER DEFAULT 0,         -- QORDER N(13,2) × 100 — MSD only
+    qty_order       INTEGER DEFAULT 0,         -- QORDER — ordered qty of the linked PO line, plain units (not × 100)
     disc_value      INTEGER DEFAULT 0,         -- DISCV N(17,2) × 100 — MSD only
     roll            INTEGER DEFAULT 0          -- ROL N(15,0) × 100 — RMD/BPD
 );
@@ -1613,6 +1613,7 @@ CREATE INDEX idx_giro_open ON giro_register(period_code, status) WHERE status = 
 -- Sale/purchase items by product (for sales analysis & goods receipt history)
 CREATE INDEX idx_sale_items_product ON sale_items(product_code, journal_no);
 CREATE INDEX idx_purchase_items_product ON purchase_items(product_code, journal_no);
+CREATE INDEX idx_purchase_items_order_ref ON purchase_items(order_ref, product_code);
 
 -- Order register (d_ror indexes: sub+jnl+inv+acc, jnl, inv+acc)
 CREATE INDEX idx_order_register_journal ON order_register(journal_no);
