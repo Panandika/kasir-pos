@@ -164,7 +164,7 @@ public partial class GoodsReceiptView : UserControl
 
         item.Quantity = qty;
         // Keep the exact (possibly sen) price unless the user actually typed a new one.
-        if (vals[1].Trim() != pricePrefill) item.UnitPrice = priceLong * 100;
+        if (priceLong != item.UnitPrice / 100) item.UnitPrice = priceLong * 100;
         item.Value = item.UnitPrice * qty;
         RefreshGrid();
     }
