@@ -66,7 +66,11 @@ namespace Kasir.Services
             // Release downloads redirect to objects.githubusercontent.com; HttpClient
             // follows HTTPS→HTTPS redirects by default. Long timeout for the ~80 MB zip;
             // the check itself is bounded by the caller's CancellationToken.
-            var http = new HttpClient { Timeout = TimeSpan.FromMinutes(20) };
+            // ConnectTimeout bounds TCP + TLS set-up, so a stalled or broken secure
+            // connection surfaces as a connection error (SSL / offline) instead of
+            // the caller's overall check limit firing as "timeout".
+            var handler = new SocketsHttpHandler { ConnectTimeout = TimeSpan.FromSeconds(10) };
+            var http = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(20) };
             http.DefaultRequestHeaders.UserAgent.ParseAdd("Kasir-POS/" + SafeVersion());
             return http;
         }
@@ -78,7 +82,44 @@ namespace Kasir.Services
             return plus > 0 ? v.Substring(0, plus) : v;
         }
 
+        /// <summary>
+        /// User-facing reason for a failed connection: a broken TLS handshake (often a
+        /// wrong PC clock on old machines) gets its own message instead of "offline".
+        /// </summary>
+        public static string ClassifyNetworkError(Exception ex)
+        {
+            for (var e = ex; e != null; e = e.InnerException)
+            {
+                if (e is TimeoutException && e.Message != null
+                    && e.Message.IndexOf("ConnectTimeout", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return UpdateMessages.ConnectStalled;
+                if (e is System.Security.Authentication.AuthenticationException) return UpdateMessages.SslFailed;
+                if (e.Message != null && e.Message.IndexOf("SSL", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return UpdateMessages.SslFailed;
+            }
+            return UpdateMessages.Offline;
+        }
+
+        // A connection that stalls or breaks while being set up is retried once, so a
+        // brief network hiccup at the store doesn't show an error. (The ~70 s stall seen
+        // during development came from a local firewall approval prompt, not GitHub.)
         public async Task<GitHubRelease> GetLatestAsync(CancellationToken ct)
+        {
+            try
+            {
+                return await GetLatestOnceAsync(ct).ConfigureAwait(false);
+            }
+            catch (UpdateSourceException ex) when (!ct.IsCancellationRequested && IsConnectionProblem(ex.Message))
+            {
+                return await GetLatestOnceAsync(ct).ConfigureAwait(false);
+            }
+        }
+
+        private static bool IsConnectionProblem(string message) =>
+            message == UpdateMessages.ConnectStalled || message == UpdateMessages.SslFailed
+            || message == UpdateMessages.Offline || message == UpdateMessages.Timeout;
+
+        private async Task<GitHubRelease> GetLatestOnceAsync(CancellationToken ct)
         {
             using (var req = new HttpRequestMessage(HttpMethod.Get, LatestReleaseUrl))
             {
@@ -93,11 +134,12 @@ namespace Kasir.Services
                 }
                 catch (HttpRequestException ex)
                 {
-                    throw new UpdateSourceException(UpdateMessages.Offline, ex);
+                    throw new UpdateSourceException(ClassifyNetworkError(ex), ex);
                 }
                 catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
                 {
-                    throw new UpdateSourceException(UpdateMessages.Timeout, ex);
+                    string why = ClassifyNetworkError(ex);
+                    throw new UpdateSourceException(why == UpdateMessages.Offline ? UpdateMessages.Timeout : why, ex);
                 }
 
                 using (resp)
@@ -166,7 +208,7 @@ namespace Kasir.Services
             }
             catch (HttpRequestException ex)
             {
-                throw new UpdateSourceException(UpdateMessages.DownloadFailed + " (" + ex.Message + ")", ex);
+                throw new UpdateSourceException(UpdateMessages.DownloadFailed + " \u2014 " + ClassifyNetworkError(ex), ex);
             }
             catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
             {

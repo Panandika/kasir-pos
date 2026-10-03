@@ -6,7 +6,9 @@ namespace Kasir.Services
         public const string Available = "Update tersedia: v{0}";
         public const string UpToDate = "Sudah versi terbaru";
         public const string Offline = "Tidak bisa terhubung ke GitHub \u2014 periksa koneksi internet PC ini";
-        public const string Timeout = "GitHub tidak merespons (waktu habis) \u2014 coba lagi nanti";
+        public const string Timeout = "GitHub tidak menjawab dalam 30 detik \u2014 koneksi internet lambat atau terputus. Coba lagi (F5)";
+        public const string ConnectStalled = "Koneksi ke GitHub tidak bisa dibuka (macet saat menyambung) \u2014 periksa internet PC ini, juga tanggal & jam PC";
+        public const string SslFailed = "Koneksi aman ke GitHub gagal \u2014 periksa tanggal & jam PC ini (harus benar), lalu koneksi internet";
         public const string NoRelease = "Belum ada rilis aplikasi di GitHub";
         public const string RateLimited = "Batas akses GitHub tercapai \u2014 coba lagi sekitar 1 jam lagi";
         public const string ServerError = "Server GitHub mengembalikan kesalahan (HTTP {0}) \u2014 coba lagi nanti";

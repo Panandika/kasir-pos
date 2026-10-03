@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -59,7 +60,7 @@ namespace Kasir.Services
         public string BaseDirectory { get; set; } = AppDomain.CurrentDomain.BaseDirectory;
 
         public UpdateService(SqliteConnection db)
-            : this(db, new FileSystemImpl(), new GitHubReleaseClient(), 15000)
+            : this(db, new FileSystemImpl(), new GitHubReleaseClient(), 30000)
         {
         }
 
@@ -161,16 +162,62 @@ namespace Kasir.Services
         }
 
         /// <summary>
-        /// The release body is release-please's changelog followed by install
-        /// instructions; show only the "what's new" part.
+        /// "What's new" text for the update screen. A release may carry hand-written
+        /// cashier notes between &lt;!-- kasir-notes --&gt; markers; those win. Otherwise
+        /// release-please's changelog is cleaned up: version header, Indonesian section
+        /// names, no commit links/markdown, duplicates removed, install part dropped.
         /// </summary>
         public static string ExtractReleaseNotes(string body)
         {
             if (string.IsNullOrWhiteSpace(body)) return "";
             string text = body.Replace("\r\n", "\n");
+
+            const string open = "<!-- kasir-notes -->", close = "<!-- /kasir-notes -->";
+            int o = text.IndexOf(open, StringComparison.OrdinalIgnoreCase);
+            int c = o >= 0 ? text.IndexOf(close, o, StringComparison.OrdinalIgnoreCase) : -1;
+            if (o >= 0 && c > o) return text.Substring(o + open.Length, c - o - open.Length).Trim();
+
             int cut = text.IndexOf("## Cara Install", StringComparison.OrdinalIgnoreCase);
             if (cut >= 0) text = text.Substring(0, cut);
-            return text.Trim().TrimEnd('-').Trim();
+
+            var lines = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var raw in text.Split('\n'))
+            {
+                string line = raw.Trim();
+                if (line.Length == 0 || line == "---") continue;
+                var header = Regex.Match(line, @"^#{1,2}\s*\[?([0-9][0-9.]*)\]?(?:\([^)]*\))?\s*(?:\(([^)]*)\))?");
+                if (header.Success && line.StartsWith("#") && !line.StartsWith("###"))
+                {
+                    string date = header.Groups[2].Success ? " (" + header.Groups[2].Value + ")" : "";
+                    lines.Add("Versi " + header.Groups[1].Value + date);
+                    continue;
+                }
+                if (line.StartsWith("###"))
+                {
+                    string section = line.TrimStart('#').Trim();
+                    string id = section.Equals("Features", StringComparison.OrdinalIgnoreCase) ? "Fitur baru"
+                              : section.Equals("Bug Fixes", StringComparison.OrdinalIgnoreCase) ? "Perbaikan"
+                              : section.Equals("Performance Improvements", StringComparison.OrdinalIgnoreCase) ? "Lebih cepat"
+                              : section;
+                    lines.Add("");
+                    lines.Add(id + ":");
+                    continue;
+                }
+                if (line.StartsWith("* ") || line.StartsWith("- "))
+                {
+                    string item = line.Substring(2);
+                    item = Regex.Replace(item, @"\s*\(\[[0-9a-f]{6,40}\]\([^)]*\)\)", "");   // ([sha](url))
+                    item = Regex.Replace(item, @"^\*\*[^*]+:\*\*\s*", "");                   // **scope:**
+                    item = Regex.Replace(item, @"\[([^\]]+)\]\([^)]*\)", "$1");                // [text](url)
+                    item = item.Replace("**", "").Trim();
+                    if (item.Length == 0 || !seen.Add(item)) continue;
+                    lines.Add("\u2022 " + item);
+                    continue;
+                }
+                lines.Add(line.Replace("**", ""));
+            }
+            return string.Join("\n", lines).Trim();
         }
 
         // ── 2. Download + verify ─────────────────────────────────────────────
