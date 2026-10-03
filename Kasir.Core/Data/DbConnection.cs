@@ -40,6 +40,12 @@ namespace Kasir.Data
 
         private static SqliteConnection _connection;
 
+        // True once InitializeDatabase() has finished (first-run choice handled, schema
+        // validated, migrations run). Until then GetConnection() must not be called: on a
+        // fresh install data\ does not exist yet, and opening the path either throws or
+        // creates an empty kasir.db that breaks first-run detection on the next start.
+        public static bool IsInitialized { get; private set; }
+
         public static SqliteConnection GetConnection()
         {
             // Record UI thread on first call; warn if called from a background thread
@@ -114,6 +120,8 @@ namespace Kasir.Data
                 // Run pending schema migrations (for existing and imported databases)
                 MigrationRunner.Run(conn);
             }
+
+            IsInitialized = true;
         }
 
         private static void HandleFirstRun()

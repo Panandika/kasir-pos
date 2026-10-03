@@ -7,6 +7,8 @@ using Kasir.Data.Repositories;
 using Kasir.Help;
 using Kasir.Help.Auth;
 using Kasir.Help.KnowledgeBase;
+using Kasir.Avalonia.Diagnostics;
+using Kasir.Avalonia.Forms.Shared;
 
 namespace Kasir.Avalonia.Forms.Help;
 
@@ -51,6 +53,39 @@ public sealed class BantuanOverlayHost
     public void Open(ShellWindow shell)
     {
         if (_open) return;
+
+        // First-run / cloud-import screens run before the database exists. Opening the
+        // connection there threw out of the Ctrl+/ key handler and killed the app (and
+        // could create an empty kasir.db). Explain instead.
+        if (!DbConnection.IsInitialized)
+        {
+            ShowUnavailable(shell,
+                "database belum siap.\n\nSelesaikan dulu pendaftaran register ini " +
+                "(Daftarkan dari cloud, atau pilih database), lalu tekan Ctrl+/ lagi.\n\n" +
+                "Untuk bantuan pendaftaran: hubungi pemilik / admin toko.");
+            return;
+        }
+
+        try
+        {
+            OpenStrip(shell);
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Bantuan.Open", ex);
+            _strip = null;
+            _open = false;
+            ShowUnavailable(shell, ex.Message + "\n\nDetail tersimpan di " + CrashLog.LogPath);
+        }
+    }
+
+    private static void ShowUnavailable(ShellWindow shell, string reason)
+    {
+        _ = MsgBox.Show(shell, "Bantuan belum tersedia: " + reason, "Bantuan");
+    }
+
+    private void OpenStrip(ShellWindow shell)
+    {
         var db = DbConnection.GetConnection();
 
         var faqRepo = new HelpFaqRepository(db);
