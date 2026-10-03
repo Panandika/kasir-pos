@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.8.0](https://github.com/Panandika/kasir-pos/compare/v2.7.0...v2.8.0) (2026-09-30)
+
+
+### Features
+
+* **accounting:** post goods receipts via GRNI and stock adjustments to GL ([bebf4c4](https://github.com/Panandika/kasir-pos/commit/bebf4c4dc6c3376130a38da46cfb5d2a3c9b0b52))
+* **accounting:** post goods receipts via GRNI and stock adjustments to GL ([3871252](https://github.com/Panandika/kasir-pos/commit/3871252d6940428cabb7696242d8b76813474431))
+* **accounting:** post purchase price variance, discount and PPN Masukan to own accounts ([7a5dd3f](https://github.com/Panandika/kasir-pos/commit/7a5dd3f5a9dd023b69d76430e9bbfe6e36f7c605))
+* **accounting:** post purchase price variance, discount and PPN Masukan to own accounts ([33de147](https://github.com/Panandika/kasir-pos/commit/33de1476cf091385b3ad9e520e1f7a3ef3fc9af3))
+* **accounting:** seed chart of accounts and GL account settings ([c19ce6e](https://github.com/Panandika/kasir-pos/commit/c19ce6e79244331aff18cc8bd63ad33bd4b29915))
+* **accounting:** seed chart of accounts and GL account settings ([4c81a2d](https://github.com/Panandika/kasir-pos/commit/4c81a2d86198cca355692a3b2a96441a1641454f))
+* **purchasing:** link PO -&gt; goods receipt -&gt; invoice with quantity matching ([3d6f167](https://github.com/Panandika/kasir-pos/commit/3d6f16733dd87e631609fd44d22c9423795a67a4))
+* **purchasing:** link PO → goods receipt → invoice with quantity matching ([aed5f84](https://github.com/Panandika/kasir-pos/commit/aed5f842a830e82ec4cc3ad483dd1b2593a17406))
+
+
+### Bug Fixes
+
+* **accounting:** exact GRNI clearing, zero-value invoices, void cost ([27e8514](https://github.com/Panandika/kasir-pos/commit/27e8514a0afa02903f2d574610389b0324cc9ca7))
+* **accounting:** post card and voucher tenders to their own accounts ([b75d99a](https://github.com/Panandika/kasir-pos/commit/b75d99a4c8f2ea9f177a89f08599b30887344a28))
+* **accounting:** post card and voucher tenders to their own accounts ([e2e522c](https://github.com/Panandika/kasir-pos/commit/e2e522c2295368542d38e78372e135a83e3f7ed2))
+* **accounting:** post zero-value BPB invoices without a journal; resolve invoice id for GRNI ordering ([d1d74d5](https://github.com/Panandika/kasir-pos/commit/d1d74d5d247196c9db4b3c664db644b237417d65))
+* **accounting:** reconcile guard and missing-account check for purchase posting ([81057ec](https://github.com/Panandika/kasir-pos/commit/81057ec72be3b556d80a7bdcebbbb56b424601fc))
+* **audit:** make userId required on journal and cash views ([2a400f9](https://github.com/Panandika/kasir-pos/commit/2a400f9019c316a725261a8bc4e91d941bfef607))
+* **audit:** record logged-in user on back-office documents ([a4803a6](https://github.com/Panandika/kasir-pos/commit/a4803a636444445b23b6ff13c14a9326dcfe4bed))
+* **audit:** record logged-in user on back-office documents ([73f49fc](https://github.com/Panandika/kasir-pos/commit/73f49fc4a238776dc3b681b2520dfae76ba90061))
+* **input:** live price formatter never drops or moves digits ([e605b20](https://github.com/Panandika/kasir-pos/commit/e605b200008e3d9724d858a2ecccb08caaa2924d))
+* **input:** parse Indonesian decimal rupiah amounts instead of reading them 100x ([0af8ebe](https://github.com/Panandika/kasir-pos/commit/0af8ebef0a0d0624fdbcfecb5330343de7a80867))
+* **input:** parse Indonesian decimal rupiah amounts instead of reading them 100x ([92fc3bf](https://github.com/Panandika/kasir-pos/commit/92fc3bfc48a76cb9b2ae99c8f507c4bb601c6e9a))
+* **purchasing:** compare parsed price when keeping sen on F4 edit ([eb566e1](https://github.com/Panandika/kasir-pos/commit/eb566e127b4656dc542c4e86c09c2e96713c6df6))
+* **purchasing:** review follow-ups for PO/BPB/invoice linking ([2ba1503](https://github.com/Panandika/kasir-pos/commit/2ba15035967523a389c85f11abdf1b6ef981cdb3))
+
 ## [2.7.0](https://github.com/Panandika/kasir-pos/compare/v2.6.1...v2.7.0) (2026-07-20)
 
 
