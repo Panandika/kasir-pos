@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Kasir.CloudSync.Snapshot;
 using Kasir.Data;
 using Microsoft.Data.Sqlite;
 
@@ -19,7 +20,8 @@ namespace Kasir.CloudSync.Restore
     //   2. Schema version gate
     //   3. Disk space pre-check (size * 1.1)
     //   4. GET signed_url -> temp file (with progress)
-    //   5. SHA-256 verify
+    //   5. SHA-256 verify (of the downloaded bytes — the compressed file when encoding=br)
+    //   5b. encoding "br": stream-decompress to the .db temp file
     //   6. PRAGMA integrity_check
     //   7. DatabaseValidator.Validate
     //   8. Atomic swap: mv kasir.db -> kasir.db.bak; mv temp -> kasir.db
@@ -32,10 +34,13 @@ namespace Kasir.CloudSync.Restore
     {
         public const int SupportedSchemaVersion = 1;
         public const long DiskSpaceSafetyMultiplier = 11; // 1.1x (denominator 10)
+        // Brotli snapshots expand ~5x (37 MB -> 189 MB, 2026-10). Need room for the
+        // compressed download plus the decompressed database: compressed * 8 (denominator 1).
+        public const long CompressedDiskSpaceMultiplier = 8;
 
         public class RestoreProgress
         {
-            public string Stage; // pair | manifest | downloading | verifying | swapping | done
+            public string Stage; // pair | manifest | downloading | verifying | decompressing | swapping | done
             public long BytesDownloaded;
             public long TotalBytes;
             public string Message;
@@ -90,6 +95,8 @@ namespace Kasir.CloudSync.Restore
             public int schema_version { get; set; }
             public string built_at { get; set; }
             public string expires_at { get; set; }
+            // "br" = Brotli-compressed .db; null/""/"identity" = plain .db (older servers).
+            public string encoding { get; set; }
         }
 
         private readonly HttpClient _http;
@@ -137,11 +144,20 @@ namespace Kasir.CloudSync.Restore
                     $"Server snapshot schema_version={manifest.schema_version}; client supports {SupportedSchemaVersion}. Update POS or rebuild snapshot.");
             }
 
-            // Step 3: disk space check (size * 1.1)
-            CheckDiskSpace(targetPath, manifest.size_bytes);
+            bool compressed = SnapshotCompression.IsBrotli(manifest.encoding);
+            if (!compressed && !SnapshotCompression.IsPlain(manifest.encoding))
+            {
+                throw new RestoreException(
+                    "manifest",
+                    $"Unsupported snapshot encoding \"{manifest.encoding}\". Update POS.");
+            }
+
+            // Step 3: disk space check (plain: size * 1.1; brotli: compressed * 8)
+            CheckDiskSpace(targetPath, manifest.size_bytes, compressed);
 
             // Step 4: download to temp
             string tmpPath = targetPath + ".tmp." + Guid.NewGuid().ToString("N");
+            string downloadPath = compressed ? tmpPath + SnapshotCompression.BrotliSuffix : tmpPath;
             try
             {
                 progress?.Report(new RestoreProgress
@@ -149,21 +165,34 @@ namespace Kasir.CloudSync.Restore
                     Stage = "downloading",
                     TotalBytes = manifest.size_bytes,
                 });
-                await DownloadAsync(manifest.signed_url, tmpPath, manifest.size_bytes, progress, ct)
+                await DownloadAsync(manifest.signed_url, downloadPath, manifest.size_bytes, progress, ct)
                     .ConfigureAwait(false);
 
-                // Step 5: SHA-256
+                // Step 5: SHA-256 of the downloaded bytes (compressed file when br)
                 progress?.Report(new RestoreProgress
                 {
                     Stage = "verifying",
                     Message = "Memverifikasi integritas…",
                 });
-                var actualSha = await ComputeSha256Async(tmpPath, ct).ConfigureAwait(false);
+                var actualSha = await ComputeSha256Async(downloadPath, ct).ConfigureAwait(false);
                 if (!string.Equals(actualSha, manifest.sha256, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new RestoreException(
                         "verifying",
                         $"SHA-256 mismatch: expected {manifest.sha256}, got {actualSha}");
+                }
+
+                // Step 5b: decompress (verified bytes -> .db temp file)
+                if (compressed)
+                {
+                    progress?.Report(new RestoreProgress
+                    {
+                        Stage = "decompressing",
+                        Message = "Membuka kemasan data…",
+                    });
+                    await DecompressAsync(downloadPath, tmpPath, ct).ConfigureAwait(false);
+                    SafeDelete(downloadPath);
+                    Emit("decompressing", null, null, null, null);
                 }
 
                 // Step 6: integrity_check
@@ -184,8 +213,11 @@ namespace Kasir.CloudSync.Restore
                         "DatabaseValidator: " + string.Join("; ", validation.Errors));
                 }
 
-                // Step 8: atomic swap
+                // Step 8: atomic swap. Fold any WAL written by the prepare/validate steps
+                // into the main file first: only the main file is moved, so rows left in
+                // "<tmp>-wal" (the seeded SM login, register_id) would otherwise be lost.
                 progress?.Report(new RestoreProgress { Stage = "swapping", Message = "Memasang database…" });
+                ConsolidateForMove(tmpPath);
                 AtomicSwap(tmpPath, targetPath);
 
                 // Step 9: rebuild FTS (best-effort)
@@ -197,17 +229,61 @@ namespace Kasir.CloudSync.Restore
             catch (OperationCanceledException)
             {
                 SafeDelete(tmpPath);
+                SafeDelete(downloadPath);
                 throw;
             }
             catch (Exception ex) when (!(ex is RestoreException))
             {
                 SafeDelete(tmpPath);
+                SafeDelete(downloadPath);
                 throw new RestoreException("downloading", ex.Message, ex);
             }
             finally
             {
                 SafeDelete(tmpPath); // no-op if already moved
+                SafeDelete(tmpPath + "-wal");
+                SafeDelete(tmpPath + "-shm");
+                SafeDelete(downloadPath);
             }
+        }
+
+        // Brotli -> plain .db. Corrupt/truncated data and a full disk become
+        // RestoreException("decompressing") so the UI can explain them.
+        internal static async Task DecompressAsync(string compressedPath, string dbPath, CancellationToken ct)
+        {
+            try
+            {
+                await SnapshotCompression.DecompressFileAsync(compressedPath, dbPath, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is InvalidDataException || ex is InvalidOperationException)
+            {
+                // BrotliStream reports corrupt input as InvalidOperationException
+                // ("Decoder ran into invalid data") and truncated input as InvalidDataException.
+                SafeDelete(dbPath);
+                throw new RestoreException("decompressing", "Snapshot data is corrupt (brotli): " + ex.Message, ex);
+            }
+            catch (IOException ex) when (IsDiskFull(ex))
+            {
+                SafeDelete(dbPath);
+                throw new RestoreException("decompressing", "Insufficient disk space while decompressing: " + ex.Message, ex);
+            }
+            catch (IOException ex)
+            {
+                SafeDelete(dbPath);
+                throw new RestoreException("decompressing", "Decompressing snapshot failed: " + ex.Message, ex);
+            }
+        }
+
+        // ERROR_DISK_FULL (0x70) / ERROR_HANDLE_DISK_FULL (0x27) on Windows, ENOSPC elsewhere.
+        private static bool IsDiskFull(IOException ex)
+        {
+            int code = ex.HResult & 0xFFFF;
+            return code == 0x70 || code == 0x27 || code == 28
+                || ex.Message.IndexOf("space", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         // ────────────────────────────────────────────────────────────────
@@ -244,14 +320,17 @@ namespace Kasir.CloudSync.Restore
             return manifest;
         }
 
-        internal static void CheckDiskSpace(string targetPath, long sizeBytes)
+        internal static long RequiredDiskBytes(long sizeBytes, bool compressed) =>
+            compressed ? sizeBytes * CompressedDiskSpaceMultiplier : sizeBytes * DiskSpaceSafetyMultiplier / 10;
+
+        internal static void CheckDiskSpace(string targetPath, long sizeBytes, bool compressed = false)
         {
             var dir = Path.GetDirectoryName(Path.GetFullPath(targetPath)) ?? ".";
             Directory.CreateDirectory(dir);
             try
             {
                 var di = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(dir)));
-                long needed = sizeBytes * DiskSpaceSafetyMultiplier / 10;
+                long needed = RequiredDiskBytes(sizeBytes, compressed);
                 if (di.AvailableFreeSpace < needed)
                 {
                     throw new RestoreException(
@@ -357,6 +436,30 @@ namespace Kasir.CloudSync.Restore
             if (!rd.Read() || rd.GetString(0) != "ok")
             {
                 throw new RestoreException("verifying", "PRAGMA integrity_check failed on downloaded snapshot");
+            }
+        }
+
+        // Checkpoints the WAL into the main file, switches the journal back to a single
+        // file and removes -wal/-shm siblings, so the database is complete in one file
+        // before it is moved. Pools are cleared first so no handle keeps the WAL alive.
+        internal static void ConsolidateForMove(string dbPath)
+        {
+            try
+            {
+                SqliteConnection.ClearAllPools();
+                using (var conn = new SqliteConnection($"Data Source={dbPath};Pooling=False"))
+                {
+                    conn.Open();
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;";
+                    cmd.ExecuteNonQuery();
+                }
+                SafeDelete(dbPath + "-wal");
+                SafeDelete(dbPath + "-shm");
+            }
+            catch (Exception ex)
+            {
+                throw new RestoreException("verifying", "Finalizing restored database failed: " + ex.Message, ex);
             }
         }
 

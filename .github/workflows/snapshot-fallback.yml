@@ -9,9 +9,12 @@
 #
 # The build itself is `Kasir.CloudSync --build-snapshot` (Program.cs ->
 # Snapshot/SnapshotPublisher.cs): reads the cloud mirror, writes a single-file
-# SQLite snapshot, uploads it to Storage bucket "snapshots" as
-# snapshot-{uuid}.db and inserts snapshot_metadata (storage_path
-# "snapshots/snapshot-{uuid}.db"), superseding older rows.
+# SQLite snapshot, Brotli-compresses it (~189 MB -> ~37 MB, under the 50 MB
+# free-plan Storage limit), uploads it to Storage bucket "snapshots" as
+# snapshot-{uuid}.db.br and inserts snapshot_metadata (storage_path
+# "snapshots/snapshot-{uuid}.db.br"; sha256/size_bytes = the compressed object),
+# superseding older rows. snapshot-download reports "encoding":"br" and the POS
+# restorer decompresses after verifying the download.
 #
 # Required GH secrets:
 #   SUPABASE_CONN_STRING      — Postgres URI, postgresql://user:pass@host:port/postgres

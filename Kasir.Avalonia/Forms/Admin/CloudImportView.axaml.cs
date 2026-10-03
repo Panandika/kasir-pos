@@ -126,6 +126,10 @@ public partial class CloudImportView : UserControl
                 {
                     SetStage("Memverifikasi integritas…", 87);
                 }
+                else if (p.Stage == "decompressing")
+                {
+                    SetStage("Membuka kemasan data…", 90);
+                }
                 else if (p.Stage == "swapping")
                 {
                     SetStage("Memasang database…", 95);

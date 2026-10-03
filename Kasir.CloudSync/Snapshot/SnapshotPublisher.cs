@@ -30,6 +30,10 @@ namespace Kasir.CloudSync.Snapshot
         // Fail before uploading a file larger than the project's Storage per-file
         // limit (Supabase free plan: 50 MB). 0 = no check. --max-upload-mb.
         public long MaxUploadBytes = 50L * 1024 * 1024;
+        // Brotli-compress before upload (default). --no-compress uploads the raw .db
+        // (only viable on a plan whose Storage file limit exceeds the raw size).
+        public bool Compress = true;
+        public int BrotliQuality = SnapshotCompression.DefaultQuality;
     }
 
     // Builds a snapshot from the cloud mirror (SnapshotBuilder), uploads it to the
@@ -38,9 +42,12 @@ namespace Kasir.CloudSync.Snapshot
     // hub-less path: run by the snapshot-fallback GitHub workflow (cron + manual).
     //
     // Contract (sinar-makmur-dashboard 0043_register_pairing.sql, snapshot-download):
-    //   bucket "snapshots", object "snapshot-{uuid}.db",
-    //   snapshot_metadata.storage_path = "snapshots/snapshot-{uuid}.db",
-    //   sha256 = lowercase hex, schema_version = SnapshotBuilder.SupportedSchemaVersion,
+    //   bucket "snapshots", object "snapshot-{uuid}.db.br" (Brotli) or "snapshot-{uuid}.db"
+    //   (--no-compress); snapshot_metadata.storage_path = "snapshots/<object>";
+    //   sha256 / size_bytes describe the UPLOADED object (the bytes a register downloads
+    //   and verifies), i.e. the compressed file when compressed;
+    //   snapshot-download reports "encoding":"br" from the ".db.br" suffix;
+    //   schema_version = SnapshotBuilder.SupportedSchemaVersion;
     //   latest non-superseded row is the one served.
     public static class SnapshotPublisher
     {
@@ -82,6 +89,13 @@ namespace Kasir.CloudSync.Snapshot
                         case "--process-pending": o.ProcessPending = true; break;
                         case "--request-id": o.RequestId = Next(ref i, args[i]); break;
                         case "--trigger": o.Trigger = Next(ref i, args[i]); break;
+                        case "--no-compress": o.Compress = false; break;
+                        case "--brotli-quality":
+                            var q = Next(ref i, args[i]);
+                            if (!int.TryParse(q, out var qv) || qv < 0 || qv > 11)
+                                throw new ArgumentException("--brotli-quality must be 0-11");
+                            o.BrotliQuality = qv;
+                            break;
                         case "--max-upload-mb":
                             var raw = Next(ref i, args[i]);
                             if (!long.TryParse(raw, out var mb) || mb < 0)
@@ -158,12 +172,13 @@ namespace Kasir.CloudSync.Snapshot
         // Contract helpers (pure; unit-tested)
         // ------------------------------------------------------------------
 
-        public static string ObjectKey(Guid id) => $"snapshot-{id}.db";
+        public static string ObjectKey(Guid id, bool compressed = true) =>
+            $"snapshot-{id}.db" + (compressed ? SnapshotCompression.BrotliSuffix : "");
 
-        public static string StoragePath(Guid id) => $"{Bucket}/{ObjectKey(id)}";
+        public static string StoragePath(Guid id, bool compressed = true) => $"{Bucket}/{ObjectKey(id, compressed)}";
 
-        public static string UploadUrl(string supabaseUrl, Guid id) =>
-            $"{supabaseUrl.TrimEnd('/')}/storage/v1/object/{Bucket}/{ObjectKey(id)}";
+        public static string UploadUrl(string supabaseUrl, Guid id, bool compressed = true) =>
+            $"{supabaseUrl.TrimEnd('/')}/storage/v1/object/{Bucket}/{ObjectKey(id, compressed)}";
 
         public static string MaxIdsJson(IReadOnlyDictionary<string, long> maxIds) =>
             JsonSerializer.Serialize(maxIds ?? new Dictionary<string, long>());
@@ -205,24 +220,43 @@ namespace Kasir.CloudSync.Snapshot
                 log($"built: {result.RowCount} rows, {result.SizeBytes} bytes, sha256 {result.Sha256} " +
                     $"({(DateTime.UtcNow - started).TotalSeconds:F0}s)");
 
+                // What gets uploaded: the Brotli file (default) or the raw .db.
+                string uploadPath = o.OutputPath;
+                long uploadSize = result.SizeBytes;
+                string uploadSha = result.Sha256;
+                if (o.Compress)
+                {
+                    var cStarted = DateTime.UtcNow;
+                    var c = SnapshotCompression.CompressFile(o.OutputPath, o.OutputPath + SnapshotCompression.BrotliSuffix,
+                        o.BrotliQuality, SnapshotCompression.DefaultWindow);
+                    uploadPath = c.Path;
+                    uploadSize = c.SizeBytes;
+                    uploadSha = c.Sha256;
+                    log($"compressed (brotli q{o.BrotliQuality} w{SnapshotCompression.DefaultWindow}): " +
+                        $"{result.SizeBytes} -> {c.SizeBytes} bytes " +
+                        $"({100.0 * c.SizeBytes / Math.Max(1, result.SizeBytes):F1}%), sha256 {c.Sha256} " +
+                        $"({(DateTime.UtcNow - cStarted).TotalSeconds:F0}s)");
+                }
+
                 if (!o.Upload)
                 {
                     log("--upload not set: snapshot left on disk, nothing published");
                     return 0;
                 }
 
-                if (o.MaxUploadBytes > 0 && result.SizeBytes > o.MaxUploadBytes)
+                if (o.MaxUploadBytes > 0 && uploadSize > o.MaxUploadBytes)
                 {
                     throw new InvalidOperationException(
-                        $"snapshot is {result.SizeBytes / 1048576} MB, over the Storage per-file limit of " +
-                        $"{o.MaxUploadBytes / 1048576} MB. Raise the project's Storage file size limit " +
-                        "(needs a paid plan above 50 MB) or ship the snapshot compressed; not uploading.");
+                        $"snapshot upload is {uploadSize / 1048576} MB{(o.Compress ? " (compressed)" : "")}, over the " +
+                        $"Storage per-file limit of {o.MaxUploadBytes / 1048576} MB. Raise the project's Storage file " +
+                        "size limit (needs a paid plan above 50 MB) and --max-upload-mb; not uploading.");
                 }
 
                 var id = Guid.NewGuid();
-                await UploadAsync(o.SupabaseUrl, o.ServiceRoleKey, id, o.OutputPath, log, ct).ConfigureAwait(false);
-                await RecordMetadataAsync(pg, id, result, o.Trigger, claimed, ct).ConfigureAwait(false);
-                log($"published snapshot {id} ({StoragePath(id)}), trigger={o.Trigger}");
+                await UploadAsync(o.SupabaseUrl, o.ServiceRoleKey, id, uploadPath, o.Compress, log, ct).ConfigureAwait(false);
+                await RecordMetadataAsync(pg, id, uploadSha, uploadSize, result.MaxIds, o.Compress, o.Trigger, claimed, ct)
+                    .ConfigureAwait(false);
+                log($"published snapshot {id} ({StoragePath(id, o.Compress)}), trigger={o.Trigger}");
                 return 0;
             }
             catch (Exception ex) when (claimed.Count > 0)
@@ -268,11 +302,11 @@ namespace Kasir.CloudSync.Snapshot
         }
 
         private static async Task UploadAsync(string supabaseUrl, string key, Guid id, string path,
-            Action<string> log, CancellationToken ct)
+            bool compressed, Action<string> log, CancellationToken ct)
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(15) };
             await using var fs = File.OpenRead(path);
-            using var req = new HttpRequestMessage(HttpMethod.Post, UploadUrl(supabaseUrl, id))
+            using var req = new HttpRequestMessage(HttpMethod.Post, UploadUrl(supabaseUrl, id, compressed))
             {
                 Content = new StreamContent(fs),
             };
@@ -281,7 +315,7 @@ namespace Kasir.CloudSync.Snapshot
             req.Headers.Add("apikey", key);
             req.Headers.Add("x-upsert", "true");
 
-            log($"uploading {fs.Length} bytes to storage {StoragePath(id)}");
+            log($"uploading {fs.Length} bytes to storage {StoragePath(id, compressed)}");
             using var resp = await http.SendAsync(req, ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode)
             {
@@ -296,8 +330,10 @@ namespace Kasir.CloudSync.Snapshot
             }
         }
 
+        // sha256 / sizeBytes describe the uploaded object (compressed when compressed).
         private static async Task RecordMetadataAsync(NpgsqlConnection pg, Guid id,
-            SnapshotBuilder.SnapshotResult result, string trigger, List<Guid> claimed, CancellationToken ct)
+            string sha256, long sizeBytes, IReadOnlyDictionary<string, long> maxIds, bool compressed,
+            string trigger, List<Guid> claimed, CancellationToken ct)
         {
             await using var tx = await pg.BeginTransactionAsync(ct).ConfigureAwait(false);
 
@@ -315,11 +351,11 @@ namespace Kasir.CloudSync.Snapshot
                   values (@id, now(), @sha, @size, @schema, @path, @maxIds::jsonb, false, @trigger)", pg, tx))
             {
                 ins.Parameters.AddWithValue("id", id);
-                ins.Parameters.AddWithValue("sha", result.Sha256);
-                ins.Parameters.AddWithValue("size", result.SizeBytes);
+                ins.Parameters.AddWithValue("sha", sha256);
+                ins.Parameters.AddWithValue("size", sizeBytes);
                 ins.Parameters.AddWithValue("schema", SnapshotBuilder.SupportedSchemaVersion);
-                ins.Parameters.AddWithValue("path", StoragePath(id));
-                ins.Parameters.AddWithValue("maxIds", MaxIdsJson(result.MaxIds));
+                ins.Parameters.AddWithValue("path", StoragePath(id, compressed));
+                ins.Parameters.AddWithValue("maxIds", MaxIdsJson(maxIds));
                 ins.Parameters.AddWithValue("trigger", trigger);
                 await ins.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             }

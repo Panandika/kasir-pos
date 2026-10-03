@@ -22,7 +22,8 @@ internal static class Program
     /// <summary>
     /// Bump in lockstep with $version in contracts.json. CI fails if mismatch.
     /// </summary>
-    private const int SupportedContractsVersion = 1;
+    // v2: snapshot-download 200 gained optional "encoding" ("br" | null).
+    private const int SupportedContractsVersion = 2;
 
     /// <summary>
     /// Functions the POS client expects to exist with documented shapes.
