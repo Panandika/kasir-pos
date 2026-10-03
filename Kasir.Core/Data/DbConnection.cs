@@ -234,7 +234,11 @@ namespace Kasir.Data
             }
         }
 
-        private static void SeedDefaultData(SqliteConnection conn)
+        // Seeds the data a register needs to be usable: roles, the default SM login,
+        // base config, the misc "Barang Tanpa Kode" product and counter prefixes.
+        // Idempotent (UPSERT roles, INSERT OR IGNORE the rest). Used for fresh installs
+        // and for cloud snapshots, which carry no users/roles/config/counters.
+        public static void SeedDefaultData(SqliteConnection conn)
         {
             using (var txn = conn.BeginTransaction())
             {
@@ -315,6 +319,51 @@ namespace Kasir.Data
 
                 txn.Commit();
             }
+        }
+
+        // Seeds defaults when the database has no active login or no roles (e.g. a cloud
+        // snapshot). Returns true when seeding ran, i.e. the default SM login now exists.
+        public static bool SeedDefaultsIfNoLogin(SqliteConnection conn)
+        {
+            long activeUsers, roles;
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT COUNT(*) FROM users WHERE is_active = 1";
+                activeUsers = (long)cmd.ExecuteScalar();
+                cmd.CommandText = "SELECT COUNT(*) FROM roles";
+                roles = (long)cmd.ExecuteScalar();
+            }
+            if (activeUsers > 0 && roles > 0) return false;
+            SeedDefaultData(conn);
+            return true;
+        }
+
+        // Writes config register_id (the "01" part of document numbers like
+        // KLR-01-2601-0001). Overwrites the NULL placeholder Schema.sql seeds.
+        public static void SetRegisterId(SqliteConnection conn, string registerId)
+        {
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"INSERT INTO config (key, value, description)
+                                    VALUES ('register_id', @reg, 'This register machine ID')
+                                    ON CONFLICT(key) DO UPDATE SET value = excluded.value";
+                cmd.Parameters.AddWithValue("@reg", registerId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        // Pairing returns the dashboard slot ("KLR-01"); config register_id stores only
+        // the number ("01"). Accepts either form; returns null when no digits are found.
+        public static string NormalizeRegisterId(string pairedRegisterId)
+        {
+            if (string.IsNullOrWhiteSpace(pairedRegisterId)) return null;
+            string s = pairedRegisterId.Trim();
+            int end = s.Length;
+            int start = end;
+            while (start > 0 && char.IsDigit(s[start - 1])) start--;
+            if (start == end) return null;
+            string digits = s.Substring(start, end - start);
+            return digits.Length == 1 ? "0" + digits : digits;
         }
 
         public static void CloseConnection()

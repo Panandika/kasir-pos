@@ -44,6 +44,9 @@ namespace Kasir.CloudSync.Restore
         public class RestoreException : Exception
         {
             public string Stage { get; }
+            public int? HttpStatus { get; private set; }
+            public string ServerCode { get; private set; } = "";
+            public string ServerMessage { get; private set; } = "";
             public RestoreException(string stage, string message) : base(message)
             {
                 Stage = stage;
@@ -53,6 +56,30 @@ namespace Kasir.CloudSync.Restore
             {
                 Stage = stage;
             }
+            public static RestoreException FromHttp(string stage, int status, string body)
+            {
+                var err = ServerError.Parse(body);
+                return new RestoreException(stage, $"snapshot-download {status}: {body}")
+                {
+                    HttpStatus = status,
+                    ServerCode = err.Code ?? "",
+                    ServerMessage = err.Message ?? "",
+                };
+            }
+            internal RestoreException WithStatus(int? status)
+            {
+                HttpStatus = status;
+                return this;
+            }
+        }
+
+        // Diagnostics hook: (step, endpoint, httpStatus, responseBody, exception).
+        // Endpoints are logged without query strings; never receives the JWT.
+        public Action<string, string, int?, string, Exception> OnEvent { get; set; }
+
+        private void Emit(string step, string endpoint, int? status, string body, Exception ex)
+        {
+            try { OnEvent?.Invoke(step, endpoint, status, body, ex); } catch { /* never break restore */ }
         }
 
         public class Manifest
@@ -76,12 +103,25 @@ namespace Kasir.CloudSync.Restore
             _http = http ?? new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
         }
 
-        public async Task RunAsync(
+        public class RestoreSummary
+        {
+            // True when the snapshot had no login and the default SM user + roles
+            // were seeded (operator must change the password).
+            public bool SeededDefaultLogin;
+            // config register_id written to the restored database ("01"), or null.
+            public string RegisterId;
+        }
+
+        // pairedRegisterId: slot from register-pair ("KLR-01"); written to config
+        // register_id so document numbers use this register's number.
+        public async Task<RestoreSummary> RunAsync(
             string jwt,
             string targetPath,
             IProgress<RestoreProgress> progress,
-            CancellationToken ct)
+            CancellationToken ct,
+            string pairedRegisterId = null)
         {
+            var summary = new RestoreSummary();
             if (string.IsNullOrEmpty(jwt)) throw new ArgumentException("jwt required", nameof(jwt));
             if (string.IsNullOrEmpty(targetPath))
                 throw new ArgumentException("targetPath required", nameof(targetPath));
@@ -129,6 +169,12 @@ namespace Kasir.CloudSync.Restore
                 // Step 6: integrity_check
                 RunIntegrityCheck(tmpPath);
 
+                // Step 6b: make the register usable. Snapshots carry no users/roles/
+                // config/counters (the cloud mirror has none), so seed the defaults and
+                // stamp this register's number. Must run before the validator, which
+                // rejects a database without an active user.
+                PrepareRestoredDatabase(tmpPath, pairedRegisterId, summary);
+
                 // Step 7: DatabaseValidator
                 var validation = DatabaseValidator.Validate(tmpPath, runIntegrityCheck: true);
                 if (!validation.IsValid)
@@ -146,6 +192,7 @@ namespace Kasir.CloudSync.Restore
                 TryRebuildFts(targetPath);
 
                 progress?.Report(new RestoreProgress { Stage = "done", Message = "Selesai" });
+                return summary;
             }
             catch (OperationCanceledException)
             {
@@ -170,13 +217,23 @@ namespace Kasir.CloudSync.Restore
             var url = new Uri(_supabaseUrl, "functions/v1/snapshot-download");
             using var req = new HttpRequestMessage(HttpMethod.Post, url);
             req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt);
-            var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
+            HttpResponseMessage resp;
+            try
+            {
+                resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
+            }
+            catch (HttpRequestException ex)
+            {
+                Emit("manifest", url.ToString(), null, null, ex);
+                throw new RestoreException("manifest", "snapshot-download unreachable: " + ex.Message, ex);
+            }
             if (!resp.IsSuccessStatusCode)
             {
                 var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-                throw new RestoreException("manifest",
-                    $"snapshot-download {(int)resp.StatusCode}: {body}");
+                Emit("manifest", url.ToString(), (int)resp.StatusCode, body, null);
+                throw RestoreException.FromHttp("manifest", (int)resp.StatusCode, body);
             }
+            Emit("manifest", url.ToString(), (int)resp.StatusCode, null, null);
             var manifest = await resp.Content.ReadFromJsonAsync<Manifest>(cancellationToken: ct)
                 .ConfigureAwait(false);
             if (manifest == null || string.IsNullOrEmpty(manifest.signed_url) ||
@@ -219,7 +276,13 @@ namespace Kasir.CloudSync.Restore
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
             using var resp = await _http.SendAsync(
                 req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-            resp.EnsureSuccessStatusCode();
+            Emit("downloading", url, (int)resp.StatusCode, null, null);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                Emit("downloading", url, (int)resp.StatusCode, body, null);
+                throw RestoreException.FromHttp("downloading", (int)resp.StatusCode, body);
+            }
 
             using var src = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
             using var dst = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None);
@@ -260,6 +323,28 @@ namespace Kasir.CloudSync.Restore
             var sb = new StringBuilder(hash.Length * 2);
             foreach (var b in hash) sb.Append(b.ToString("x2"));
             return sb.ToString();
+        }
+
+        internal static void PrepareRestoredDatabase(string dbPath, string pairedRegisterId, RestoreSummary summary)
+        {
+            try
+            {
+                // Pooling off: the file is moved right after, which fails on Windows if a
+                // pooled handle keeps it open.
+                using var conn = new SqliteConnection($"Data Source={dbPath};Pooling=False");
+                conn.Open();
+                summary.SeededDefaultLogin = DbConnection.SeedDefaultsIfNoLogin(conn);
+                string reg = DbConnection.NormalizeRegisterId(pairedRegisterId);
+                if (reg != null)
+                {
+                    DbConnection.SetRegisterId(conn, reg);
+                    summary.RegisterId = reg;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new RestoreException("verifying", "Preparing restored database failed: " + ex.Message, ex);
+            }
         }
 
         private static void RunIntegrityCheck(string dbPath)

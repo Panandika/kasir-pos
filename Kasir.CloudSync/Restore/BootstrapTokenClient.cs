@@ -42,14 +42,39 @@ namespace Kasir.CloudSync.Restore
         public class PairException : Exception
         {
             public HttpStatusCode StatusCode { get; }
+            // Our function's "error" value, or the Supabase gateway's "code"
+            // (e.g. UNAUTHORIZED_NO_AUTH_HEADER). "http_<status>" when the body has neither.
             public string ErrorCode { get; }
+            public string ServerMessage { get; }
             public PairException(HttpStatusCode status, string errorCode, string message)
-                : base(message)
+                : this(status, errorCode, message, null, null)
+            { }
+            public PairException(HttpStatusCode status, string errorCode, string message,
+                string serverMessage, Exception inner)
+                : base(message, inner)
             {
                 StatusCode = status;
                 ErrorCode = errorCode;
+                ServerMessage = serverMessage ?? "";
             }
         }
+
+        // One HTTP call (or network failure) during pairing, for diagnostics logging.
+        // Never contains the pair code; Body is only set for non-2xx responses.
+        public class PairAttempt
+        {
+            public int Attempt;
+            public string Endpoint;
+            public int? HttpStatus;
+            public string Body;
+            public Exception Exception;
+            public string DeviceFingerprint;
+        }
+
+        public Action<PairAttempt> OnAttempt { get; set; }
+
+        public string Endpoint => _endpoint.ToString();
+        public string DeviceFingerprint => _fingerprint;
 
         private readonly HttpClient _http;
         private readonly Uri _endpoint;
@@ -87,6 +112,7 @@ namespace Kasir.CloudSync.Restore
             int attempt = 0;
             Exception lastErr = null;
             HttpResponseMessage lastResponse = null;
+            string lastBody = null;
             while (attempt < 3)
             {
                 attempt++;
@@ -98,6 +124,7 @@ namespace Kasir.CloudSync.Restore
                     var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
                     if ((int)resp.StatusCode >= 200 && (int)resp.StatusCode < 300)
                     {
+                        Report(attempt, (int)resp.StatusCode, null, null);
                         var result = await resp.Content
                             .ReadFromJsonAsync<PairResponseDto>(cancellationToken: ct)
                             .ConfigureAwait(false);
@@ -109,30 +136,64 @@ namespace Kasir.CloudSync.Restore
                             SnapshotAvailable = result.snapshot_available,
                         };
                     }
+                    var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                    Report(attempt, (int)resp.StatusCode, body, null);
                     if ((int)resp.StatusCode >= 500)
                     {
                         lastResponse = resp;
+                        lastBody = body;
                         await DelayBackoffAsync(attempt, ct).ConfigureAwait(false);
                         continue;
                     }
-                    // 4xx: don't retry. Read body, throw.
-                    var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-                    throw new PairException(resp.StatusCode, ExtractErrorCode(body), body);
+                    // 4xx: don't retry. Throw with the parsed server error.
+                    var err = ServerError.Parse(body);
+                    throw new PairException(resp.StatusCode, ErrorCodeOrStatus(err, resp.StatusCode), body,
+                        err.Message, null);
                 }
                 catch (HttpRequestException ex)
                 {
+                    Report(attempt, null, null, ex);
                     lastErr = ex;
                     await DelayBackoffAsync(attempt, ct).ConfigureAwait(false);
                 }
-                catch (TaskCanceledException)
+                catch (TaskCanceledException ex)
                 {
+                    Report(attempt, null, null, ex);
                     throw; // honor cancellation / timeout
                 }
             }
+            var lastErrBody = ServerError.Parse(lastBody);
             throw new PairException(
                 lastResponse?.StatusCode ?? HttpStatusCode.ServiceUnavailable,
                 "retries_exhausted",
-                "register-pair failed after retries: " + (lastErr?.Message ?? "5xx"));
+                "register-pair failed after retries: " + (lastErr?.Message ?? "5xx " + lastBody),
+                lastErr?.Message ?? lastErrBody.Message,
+                lastErr);
+        }
+
+        private void Report(int attempt, int? status, string body, Exception ex)
+        {
+            try
+            {
+                OnAttempt?.Invoke(new PairAttempt
+                {
+                    Attempt = attempt,
+                    Endpoint = Endpoint,
+                    HttpStatus = status,
+                    Body = body,
+                    Exception = ex,
+                    DeviceFingerprint = _fingerprint,
+                });
+            }
+            catch
+            {
+                // Diagnostics hook must never break pairing.
+            }
+        }
+
+        internal static string ErrorCodeOrStatus(ServerError err, HttpStatusCode status)
+        {
+            return string.IsNullOrEmpty(err.Code) ? "http_" + (int)status : err.Code;
         }
 
         private static Task DelayBackoffAsync(int attempt, CancellationToken ct)
@@ -140,18 +201,6 @@ namespace Kasir.CloudSync.Restore
             // 250ms, 1s, 4s
             int ms = (int)Math.Pow(4, attempt - 1) * 250;
             return Task.Delay(ms, ct);
-        }
-
-        private static string ExtractErrorCode(string body)
-        {
-            // Best-effort: response body is `{"error":"code_format_invalid", ...}`
-            if (string.IsNullOrWhiteSpace(body)) return "unknown";
-            const string marker = "\"error\":\"";
-            int i = body.IndexOf(marker, StringComparison.Ordinal);
-            if (i < 0) return "unknown";
-            int start = i + marker.Length;
-            int end = body.IndexOf('"', start);
-            return end > start ? body.Substring(start, end - start) : "unknown";
         }
 
         // ─────────────────────────────────────────────────────────────

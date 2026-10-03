@@ -66,6 +66,26 @@ namespace Kasir.Help.Auth
         }
 
         /// <summary>
+        /// Reads one optional string key (e.g. "DashboardUrl") from the same help.json
+        /// TryLoad uses. Returns null when the file or key is missing. NEVER throws.
+        /// </summary>
+        public static string? TryReadOptional(string key)
+        {
+            try
+            {
+                string? path = ResolveExistingPath();
+                if (path is null) return null;
+                using var doc = JsonDocument.Parse(File.ReadAllText(path));
+                string value = ReadString(doc.RootElement, key);
+                return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// %APPDATA%\Kasir\help.json on Windows; ~/.kasir/help.json otherwise.
         /// This is the OPERATOR OVERRIDE path — wins over the baked-in copy if present.
         /// </summary>

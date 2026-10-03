@@ -3,67 +3,149 @@
              x:Class="Kasir.Avalonia.Forms.Admin.CloudImportView"
              Background="{DynamicResource Bg0Brush}">
   <DockPanel>
-    <Panel DockPanel.Dock="Bottom" Height="50" Background="{DynamicResource Bg1Brush}">
+    <Panel DockPanel.Dock="Bottom" MinHeight="36" Background="{DynamicResource Bg1Brush}">
       <TextBlock x:Name="LblStatus"
                  Foreground="{DynamicResource FgSecondaryBrush}"
                  FontFamily="{DynamicResource JetBrainsMonoFont}"
                  FontSize="12"
                  TextWrapping="Wrap"
-                 Margin="16,4" />
+                 VerticalAlignment="Center"
+                 Margin="16,6" />
     </Panel>
-    <StackPanel HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Width="500"
-                Spacing="14">
-      <TextBlock Text="Daftarkan register dari cloud"
-                 FontSize="18"
-                 Foreground="{DynamicResource FgPrimaryBrush}"
-                 FontFamily="{DynamicResource JetBrainsMonoFont}"
-                 HorizontalAlignment="Center" />
 
-      <TextBlock Text="Masukkan 6 digit kode pairing dari dashboard:"
-                 Foreground="{DynamicResource FgSecondaryBrush}"
-                 FontFamily="{DynamicResource JetBrainsMonoFont}"
-                 FontSize="13"
-                 HorizontalAlignment="Center" />
-
-      <TextBox x:Name="TxtCode"
-               MaxLength="6"
-               Width="240"
-               FontSize="32"
-               FontFamily="{DynamicResource JetBrainsMonoFont}"
-               TextAlignment="Center"
-               HorizontalAlignment="Center"
-               LetterSpacing="6"
-               PlaceholderText="••••••" />
-
-      <StackPanel x:Name="PnlProgress" Spacing="8" IsVisible="False">
-        <ProgressBar x:Name="PbDownload" Minimum="0" Maximum="100" Height="6" />
-        <TextBlock x:Name="LblStage"
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <StackPanel HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  MaxWidth="720"
+                  Margin="24,20"
+                  Spacing="14">
+        <TextBlock Text="Daftarkan register dari cloud"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
                    FontFamily="{DynamicResource JetBrainsMonoFont}"
-                   FontSize="12"
-                   Foreground="{DynamicResource FgSecondaryBrush}"
                    HorizontalAlignment="Center" />
-      </StackPanel>
 
-      <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
-        <Button x:Name="BtnSubmit"
-                Content="Lanjutkan"
-                Width="160"
-                Height="40"
-                Background="{DynamicResource BgSelectedBrush}"
-                Foreground="{DynamicResource FgPrimaryBrush}"
-                FontSize="13"
-                FontFamily="{DynamicResource JetBrainsMonoFont}" />
-        <Button x:Name="BtnCancel"
-                Content="Batal"
-                Width="120"
-                Height="40"
-                Background="{DynamicResource AccentBgBrush}"
-                Foreground="{DynamicResource DangerBrush}"
-                FontSize="13"
-                FontFamily="{DynamicResource JetBrainsMonoFont}" />
+        <!-- Step-by-step: where the 6-digit code comes from -->
+        <Border Background="{DynamicResource Bg1Brush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16,12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Cara mendapatkan kode pairing:"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Foreground="{DynamicResource FgPrimaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" />
+            <TextBlock x:Name="LblStep1"
+                       Text="1. Buka dashboard toko di browser (HP atau komputer lain)."
+                       TextWrapping="Wrap" FontSize="13"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" />
+            <TextBlock Text="2. Login dengan akun Pemilik (akun lain tidak bisa melihat halaman Register)."
+                       TextWrapping="Wrap" FontSize="13"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" />
+            <TextBlock x:Name="LblStep3"
+                       Text="3. Buka menu Pemilik → Register (alamat berakhiran /admin/registers)."
+                       TextWrapping="Wrap" FontSize="13"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" />
+            <TextBlock Text="4. (Disarankan) Klik &quot;Bangun snapshot sekarang&quot; dan tunggu sampai selesai, agar data yang diunduh paling baru."
+                       TextWrapping="Wrap" FontSize="13"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" />
+            <TextBlock Text="5. Klik &quot;Daftarkan register baru&quot;, lalu pilih nomor register untuk PC ini (KLR-01 / KLR-02 / KLR-03). Jangan pilih nomor yang sudah dipakai PC lain."
+                       TextWrapping="Wrap" FontSize="13"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" />
+            <TextBlock Text="6. Klik &quot;Buat kode&quot;. Ketik 6 digit kode yang muncul di kotak di bawah ini dalam 10 menit, lalu tekan Enter atau Lanjutkan."
+                       TextWrapping="Wrap" FontSize="13"
+                       Foreground="{DynamicResource FgSecondaryBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="Kode pairing (6 digit):"
+                   Foreground="{DynamicResource FgSecondaryBrush}"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}"
+                   FontSize="13"
+                   HorizontalAlignment="Center" />
+
+        <!-- Sized for 6 digits at 32pt + letter spacing without clipping. -->
+        <TextBox x:Name="TxtCode"
+                 MaxLength="6"
+                 Width="340"
+                 MinHeight="68"
+                 Padding="16,8"
+                 FontSize="32"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 TextAlignment="Center"
+                 VerticalContentAlignment="Center"
+                 HorizontalAlignment="Center"
+                 LetterSpacing="8"
+                 PlaceholderText="••••••" />
+
+        <StackPanel x:Name="PnlProgress" Spacing="8" IsVisible="False">
+          <ProgressBar x:Name="PbDownload" Minimum="0" Maximum="100" Height="6" />
+          <TextBlock x:Name="LblStage"
+                     FontFamily="{DynamicResource JetBrainsMonoFont}"
+                     FontSize="12"
+                     Foreground="{DynamicResource FgSecondaryBrush}"
+                     HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+          <Button x:Name="BtnSubmit"
+                  Content="Lanjutkan"
+                  Width="160"
+                  Height="40"
+                  Background="{DynamicResource BgSelectedBrush}"
+                  Foreground="{DynamicResource FgPrimaryBrush}"
+                  FontSize="13"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}" />
+          <Button x:Name="BtnCancel"
+                  Content="Batal"
+                  Width="120"
+                  Height="40"
+                  Background="{DynamicResource AccentBgBrush}"
+                  Foreground="{DynamicResource DangerBrush}"
+                  FontSize="13"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}" />
+        </StackPanel>
+
+        <!-- Success: register number + default login (if seeded) + change-password warning. -->
+        <Border x:Name="PnlSuccess"
+                IsVisible="False"
+                Background="{DynamicResource Bg1Brush}"
+                BorderBrush="{DynamicResource BgSelectedBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16,12">
+          <SelectableTextBlock x:Name="TxtSuccess"
+                               TextWrapping="Wrap"
+                               FontSize="13"
+                               Foreground="{DynamicResource FgPrimaryBrush}"
+                               FontFamily="{DynamicResource JetBrainsMonoFont}" />
+        </Border>
+
+        <!-- Failure details: what happened, why, what to do, technical detail + log path.
+             Selectable so the operator can copy it to support. -->
+        <Border x:Name="PnlError"
+                IsVisible="False"
+                Background="{DynamicResource Bg1Brush}"
+                BorderBrush="{DynamicResource DangerBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16,12">
+          <SelectableTextBlock x:Name="TxtError"
+                               TextWrapping="Wrap"
+                               FontSize="13"
+                               Foreground="{DynamicResource FgPrimaryBrush}"
+                               FontFamily="{DynamicResource JetBrainsMonoFont}" />
+        </Border>
       </StackPanel>
-    </StackPanel>
+    </ScrollViewer>
   </DockPanel>
 </UserControl>
