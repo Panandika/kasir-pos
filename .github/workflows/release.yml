@@ -47,32 +47,30 @@ jobs:
     - name: Publish win-x64 self-contained
       run: dotnet publish Kasir.Avalonia/Kasir.Avalonia.csproj -c Release -r win-x64 --self-contained -o publish/win-x64-${{ matrix.register }}
 
-    - name: Write help.json (per-register machine credentials)
+    - name: Write help.json (public config only)
       shell: pwsh
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        MACHINE_EMAIL: ${{ secrets[format('REGISTER_{0}_EMAIL', matrix.register)] }}
-        MACHINE_PASSWORD: ${{ secrets[format('REGISTER_{0}_PASSWORD', matrix.register)] }}
+        # Optional: shown on the cloud-import screen ("Buka dashboard toko di ...").
+        DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
       run: |
         $releaseDir = "publish/win-x64-${{ matrix.register }}"
-        if ([string]::IsNullOrEmpty($env:MACHINE_EMAIL) -or [string]::IsNullOrEmpty($env:MACHINE_PASSWORD)) {
-          Write-Error "Missing REGISTER_${{ matrix.register }}_EMAIL or PASSWORD secret"
-          exit 1
+        # This repo and its releases are PUBLIC: help.json must carry only public
+        # values (server URL, anon key, store/register ids). The register's Bantuan
+        # machine login (email + password) is NOT shipped here anymore; it is issued
+        # by the register-pair Edge Function during "Daftarkan dari cloud" and stored
+        # encrypted on the PC (Kasir.Core/Help/Auth/MachineCredentialStore.cs).
+        $helpConfig = [ordered]@{
+          SupabaseUrl = $env:SUPABASE_URL
+          AnonKey     = $env:SUPABASE_ANON_KEY
+          StoreId     = "sinar-makmur"
+          RegisterId  = "${{ matrix.register }}"
         }
-        $helpConfig = @{
-          SupabaseUrl     = $env:SUPABASE_URL
-          AnonKey         = $env:SUPABASE_ANON_KEY
-          MachineEmail    = $env:MACHINE_EMAIL
-          MachinePassword = $env:MACHINE_PASSWORD
-          StoreId         = "sinar-makmur"
-          RegisterId      = "${{ matrix.register }}"
-        }
+        if (-not [string]::IsNullOrEmpty($env:DASHBOARD_URL)) { $helpConfig.DashboardUrl = $env:DASHBOARD_URL }
         $json = $helpConfig | ConvertTo-Json -Depth 3
-        # Drop into the publish dir; the installer copies this to %APPDATA%\Kasir\help.json on first run.
-        # Keeping it next to Kasir.Avalonia.exe avoids needing extra installer logic.
         [System.IO.File]::WriteAllText("$releaseDir/help.json", $json, [System.Text.Encoding]::UTF8)
-        Write-Host "help.json written for register ${{ matrix.register }} (email: $env:MACHINE_EMAIL)"
+        Write-Host "help.json written for register ${{ matrix.register }} (public fields only)"
 
     - name: Prepare release directory
       shell: pwsh

@@ -21,13 +21,19 @@ namespace Kasir.Help.Auth
     public static class HelpConfigLoader
     {
         /// <summary>
-        /// Load HelpConfig from disk. Returns null when the file is missing,
+        /// Load HelpConfig. Returns null when anything required is missing,
         /// unreadable, or malformed. NEVER throws — caller treats null as
         /// "Bantuan operates in offline-only mode" (graceful degradation).
         ///
-        /// Search order:
+        /// Public fields (SupabaseUrl, AnonKey, StoreId, RegisterId) come from help.json:
         ///   1. %APPDATA%\Kasir\help.json (or ~/.kasir/help.json on non-Windows) — operator override
-        ///   2. {exe directory}/help.json — per-register baked into release ZIP
+        ///   2. {exe directory}/help.json — baked into the release ZIP
+        ///
+        /// Machine login (email + password):
+        ///   1. <see cref="MachineCredentialStore"/> — received from cloud pairing (preferred).
+        ///   2. MachineEmail/MachinePassword in help.json — older release zips only.
+        ///      New zips no longer carry them (they were public), so a fresh install
+        ///      gets Bantuan cloud features after "Daftarkan dari cloud".
         /// </summary>
         public static HelpConfig? TryLoad()
         {
@@ -42,17 +48,31 @@ namespace Kasir.Help.Auth
 
                 string supabaseUrl = ReadString(root, "SupabaseUrl");
                 string anonKey = ReadString(root, "AnonKey");
-                string machineEmail = ReadString(root, "MachineEmail");
-                string machinePassword = ReadString(root, "MachinePassword");
                 string storeId = ReadStringOrDefault(root, "StoreId", "");
                 string registerId = ReadStringOrDefault(root, "RegisterId", "");
+
+                string machineEmail;
+                string machinePassword;
+                var paired = MachineCredentialStore.TryLoad();
+                if (paired != null)
+                {
+                    machineEmail = paired.Email;
+                    machinePassword = paired.Password;
+                    if (!string.IsNullOrWhiteSpace(paired.StoreId)) storeId = paired.StoreId;
+                    if (!string.IsNullOrWhiteSpace(paired.RegisterId)) registerId = paired.RegisterId;
+                }
+                else
+                {
+                    machineEmail = ReadString(root, "MachineEmail");
+                    machinePassword = ReadString(root, "MachinePassword");
+                }
 
                 if (string.IsNullOrWhiteSpace(supabaseUrl)
                     || string.IsNullOrWhiteSpace(anonKey)
                     || string.IsNullOrWhiteSpace(machineEmail)
                     || string.IsNullOrWhiteSpace(machinePassword))
                 {
-                    Console.Error.WriteLine("[HelpConfig] missing required field(s) in help.json");
+                    Console.Error.WriteLine("[HelpConfig] missing required field(s): server config in help.json or machine login (pair this register via 'Daftarkan dari cloud')");
                     return null;
                 }
 
@@ -101,9 +121,9 @@ namespace Kasir.Help.Auth
         }
 
         /// <summary>
-        /// Path next to the running executable. Used by the release ZIP build —
-        /// release.yml writes per-register help.json into the publish dir so each
-        /// register's binary ships with its own machine credentials.
+        /// Path next to the running executable. release.yml writes help.json into
+        /// the publish dir with PUBLIC fields only (server URL, anon key, store id);
+        /// machine credentials arrive via cloud pairing (MachineCredentialStore).
         /// </summary>
         public static string ResolveExePath()
         {
@@ -113,8 +133,13 @@ namespace Kasir.Help.Auth
         /// <summary>
         /// Returns the first existing path from the search order, or null.
         /// </summary>
+        /// <summary>Test hook: when set, help.json is read only from this path.</summary>
+        public static string? HelpJsonPathOverride { get; set; }
+
         private static string? ResolveExistingPath()
         {
+            if (!string.IsNullOrEmpty(HelpJsonPathOverride))
+                return File.Exists(HelpJsonPathOverride) ? HelpJsonPathOverride : null;
             string overridePath = ResolvePath();
             if (File.Exists(overridePath)) return overridePath;
             string exePath = ResolveExePath();
