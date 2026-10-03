@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- Icon embedded in Kasir.Avalonia.exe (Explorer, taskbar, desktop shortcut). -->
+    <ApplicationIcon>Assets\kasir.ico</ApplicationIcon>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
