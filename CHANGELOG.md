@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.2](https://github.com/Panandika/kasir-pos/compare/v2.9.1...v2.9.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* never create kasir.db before first-run; self-heal stray empty db ([#78](https://github.com/Panandika/kasir-pos/issues/78)) ([d7b3738](https://github.com/Panandika/kasir-pos/commit/d7b3738a96ee2e46e18ffe552dea4090cc986bbf))
+
 ## [2.9.1](https://github.com/Panandika/kasir-pos/compare/v2.9.0...v2.9.1) (2026-10-03)
 
 
