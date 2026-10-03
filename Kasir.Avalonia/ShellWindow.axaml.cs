@@ -56,6 +56,14 @@ public partial class ShellWindow : Window
         OverlayHost.Content = null;
     }
 
+    // The "Ctrl+/ Bantuan" badge in the header used to be a hint only; clicking it
+    // now does the same as the shortcut.
+    private void OnBantuanHintPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Forms.Help.BantuanOverlayHost.Current.Toggle(this);
+        e.Handled = true;
+    }
+
     private void OnThemeTogglePressed(object? sender, RoutedEventArgs e)
     {
         ThemeService.Current.Toggle();

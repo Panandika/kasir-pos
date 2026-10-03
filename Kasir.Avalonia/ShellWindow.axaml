@@ -97,7 +97,9 @@
                 CornerRadius="999"
                 Padding="8,2"
                 VerticalAlignment="Center"
-                ToolTip.Tip="Tekan Ctrl+/ untuk buka Bantuan dari mana saja">
+                Cursor="Hand"
+                PointerPressed="OnBantuanHintPressed"
+                ToolTip.Tip="Klik di sini atau tekan Ctrl+/ untuk buka Bantuan dari mana saja">
           <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
             <lucide:LucideIcon Kind="LifeBuoy" Size="10"
                                Foreground="{DynamicResource BrandBrush}"/>
