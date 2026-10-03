@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.9.1](https://github.com/Panandika/kasir-pos/compare/v2.9.0...v2.9.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **update:** accurate connection errors and cashier-friendly release notes ([73db1dc](https://github.com/Panandika/kasir-pos/commit/73db1dcbdd72d5d05da74fb9c1d3c2df47af4c99))
+* **update:** accurate connection errors and cashier-friendly release notes ([51a26c8](https://github.com/Panandika/kasir-pos/commit/51a26c83ab6c6b8e517caa54a374dfa2eb2b90d4))
+
 ## [2.9.0](https://github.com/Panandika/kasir-pos/compare/v2.8.0...v2.9.0) (2026-10-03)
 
 
