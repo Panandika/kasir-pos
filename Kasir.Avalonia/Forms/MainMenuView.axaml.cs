@@ -401,6 +401,9 @@ public partial class MainMenuView : UserControl, INavigationAware
     {
         try
         {
+            // Opt-in toast after login (config update_auto_check=true). The footer badge
+            // (UpdateStatusModel) still checks GitHub daily regardless.
+            if (!string.Equals(_configRepo.Get("update_auto_check"), "true", StringComparison.OrdinalIgnoreCase)) return;
             var svc = new UpdateService(DbConnection.GetConnection());
             var result = await svc.CheckForUpdateAsync();
             if (!result.Available || string.IsNullOrEmpty(result.NewVersion)) return;

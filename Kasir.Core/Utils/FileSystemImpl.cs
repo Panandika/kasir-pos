@@ -19,6 +19,11 @@ namespace Kasir.Utils
             return File.ReadAllText(path);
         }
 
+        public byte[] ReadAllBytes(string path)
+        {
+            return File.ReadAllBytes(path);
+        }
+
         public string[] GetFiles(string path, string pattern, bool recurse)
         {
             return Directory.GetFiles(path, pattern,

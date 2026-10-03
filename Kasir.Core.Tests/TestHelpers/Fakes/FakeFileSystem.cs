@@ -54,6 +54,11 @@ namespace Kasir.Tests.TestHelpers.Fakes
             throw new FileNotFoundException("File not found: " + path);
         }
 
+        public byte[] ReadAllBytes(string path)
+        {
+            return System.Text.Encoding.UTF8.GetBytes(ReadAllText(path));
+        }
+
         public string[] GetFiles(string path, string pattern, bool recurse)
         {
             string normalDir = NormalizePath(path);

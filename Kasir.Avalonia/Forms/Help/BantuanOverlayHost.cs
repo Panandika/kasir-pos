@@ -39,7 +39,7 @@ public sealed class BantuanOverlayHost
     public string StoreShort { get; set; } = "SM";
     public string RegisterId { get; set; } = "01";
     public string CashierId { get; set; } = "?";
-    public string AppVersion { get; set; } = "0.0.0";
+    public string AppVersion { get; set; } = Kasir.Utils.AppVersion.Current;
 
     public string LastInvoice { get; set; } = "";
     public string LastError { get; set; } = "";

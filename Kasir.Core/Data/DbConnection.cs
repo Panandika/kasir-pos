@@ -282,7 +282,6 @@ namespace Kasir.Data
                         ('sync_role', 'hub', 'Sync role: hub or slave'),
                         ('sync_hub_share', '\\\\KASIR01\\kasir\\sync', 'UNC path to sync share'),
                         ('sync_hmac_key', @hmacKey, 'HMAC-SHA256 key for sync and update signing'),
-                        ('update_share', '\\\\KASIR01\\kasir\\updates\\latest', 'UNC path to update share'),
                         ('update_auto_check', 'false', 'Auto-check for updates after login'),
                         ('last_update_check', '', 'Timestamp of last update check');";
                     cmd.Parameters.AddWithValue("@hmacKey", hmacKey);
