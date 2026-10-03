@@ -82,11 +82,14 @@ namespace Kasir.CloudSync.Snapshot
                     // Postgres int -> int (Microsoft.Data.Sqlite stores in INTEGER).
                     // Some columns may come back as long via Npgsql when Postgres widened
                     // them; fall through to safe widening.
+                    // Read by the actual Postgres type: GetInt32 on a bigint value above
+                    // int.MaxValue throws OverflowException (not InvalidCastException).
+                    if (reader.GetFieldType(ordinal) == typeof(long)) return reader.GetInt64(ordinal);
                     try
                     {
                         return reader.GetInt32(ordinal);
                     }
-                    catch (InvalidCastException)
+                    catch (Exception ex) when (ex is InvalidCastException || ex is OverflowException)
                     {
                         return reader.GetInt64(ordinal);
                     }

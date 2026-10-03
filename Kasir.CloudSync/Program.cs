@@ -24,6 +24,10 @@ namespace Kasir.CloudSync
                 {
                     return await RunInitialLoadAsync(args).ConfigureAwait(false);
                 }
+                if (args[i] == "--build-snapshot")
+                {
+                    return await RunBuildSnapshotAsync(args).ConfigureAwait(false);
+                }
             }
 
             using var host = Host.CreateDefaultBuilder(args)
@@ -115,6 +119,36 @@ namespace Kasir.CloudSync
             };
             var result = await loader.RunAsync(CancellationToken.None).ConfigureAwait(false);
             return result.Mismatches == 0 ? 0 : 1;
+        }
+
+        // --build-snapshot: build a register snapshot from the cloud mirror and (with
+        // --upload / --process-pending) publish it to Storage + snapshot_metadata.
+        // Used by .github/workflows/snapshot-fallback.yml when no in-store hub exists.
+        internal static async Task<int> RunBuildSnapshotAsync(string[] args)
+        {
+            var opts = Snapshot.SnapshotPublisher.ParseArgs(args, Environment.GetEnvironmentVariable, out var error);
+            if (opts == null)
+            {
+                await Console.Error.WriteLineAsync("--build-snapshot: " + error).ConfigureAwait(false);
+                await Console.Error.WriteLineAsync(
+                    "usage: --build-snapshot --connection-string <pg> [--output <path>] " +
+                    "[--upload --supabase-url <url> --service-role-key <key>] " +
+                    "[--process-pending | --request-id <uuid>] [--trigger manual|auto_stale|gha_fallback] " +
+                    "[--max-upload-mb <n> (default 50, 0 = no limit)]")
+                    .ConfigureAwait(false);
+                return 64; // EX_USAGE
+            }
+
+            void Log(string m) => Console.WriteLine($"{DateTime.UtcNow:HH:mm:ss} [snapshot] {m}");
+            try
+            {
+                return await Snapshot.SnapshotPublisher.RunAsync(opts, Log, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"{DateTime.UtcNow:HH:mm:ss} [snapshot] FATAL: {ex}").ConfigureAwait(false);
+                return 1;
+            }
         }
 
         private static bool HasFlag(string[] args, string flag)
