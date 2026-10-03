@@ -210,13 +210,24 @@ namespace Kasir.CloudSync.Restore
                     return e;
                 case "downloading":
                     e.Title = "Unduhan snapshot gagal.";
-                    e.Cause = "Koneksi terputus atau terlalu lambat saat mengunduh data (sekitar 50 MB).";
+                    e.Cause = "Koneksi terputus atau terlalu lambat saat mengunduh data (sekitar 40 MB).";
                     e.Action = "Pastikan internet stabil, lalu coba lagi dengan kode baru.";
                     return e;
                 case "manifest" when message != null && message.StartsWith("Insufficient disk space", StringComparison.Ordinal):
+                case "decompressing" when message != null && message.StartsWith("Insufficient disk space", StringComparison.Ordinal):
                     e.Title = "Ruang disk tidak cukup.";
-                    e.Cause = "Butuh ruang kosong sekitar 1,1× ukuran snapshot.";
+                    e.Cause = "Data diunduh dalam bentuk terkompresi lalu dibuka; butuh ruang kosong sekitar 300 MB di drive aplikasi POS.";
                     e.Action = "Kosongkan ruang di drive aplikasi POS, lalu coba lagi.";
+                    return e;
+                case "decompressing":
+                    e.Title = "File snapshot tidak bisa dibuka.";
+                    e.Cause = "Data terkompresi yang diunduh rusak atau tidak lengkap, walaupun lolos pemeriksaan unduhan.";
+                    e.Action = "Coba lagi dengan kode baru. Jika berulang, minta admin membangun ulang snapshot (Bangun snapshot sekarang).";
+                    return e;
+                case "manifest" when message != null && message.StartsWith("Unsupported snapshot encoding", StringComparison.Ordinal):
+                    e.Title = "Format snapshot tidak dikenal aplikasi ini.";
+                    e.Cause = "Server mengirim snapshot dengan format kompresi yang lebih baru.";
+                    e.Action = "Perbarui aplikasi POS ke versi terbaru, lalu coba lagi.";
                     return e;
             }
 

@@ -134,7 +134,8 @@ namespace Kasir.CloudSync
                     "usage: --build-snapshot --connection-string <pg> [--output <path>] " +
                     "[--upload --supabase-url <url> --service-role-key <key>] " +
                     "[--process-pending | --request-id <uuid>] [--trigger manual|auto_stale|gha_fallback] " +
-                    "[--max-upload-mb <n> (default 50, 0 = no limit)]")
+                    "[--max-upload-mb <n> (default 50, 0 = no limit)] " +
+                    "[--no-compress] [--brotli-quality <0-11> (default 9)]")
                     .ConfigureAwait(false);
                 return 64; // EX_USAGE
             }

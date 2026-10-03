@@ -108,9 +108,34 @@ namespace Kasir.CloudSync.Tests.Snapshot
         {
             var id = Guid.Parse("11111111-2222-3333-4444-555555555555");
 
-            SnapshotPublisher.StoragePath(id).Should().Be("snapshots/snapshot-11111111-2222-3333-4444-555555555555.db");
+            // Default is Brotli: ".db.br" is how snapshot-download knows encoding = br.
+            SnapshotPublisher.StoragePath(id).Should().Be("snapshots/snapshot-11111111-2222-3333-4444-555555555555.db.br");
             SnapshotPublisher.UploadUrl("https://x.supabase.co/", id).Should()
-                .Be("https://x.supabase.co/storage/v1/object/snapshots/snapshot-11111111-2222-3333-4444-555555555555.db");
+                .Be("https://x.supabase.co/storage/v1/object/snapshots/snapshot-11111111-2222-3333-4444-555555555555.db.br");
+            SnapshotPublisher.StoragePath(id, compressed: false)
+                .Should().Be("snapshots/snapshot-11111111-2222-3333-4444-555555555555.db");
+            SnapshotCompression.EncodingFromPath(SnapshotPublisher.StoragePath(id)).Should().Be("br");
+            SnapshotCompression.EncodingFromPath(SnapshotPublisher.StoragePath(id, false)).Should().BeNull();
+        }
+
+        [Test]
+        public void ParseArgs_CompressesByDefault_NoCompressAndQualityOverride()
+        {
+            var o = SnapshotPublisher.ParseArgs(new[] { "--build-snapshot", "--connection-string", "Host=h" }, null, out var err);
+            err.Should().BeNull();
+            o.Compress.Should().BeTrue();
+            o.BrotliQuality.Should().Be(SnapshotCompression.DefaultQuality);
+
+            o = SnapshotPublisher.ParseArgs(
+                new[] { "--build-snapshot", "--connection-string", "Host=h", "--no-compress", "--brotli-quality", "11" },
+                null, out err);
+            err.Should().BeNull();
+            o.Compress.Should().BeFalse();
+            o.BrotliQuality.Should().Be(11);
+
+            SnapshotPublisher.ParseArgs(new[] { "--connection-string", "Host=h", "--brotli-quality", "12" }, null, out err)
+                .Should().BeNull();
+            err.Should().Contain("0-11");
         }
 
         [Test]
