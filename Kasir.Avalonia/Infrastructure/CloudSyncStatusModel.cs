@@ -228,6 +228,8 @@ public sealed class CloudSyncStatusModel : INotifyPropertyChanged
 
     private void PollQueueDepth()
     {
+        // Before first-run finishes there is no DB to read (and opening one would create it).
+        if (!DbConnection.IsInitialized) return;
         try
         {
             var conn = DbConnection.GetConnection();
