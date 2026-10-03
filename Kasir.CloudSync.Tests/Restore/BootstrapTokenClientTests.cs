@@ -60,6 +60,49 @@ namespace Kasir.CloudSync.Tests.Restore
         }
 
         [Test]
+        public async Task Pair_without_machine_credentials_field_leaves_them_null()
+        {
+            // Older servers (and KLR-99) send no machine_credentials.
+            var handler = new StubHandler(_ => Json(
+                HttpStatusCode.OK,
+                "{\"jwt\":\"eyJ...\",\"register_id\":\"KLR-03\",\"snapshot_available\":true}"));
+            var client = new BootstrapTokenClient("http://localhost", new HttpClient(handler), "fingerprint-" + new string('x', 30));
+
+            var result = await client.PairAsync("482917", CancellationToken.None);
+
+            result.MachineCredentials.Should().BeNull();
+        }
+
+        [Test]
+        public async Task Pair_parses_machine_credentials()
+        {
+            var handler = new StubHandler(_ => Json(
+                HttpStatusCode.OK,
+                "{\"jwt\":\"eyJ...\",\"register_id\":\"KLR-02\",\"snapshot_available\":true," +
+                "\"machine_credentials\":{\"email\":\"register-02@sinar-makmur.local\",\"password\":\"fresh\",\"store_id\":\"sinar-makmur\",\"register_id\":\"02\"}}"));
+            var client = new BootstrapTokenClient("http://localhost", new HttpClient(handler), "fingerprint-" + new string('x', 30));
+
+            var result = await client.PairAsync("482917", CancellationToken.None);
+
+            result.MachineCredentials.Should().Be(new Kasir.Help.Auth.MachineCredentials(
+                "register-02@sinar-makmur.local", "fresh", "sinar-makmur", "02"));
+        }
+
+        [Test]
+        public async Task Pair_machine_credentials_null_or_incomplete_is_ignored()
+        {
+            var handler = new StubHandler(_ => Json(
+                HttpStatusCode.OK,
+                "{\"jwt\":\"eyJ...\",\"register_id\":\"KLR-99\",\"snapshot_available\":false," +
+                "\"machine_credentials\":{\"email\":\"x@y\",\"password\":\"\"}}"));
+            var client = new BootstrapTokenClient("http://localhost", new HttpClient(handler), "fingerprint-" + new string('x', 30));
+
+            var result = await client.PairAsync("482917", CancellationToken.None);
+
+            result.MachineCredentials.Should().BeNull();
+        }
+
+        [Test]
         public async Task Pair_4xx_throws_PairException_without_retry()
         {
             var handler = new StubHandler(_ => Json(

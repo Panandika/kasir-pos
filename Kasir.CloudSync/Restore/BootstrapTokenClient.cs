@@ -37,6 +37,10 @@ namespace Kasir.CloudSync.Restore
             public string RegisterId;
             public long? SnapshotAgeSeconds;
             public bool SnapshotAvailable;
+            // Bantuan machine login for this register (fresh password, sent once).
+            // Null for KLR-99 / older servers / when the server could not issue one.
+            // NEVER log this.
+            public Kasir.Help.Auth.MachineCredentials MachineCredentials;
         }
 
         public class PairException : Exception
@@ -128,13 +132,7 @@ namespace Kasir.CloudSync.Restore
                         var result = await resp.Content
                             .ReadFromJsonAsync<PairResponseDto>(cancellationToken: ct)
                             .ConfigureAwait(false);
-                        return new PairResult
-                        {
-                            Jwt = result.jwt,
-                            RegisterId = result.register_id,
-                            SnapshotAgeSeconds = result.snapshot_age_seconds,
-                            SnapshotAvailable = result.snapshot_available,
-                        };
+                        return ToPairResult(result);
                     }
                     var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                     Report(attempt, (int)resp.StatusCode, body, null);
@@ -261,12 +259,41 @@ namespace Kasir.CloudSync.Restore
             return "no-mac";
         }
 
-        private class PairResponseDto
+        // Maps the wire DTO; machine_credentials is optional (older servers omit it).
+        internal static PairResult ToPairResult(PairResponseDto result)
+        {
+            var mc = result.machine_credentials;
+            Kasir.Help.Auth.MachineCredentials creds = null;
+            if (mc != null && !string.IsNullOrWhiteSpace(mc.email) && !string.IsNullOrWhiteSpace(mc.password))
+            {
+                creds = new Kasir.Help.Auth.MachineCredentials(
+                    mc.email, mc.password, mc.store_id ?? "", mc.register_id ?? "");
+            }
+            return new PairResult
+            {
+                Jwt = result.jwt,
+                RegisterId = result.register_id,
+                SnapshotAgeSeconds = result.snapshot_age_seconds,
+                SnapshotAvailable = result.snapshot_available,
+                MachineCredentials = creds,
+            };
+        }
+
+        internal class PairResponseDto
         {
             public string jwt { get; set; }
             public string register_id { get; set; }
             public long? snapshot_age_seconds { get; set; }
             public bool snapshot_available { get; set; }
+            public MachineCredentialsDto machine_credentials { get; set; }
+        }
+
+        internal class MachineCredentialsDto
+        {
+            public string email { get; set; }
+            public string password { get; set; }
+            public string store_id { get; set; }
+            public string register_id { get; set; }
         }
     }
 }

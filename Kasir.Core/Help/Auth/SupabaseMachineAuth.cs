@@ -33,8 +33,8 @@ namespace Kasir.Help.Auth
             new Lazy<SupabaseMachineAuth>(() => new SupabaseMachineAuth(), LazyThreadSafetyMode.ExecutionAndPublication);
         public static SupabaseMachineAuth Current => _lazy.Value;
 
-        private readonly HelpConfig? _config;
-        private readonly bool _disabled;
+        private HelpConfig? _config;
+        private bool _disabled;
         private readonly SemaphoreSlim _refreshLock = new SemaphoreSlim(1, 1);
         private readonly HttpClient _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
 
@@ -66,6 +66,36 @@ namespace Kasir.Help.Auth
             {
                 Console.Error.WriteLine($"[SupabaseMachineAuth] init failed: {ex.GetType().Name}: {ex.Message}");
                 _disabled = true;
+            }
+        }
+
+        /// <summary>
+        /// Re-reads config after cloud pairing stored new machine credentials.
+        /// Drops cached tokens and the persisted refresh token (auth.dat) so the
+        /// next call signs in fresh with the new login. NEVER throws.
+        /// </summary>
+        public void Reload()
+        {
+            _refreshLock.Wait();
+            try
+            {
+                _accessToken = "";
+                _refreshToken = "";
+                _accessTokenExpiry = DateTimeOffset.MinValue;
+                _authFailed = false;
+                _nextRetryAt = DateTimeOffset.MinValue;
+                TryDeleteRefreshToken();
+                _config = HelpConfigLoader.TryLoad();
+                _disabled = _config == null;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[SupabaseMachineAuth] reload failed: {ex.GetType().Name}: {ex.Message}");
+                _disabled = true;
+            }
+            finally
+            {
+                _refreshLock.Release();
             }
         }
 
@@ -228,6 +258,19 @@ namespace Kasir.Help.Auth
             {
                 Console.Error.WriteLine($"[SupabaseMachineAuth] auth.dat read failed: {ex.GetType().Name}: {ex.Message}");
                 return "";
+            }
+        }
+
+        private static void TryDeleteRefreshToken()
+        {
+            try
+            {
+                string path = AuthDatPath();
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[SupabaseMachineAuth] auth.dat delete failed: {ex.GetType().Name}: {ex.Message}");
             }
         }
 

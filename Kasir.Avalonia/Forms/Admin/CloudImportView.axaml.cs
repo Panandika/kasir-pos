@@ -145,7 +145,8 @@ public partial class CloudImportView : UserControl
             _log.Write("done", null, null, null, null, fingerprint,
                 $"snapshot restored to staging register_id={summary.RegisterId} seeded_default_login={summary.SeededDefaultLogin}");
 
-            ShowSuccess(pair.RegisterId, summary);
+            bool bantuanReady = SaveMachineCredentials(pair, fingerprint);
+            ShowSuccess(pair.RegisterId, summary, bantuanReady);
         }
         catch (OperationCanceledException oce)
         {
@@ -187,11 +188,35 @@ public partial class CloudImportView : UserControl
 
     // Restore succeeded: tell the operator which register this PC is and how to log in,
     // then wait for "Masuk ke aplikasi" before handing the database to first-run import.
-    private void ShowSuccess(string pairedRegisterId, CloudSnapshotRestorer.RestoreSummary summary)
+    // Stores the Bantuan machine login that register-pair returned (encrypted, see
+    // MachineCredentialStore) and points machine auth at it. Returns true when
+    // Bantuan's cloud features are set up for this PC. Never logs the password.
+    private bool SaveMachineCredentials(BootstrapTokenClient.PairResult pair, string fingerprint)
+    {
+        var creds = pair.MachineCredentials;
+        if (creds == null)
+        {
+            _log.Write("machine-credentials", null, null, null, null, fingerprint,
+                "none returned by server (register without machine user, or older server)");
+            return false;
+        }
+        bool saved = Kasir.Help.Auth.MachineCredentialStore.TrySave(creds);
+        if (saved) Kasir.Help.Auth.SupabaseMachineAuth.Current.Reload();
+        _log.Write("machine-credentials", null, null, null, null, fingerprint,
+            saved ? $"saved for {creds.Email} at {Kasir.Help.Auth.MachineCredentialStore.ResolvePath()}"
+                  : "save failed (see console); Bantuan cloud features unavailable on this PC");
+        return saved;
+    }
+
+    private void ShowSuccess(string pairedRegisterId, CloudSnapshotRestorer.RestoreSummary summary, bool bantuanReady)
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("Data toko berhasil diunduh.");
         sb.AppendLine($"PC ini terdaftar sebagai register {pairedRegisterId} (nomor dokumen memakai {summary.RegisterId ?? "-"}).");
+        if (!bantuanReady)
+        {
+            sb.AppendLine("Catatan: login Bantuan (Ctrl+/) untuk register ini tidak diterima dari server; Bantuan tetap bisa dipakai offline.");
+        }
         if (summary.SeededDefaultLogin)
         {
             sb.AppendLine();
@@ -275,10 +300,10 @@ public partial class CloudImportView : UserControl
                      ?? Environment.GetEnvironmentVariable("SUPABASE_URL");
         if (!string.IsNullOrWhiteSpace(envUrl)) return envUrl;
 
-        var cfg = Kasir.Help.Auth.HelpConfigLoader.TryLoad();
-        if (cfg != null && !string.IsNullOrWhiteSpace(cfg.SupabaseUrl)) return cfg.SupabaseUrl;
-
-        return string.Empty;
+        // Read only the public server address: release zips no longer carry the
+        // machine login, so TryLoad() (which requires it) would return null here
+        // on every fresh install.
+        return Kasir.Help.Auth.HelpConfigLoader.TryReadOptional("SupabaseUrl") ?? string.Empty;
     }
 
     private static string ResolveStagingPath()
