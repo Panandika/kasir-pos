@@ -5,12 +5,41 @@
       "package-name": "kasir",
       "include-component-in-tag": false,
       "changelog-sections": [
-        { "type": "feat",     "section": "Features" },
-        { "type": "fix",      "section": "Bug Fixes" },
-        { "type": "refactor", "section": "Refactoring" },
-        { "type": "ds",       "section": "Design System" },
-        { "type": "perf",     "section": "Performance" },
-        { "type": "chore",    "section": "Maintenance", "hidden": true }
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "refactor",
+          "section": "Refactoring"
+        },
+        {
+          "type": "ds",
+          "section": "Design System"
+        },
+        {
+          "type": "perf",
+          "section": "Performance"
+        },
+        {
+          "type": "chore",
+          "section": "Maintenance",
+          "hidden": true
+        }
+      ],
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "Kasir.Core/Kasir.Core.csproj"
+        },
+        {
+          "type": "generic",
+          "path": "Kasir.CloudSync/Kasir.CloudSync.csproj"
+        }
       ]
     }
   }

@@ -62,14 +62,6 @@
                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                 FontSize="13"
                 IsVisible="False" />
-        <Button x:Name="BtnImportZip"
-                Content="Import ZIP (Hub)"
-                Width="180"
-                Height="36"
-                Background="{DynamicResource Bg2Brush}"
-                Foreground="{DynamicResource FgPrimaryBrush}"
-                FontFamily="{DynamicResource JetBrainsMonoFont}"
-                FontSize="13" />
       </StackPanel>
     </StackPanel>
   </DockPanel>

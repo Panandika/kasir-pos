@@ -115,7 +115,9 @@ public sealed class UpdateStatusModel : INotifyPropertyChanged
             UpdateCheckResult? result = null;
             try
             {
-                var svc = new UpdateService(DbConnection.GetConnection());
+                // No DB before first-run registration: check GitHub without touching it
+                // (opening a connection there would create an empty kasir.db).
+                var svc = new UpdateService(DbConnection.IsInitialized ? DbConnection.GetConnection() : null);
                 result = await svc.CheckForUpdateAsync().ConfigureAwait(false);
             }
             catch

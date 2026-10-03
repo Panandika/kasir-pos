@@ -6,10 +6,12 @@
     <LangVersion>12</LangVersion>
     <AssemblyName>Kasir.Core</AssemblyName>
     <RootNamespace>Kasir</RootNamespace>
-    <Version>2026.04.1</Version>
-    <AssemblyVersion>2026.4.1.0</AssemblyVersion>
-    <FileVersion>2026.4.1.0</FileVersion>
-    <InformationalVersion>2026.04.1</InformationalVersion>
+    <!-- App version = release-please version (.release-please-manifest.json). The
+         x-release-please-version markers let release-please bump these lines in each
+         release PR; release.yml also passes -p:Version from the tag. AppVersion.Current
+         reads InformationalVersion. -->
+    <Version>2.8.0</Version> <!-- x-release-please-version -->
+    <InformationalVersion>2.8.0</InformationalVersion> <!-- x-release-please-version -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>

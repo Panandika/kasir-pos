@@ -75,6 +75,19 @@ Releases are automated via [Release Please](https://github.com/googleapis/releas
 | `refactor: ...` | patch bump |
 | `chore: ...` | no release |
 
+The app version comes from release-please (`.release-please-manifest.json`): release PRs bump the `x-release-please-version` lines in `Kasir.Core.csproj` / `Kasir.CloudSync.csproj`, and `release.yml` also builds with `-p:Version=<tag>`. Footer, About and the update screen all show `AppVersion.Current`.
+
+### Updating installed registers (self-update from GitHub)
+
+Each release zip contains `checksum.sha256` (SHA-256 of every file) and `checksum.sha256.sig`, an ECDSA P-256 signature of that manifest made with the GitHub secret `UPDATE_SIGNING_KEY`. The release job fails if the secret is missing, so unsigned releases are never published. Only the public key is in the app (`Kasir.Core/Services/UpdateSignature.cs`).
+
+In the POS: **Utility → Periksa Update** (F5 = check, F8 = install).
+1. The POS reads `https://api.github.com/repos/Panandika/kasir-pos/releases/latest` and compares it with `AppVersion.Current`. It shows the changelog and picks `kasir-<ver>-register-<NN>.zip` for its `register_id`, falling back to register-01.
+2. It downloads the zip into `update-staging\` and verifies the signature, every file hash, that no file is unlisted, and that `version.txt` matches the release. Anything else is refused.
+3. It checkpoints the database and starts the staged build with `--apply-update`. That build waits for the POS to exit, backs up the replaced files to `update-backup\`, and copies the new files. It never touches `data\` or an existing `help.json`. It rolls back on error and reopens the POS. An interrupted copy (power loss) is rolled back on the next start.
+
+The footer badge checks GitHub once a day. Set config `update_auto_check=true` to also get a toast after login. There is no hub or LAN-share update path any more. Registers on **v2.8.0 or older** need one manual zip install to get this updater.
+
 ## Architecture
 
 ```

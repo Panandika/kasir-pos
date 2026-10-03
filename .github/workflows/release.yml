@@ -38,14 +38,16 @@ jobs:
         dotnet-version: '10.x'
 
     - name: Build
-      run: dotnet build Kasir.Avalonia.slnx -c Release
+      run: dotnet build Kasir.Avalonia.slnx -c Release -p:Version=${{ steps.version.outputs.VERSION }} -p:InformationalVersion=${{ steps.version.outputs.VERSION }}
 
     - name: Test
       if: matrix.register == '01'
       run: dotnet test Kasir.Core.Tests/Kasir.Core.Tests.csproj -c Release --no-build
 
     - name: Publish win-x64 self-contained
-      run: dotnet publish Kasir.Avalonia/Kasir.Avalonia.csproj -c Release -r win-x64 --self-contained -o publish/win-x64-${{ matrix.register }}
+      # Version from the tag, so the app's footer / About / update check report exactly
+      # the release version (AppVersion.Current reads InformationalVersion).
+      run: dotnet publish Kasir.Avalonia/Kasir.Avalonia.csproj -c Release -r win-x64 --self-contained -p:Version=${{ steps.version.outputs.VERSION }} -p:InformationalVersion=${{ steps.version.outputs.VERSION }} -o publish/win-x64-${{ matrix.register }}
 
     - name: Write help.json (public config only)
       shell: pwsh
@@ -85,7 +87,7 @@ jobs:
         $checksumLines = @()
 
         Get-ChildItem $releaseDir -Recurse -File |
-          Where-Object { $_.Name -ne "checksum.sha256" -and $_.Name -ne "checksum.sha256.hmac" } |
+          Where-Object { $_.Name -ne "checksum.sha256" -and $_.Name -ne "checksum.sha256.sig" } |
           ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
             $relativePath = $_.FullName.Substring((Resolve-Path $releaseDir).Path.Length + 1).Replace("\", "/")
@@ -93,29 +95,34 @@ jobs:
           }
 
         $checksumContent = $checksumLines -join "`n"
-        [System.IO.File]::WriteAllText("$releaseDir/checksum.sha256", $checksumContent, [System.Text.Encoding]::UTF8)
+        # UTF-8 without BOM: the signature covers these exact bytes.
+        [System.IO.File]::WriteAllText("$releaseDir/checksum.sha256", $checksumContent, (New-Object System.Text.UTF8Encoding($false)))
         Write-Host "Generated checksums for $($checksumLines.Count) files"
 
-    - name: Sign checksums with HMAC
+    - name: Sign checksums (ECDSA P-256)
       shell: pwsh
       env:
-        SYNC_HMAC_KEY: ${{ secrets.SYNC_HMAC_KEY }}
+        UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
       run: |
-        $releaseDir = "publish/win-x64-${{ matrix.register }}"
-        $checksumContent = Get-Content "$releaseDir/checksum.sha256" -Raw
-
-        if ([string]::IsNullOrEmpty($env:SYNC_HMAC_KEY)) {
-          Write-Host "WARNING: SYNC_HMAC_KEY secret not set. Skipping HMAC signing."
-          [System.IO.File]::WriteAllText("$releaseDir/checksum.sha256.hmac", "unsigned", [System.Text.Encoding]::UTF8)
-        } else {
-          $hmac = New-Object System.Security.Cryptography.HMACSHA256
-          $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($env:SYNC_HMAC_KEY)
-          $checksumBytes = [System.Text.Encoding]::UTF8.GetBytes($checksumContent)
-          $signature = $hmac.ComputeHash($checksumBytes)
-          $hexSig = [BitConverter]::ToString($signature).Replace("-", "").ToLower()
-          [System.IO.File]::WriteAllText("$releaseDir/checksum.sha256.hmac", $hexSig, [System.Text.Encoding]::UTF8)
-          Write-Host "HMAC signature generated"
+        # The POS installs an update only if checksum.sha256 carries a valid signature
+        # from this key (public half embedded in Kasir.Core/Services/UpdateSignature.cs).
+        # No key = no release: unsigned packages would be refused by every register.
+        if ([string]::IsNullOrEmpty($env:UPDATE_SIGNING_KEY)) {
+          Write-Error "UPDATE_SIGNING_KEY secret is not set; refusing to publish an unsigned release."
+          exit 1
         }
+        $releaseDir = "publish/win-x64-${{ matrix.register }}"
+        $bytes = [System.IO.File]::ReadAllBytes("$releaseDir/checksum.sha256")
+        $ecdsa = [System.Security.Cryptography.ECDsa]::Create()
+        try {
+          $ecdsa.ImportFromPem($env:UPDATE_SIGNING_KEY)
+          # IEEE P1363 (r||s) — the .NET default, matched by ECDsa.VerifyData in the POS.
+          $sig = $ecdsa.SignData($bytes, [System.Security.Cryptography.HashAlgorithmName]::SHA256)
+        } finally {
+          $ecdsa.Dispose()
+        }
+        [System.IO.File]::WriteAllText("$releaseDir/checksum.sha256.sig", [Convert]::ToBase64String($sig))
+        Write-Host "checksum.sha256 signed ($($bytes.Length) bytes)"
 
     - name: Create release ZIP
       shell: pwsh
@@ -131,7 +138,13 @@ jobs:
         files: |
           kasir-${{ steps.version.outputs.VERSION }}-register-${{ matrix.register }}.zip
         generate_release_notes: false
+        # Keep release-please's changelog (shown by the POS update screen) and append
+        # the install instructions below it.
+        append_body: true
         body: |
+
+          ---
+
           ## Cara Install (Windows)
 
           **PENTING:** ada 3 file ZIP berbeda. Setiap register harus pakai file yang sesuai nomornya.
@@ -148,7 +161,8 @@ jobs:
           4. Tidak perlu install .NET atau software tambahan
 
           > **Upgrade dari versi lama?**
-          > Ekstrak ke folder yang sama, timpa file lama. Data (`kasir.db`) tidak akan tertimpa.
+          > Mulai v2.8.1: buka **Utility → Periksa Update** di POS (F5 periksa, F8 pasang). Update diunduh dari GitHub, diperiksa tanda tangannya, lalu dipasang otomatis.
+          > Versi 2.8.0 atau lebih lama: ekstrak ZIP ini ke folder yang sama sekali saja, timpa file lama. Data (`kasir.db`) tidak akan tertimpa.
 
           > **Salah download nomor register?**
           > Fitur Bantuan akan terdaftar dengan ID register yang salah. Hapus folder, download ulang yang benar.
@@ -171,7 +185,8 @@ jobs:
           4. No .NET runtime or additional software required — everything is bundled
 
           > **Upgrading from an older version?**
-          > Extract into the same folder and overwrite existing files. Your database (`kasir.db`) will not be affected.
+          > From v2.8.1: in the POS open **Utility → Periksa Update** (F5 check, F8 install). The update is downloaded from GitHub, its signature verified, and installed automatically.
+          > 2.8.0 or older: extract this ZIP into the same folder once, overwriting existing files. Your database (`kasir.db`) will not be affected.
 
           > **Downloaded the wrong register number?**
           > The Bantuan help feature will register tickets under the wrong register ID. Delete the folder and re-download the correct one.

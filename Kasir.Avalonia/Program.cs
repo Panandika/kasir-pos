@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using Kasir.Avalonia.Diagnostics;
+using Kasir.Services;
 
 namespace Kasir.Avalonia;
 
@@ -14,8 +15,21 @@ class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static int Main(string[] args)
+    {
+        // Self-update: the staged NEW build is started with --apply-update to replace the
+        // installed files once the old POS has exited (UpdateService.ApplyUpdate). It runs
+        // headless and never opens the database.
+        if (UpdateApplier.IsApplyInvocation(args))
+        {
+            return UpdateApplier.TryParseArgs(args, out var applyArgs) ? UpdateApplier.Run(applyArgs) : 2;
+        }
+
+        // Finish/undo an update interrupted mid-copy and remove the leftover staging folder.
+        UpdateApplier.RecoverInterrupted(AppContext.BaseDirectory);
+
+        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
