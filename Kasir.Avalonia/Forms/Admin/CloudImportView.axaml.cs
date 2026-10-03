@@ -17,10 +17,22 @@ public partial class CloudImportView : UserControl
     private readonly TaskCompletionSource<FirstRunResult?> _tcs = new();
     private CancellationTokenSource? _cts;
     private string? _stagingPath;
+    private bool _completed;
+
+    private readonly CloudImportLog _log = new(ResolveLogPath());
 
     public CloudImportView()
     {
         InitializeComponent();
+
+        // Show the store dashboard address when help.json provides one.
+        string? dashboardUrl = Kasir.Help.Auth.HelpConfigLoader.TryReadOptional("DashboardUrl");
+        if (!string.IsNullOrEmpty(dashboardUrl))
+        {
+            string baseUrl = dashboardUrl.TrimEnd('/');
+            LblStep1.Text = $"1. Buka dashboard toko di browser (HP atau komputer lain): {baseUrl}";
+            LblStep3.Text = $"3. Buka menu Pemilik → Register, atau langsung ke {baseUrl}/admin/registers";
+        }
         BtnSubmit.Click += async (_, _) => await OnSubmit();
         BtnCancel.Click += (_, _) =>
         {
@@ -52,6 +64,11 @@ public partial class CloudImportView : UserControl
 
     private async Task OnSubmit()
     {
+        if (_completed)
+        {
+            _tcs.TrySetResult(new FirstRunResult { Choice = "import", ImportPath = _stagingPath });
+            return;
+        }
         if (_cts != null) return; // already running
         string code = TxtCode.Text?.Trim() ?? string.Empty;
         if (code.Length != 6)
@@ -63,22 +80,38 @@ public partial class CloudImportView : UserControl
         BtnSubmit.IsEnabled = false;
         TxtCode.IsEnabled = false;
         PnlProgress.IsVisible = true;
+        HideError();
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
+        string fingerprint = "";
 
         try
         {
             string supabaseUrl = ResolveSupabaseUrl();
             if (string.IsNullOrEmpty(supabaseUrl))
             {
-                SetStatus("Konfigurasi Supabase URL tidak ditemukan.", isError: true);
+                _log.Write("config", null, null, null, null, null, "SupabaseUrl not found (env or help.json)");
+                ShowError(new CloudImportExplanation
+                {
+                    Title = "Konfigurasi server tidak ditemukan.",
+                    Cause = "File help.json (alamat server Supabase) tidak ada di folder aplikasi.",
+                    Action = "Pasang ulang aplikasi dari file zip rilis resmi (help.json ikut di dalamnya).",
+                    Technical = "SupabaseUrl kosong",
+                });
                 ResetUi();
                 return;
             }
 
             SetStage("Memvalidasi kode…", 5);
             var pairClient = new BootstrapTokenClient(supabaseUrl);
+            fingerprint = pairClient.DeviceFingerprint;
+            pairClient.OnAttempt = a => _log.Write(
+                "pair#" + a.Attempt, a.Endpoint, a.HttpStatus,
+                a.HttpStatus is >= 200 and < 300 ? null : a.Body,
+                a.Exception, a.DeviceFingerprint);
             var pair = await pairClient.PairAsync(code, ct);
+            _log.Write("pair", pairClient.Endpoint, 200, null, null, fingerprint,
+                $"ok register={pair.RegisterId} snapshot_available={pair.SnapshotAvailable} age_s={pair.SnapshotAgeSeconds}");
 
             SetStage("Mengunduh snapshot…", 15);
             _stagingPath = ResolveStagingPath();
@@ -103,35 +136,106 @@ public partial class CloudImportView : UserControl
                 }
             });
 
-            var restorer = new CloudSnapshotRestorer(supabaseUrl);
-            await restorer.RunAsync(pair.Jwt, _stagingPath, progress, ct);
-
-            _tcs.TrySetResult(new FirstRunResult
+            var restorer = new CloudSnapshotRestorer(supabaseUrl)
             {
-                Choice = "import",
-                ImportPath = _stagingPath,
-            });
+                OnEvent = (step, endpoint, status, body, ex) =>
+                    _log.Write(step, endpoint, status, body, ex, fingerprint),
+            };
+            var summary = await restorer.RunAsync(pair.Jwt, _stagingPath, progress, ct, pair.RegisterId);
+            _log.Write("done", null, null, null, null, fingerprint,
+                $"snapshot restored to staging register_id={summary.RegisterId} seeded_default_login={summary.SeededDefaultLogin}");
+
+            ShowSuccess(pair.RegisterId, summary);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException oce)
         {
-            SetStatus("Dibatalkan.", isError: false);
+            // Batal pressed vs HttpClient timeout (token not cancelled by us).
+            if (_cts != null && _cts.IsCancellationRequested)
+            {
+                _log.Write("cancelled", null, null, null, null, fingerprint, "user pressed Batal");
+                SetStatus("Dibatalkan.", isError: false);
+            }
+            else
+            {
+                _log.Write("timeout", null, null, null, oce, fingerprint);
+                ShowError(CloudImportErrors.ForUnexpected(oce, isTimeout: true));
+            }
             ResetUi();
         }
         catch (BootstrapTokenClient.PairException pex)
         {
-            SetStatus("Pairing gagal: " + (pex.ErrorCode ?? "unknown"), isError: true);
+            _log.Write("pair-failed", null, (int)pex.StatusCode, null, pex, fingerprint,
+                "code=" + pex.ErrorCode);
+            ShowError(CloudImportErrors.ForPair((int)pex.StatusCode, pex.ErrorCode, pex.ServerMessage));
             ResetUi();
         }
         catch (CloudSnapshotRestorer.RestoreException rex)
         {
-            SetStatus($"Gagal di tahap {rex.Stage}: {rex.Message}", isError: true);
+            _log.Write("restore-failed:" + rex.Stage, null, rex.HttpStatus, null, rex, fingerprint,
+                "code=" + rex.ServerCode);
+            ShowError(CloudImportErrors.ForRestore(rex.Stage, rex.HttpStatus, rex.ServerCode,
+                string.IsNullOrEmpty(rex.ServerMessage) ? rex.Message : rex.ServerMessage));
             ResetUi();
         }
         catch (Exception ex)
         {
-            SetStatus("Kesalahan: " + ex.Message, isError: true);
+            _log.Write("unexpected", null, null, null, ex, fingerprint);
+            ShowError(CloudImportErrors.ForUnexpected(ex));
             ResetUi();
         }
+    }
+
+    // Restore succeeded: tell the operator which register this PC is and how to log in,
+    // then wait for "Masuk ke aplikasi" before handing the database to first-run import.
+    private void ShowSuccess(string pairedRegisterId, CloudSnapshotRestorer.RestoreSummary summary)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Data toko berhasil diunduh.");
+        sb.AppendLine($"PC ini terdaftar sebagai register {pairedRegisterId} (nomor dokumen memakai {summary.RegisterId ?? "-"}).");
+        if (summary.SeededDefaultLogin)
+        {
+            sb.AppendLine();
+            sb.AppendLine("Login awal: user SM, password 74121.");
+            sb.AppendLine("PENTING: segera ganti password ini di Utility → User Management setelah masuk.");
+        }
+        _completed = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            PnlProgress.IsVisible = false;
+            TxtSuccess.Text = sb.ToString().TrimEnd();
+            PnlSuccess.IsVisible = true;
+            BtnSubmit.Content = "Masuk ke aplikasi";
+            BtnSubmit.IsEnabled = true;
+            BtnCancel.IsVisible = false;
+            LblStatus.Text = "Selesai.";
+            LblStatus.Foreground = ThemeResources.Brush("FgSecondaryBrush");
+            BtnSubmit.Focus();
+        });
+    }
+
+    private void ShowError(CloudImportExplanation explanation)
+    {
+        string text = explanation + Environment.NewLine + "File log: " + _log.FilePath;
+        Dispatcher.UIThread.Post(() =>
+        {
+            TxtError.Text = text;
+            PnlError.IsVisible = true;
+            LblStatus.Text = explanation.Title;
+            LblStatus.Foreground = ThemeResources.Brush("DangerBrush");
+        });
+    }
+
+    private void HideError()
+    {
+        PnlError.IsVisible = false;
+        TxtError.Text = "";
+        LblStatus.Text = "";
+    }
+
+    // data/logs/cloud-import.log next to the POS database folder (data/).
+    private static string ResolveLogPath()
+    {
+        return Path.Combine(AppContext.BaseDirectory, "data", "logs", "cloud-import.log");
     }
 
     private void ResetUi()
