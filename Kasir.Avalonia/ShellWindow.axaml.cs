@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
+using System.Linq;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -48,6 +50,21 @@ public partial class ShellWindow : Window
     {
         OverlayHost.Content = content;
         OverlayHost.IsVisible = true;
+        // Overlays focus their first field when attached, but that can happen before
+        // they are laid out, leaving focus on the screen behind (e.g. the sale code box):
+        // Enter/Esc then went to that screen instead of the dialog. Once laid out, make
+        // sure focus is inside the overlay.
+        Dispatcher.UIThread.Post(() => EnsureFocusInside(content), DispatcherPriority.Loaded);
+    }
+
+    private void EnsureFocusInside(Control overlay)
+    {
+        if (!ReferenceEquals(OverlayHost.Content, overlay)) return;
+        if (FocusManager?.GetFocusedElement() is Visual focused && overlay.IsVisualAncestorOf(focused)) return;
+        var target = overlay.GetVisualDescendants()
+            .OfType<InputElement>()
+            .FirstOrDefault(c => c.Focusable && c.IsEffectivelyVisible && c.IsEffectivelyEnabled);
+        (target ?? overlay).Focus();
     }
 
     public void HideOverlay()

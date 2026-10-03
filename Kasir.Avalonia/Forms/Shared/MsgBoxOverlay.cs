@@ -1,6 +1,9 @@
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Kasir.Avalonia.Infrastructure;
@@ -98,13 +101,33 @@ public class MsgBoxOverlay : UserControl
         card.Child = dock;
         Content = card;
 
-        AttachedToVisualTree += (_, _) => btnYes.Focus();
-
-        KeyDown += (_, e) =>
+        // Enter = Ya, Esc = Tidak. The handler sits on the window in the tunnel phase while
+        // the dialog is open: keys used to go to whatever had focus behind the overlay (e.g.
+        // the sale screen's code box), so "Tinggalkan transaksi?" could not be answered by
+        // keyboard. Focus is also moved to "Ya" once the dialog is actually laid out.
+        _showCancel = showCancel;
+        AttachedToVisualTree += (_, _) =>
         {
-            if (KeyboardRouter.IsEscape(e)) { e.Handled = true; _tcs.TrySetResult(false); }
-            else if (KeyboardRouter.IsEnter(e)) { e.Handled = true; _tcs.TrySetResult(true); }
+            _topLevel = TopLevel.GetTopLevel(this);
+            _topLevel?.AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
+            Dispatcher.UIThread.Post(() => btnYes.Focus(), DispatcherPriority.Loaded);
         };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            _topLevel?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
+            _topLevel = null;
+        };
+    }
+
+    private readonly bool _showCancel;
+    private TopLevel? _topLevel;
+
+    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_tcs.Task.IsCompleted) return;
+        if (KeyboardRouter.IsEnter(e)) { e.Handled = true; _tcs.TrySetResult(true); }
+        // Esc = Tidak/Batal; on an info box (no cancel button) it just closes it.
+        else if (KeyboardRouter.IsEscape(e)) { e.Handled = true; _tcs.TrySetResult(!_showCancel); }
     }
 
     public Task<bool> Result => _tcs.Task;
