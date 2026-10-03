@@ -90,6 +90,8 @@ public partial class App : Application
     {
         try
         {
+            // No DB before first-run registration; opening one would create an empty kasir.db.
+            if (!DbConnection.IsInitialized) return null;
             // Background timer thread — must not call GetConnection() (UI-thread-only).
             var conn = DbConnection.CreateConnection();
             return new ReceiptPrinter(new ConfigRepository(conn));

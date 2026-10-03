@@ -55,6 +55,7 @@ namespace Kasir.Data
             }
             Debug.Assert(Thread.CurrentThread.ManagedThreadId == _uiThreadId,
                 "GetConnection() called from background thread — use CreateConnection() instead");
+            EnsureInitialized();
 
             if (_connection == null)
             {
@@ -76,6 +77,7 @@ namespace Kasir.Data
 
         public static SqliteConnection CreateConnection()
         {
+            EnsureInitialized();
             var conn = new SqliteConnection(ConnectionString);
             conn.Open();
             ConfigurePragmas(conn);
@@ -83,10 +85,66 @@ namespace Kasir.Data
             return conn;
         }
 
+        // Opening kasir.db before InitializeDatabase() creates an empty file, which then
+        // hides a fresh install from first-run detection (the cloud-import staging copy was
+        // never moved into place). Fail loudly instead; background pollers check
+        // IsInitialized first.
+        private static void EnsureInitialized()
+        {
+            if (!IsInitialized)
+            {
+                throw new InvalidOperationException(
+                    "Database not initialized yet — call InitializeDatabase() first.");
+            }
+        }
+
         public static bool IsFreshInstall()
         {
             if (!Directory.Exists(DbDirectory)) return true;
-            return !File.Exists(DbPath) || new FileInfo(DbPath).Length == 0;
+            return IsFreshDatabaseFile(DbPath);
+        }
+
+        /// <summary>
+        /// True when the file is missing, empty, or a SQLite file with no tables (e.g. an
+        /// empty kasir.db created by an early connection in v2.9.1 and older).
+        /// </summary>
+        public static bool IsFreshDatabaseFile(string path)
+        {
+            if (!File.Exists(path) || new FileInfo(path).Length == 0) return true;
+            try
+            {
+                var csb = new SqliteConnectionStringBuilder
+                {
+                    DataSource = path,
+                    Mode = SqliteOpenMode.ReadOnly,
+                    Pooling = false
+                };
+                using (var conn = new SqliteConnection(csb.ToString()))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table'";
+                        return Convert.ToInt64(cmd.ExecuteScalar()) == 0;
+                    }
+                }
+            }
+            catch (SqliteException)
+            {
+                // Not readable as SQLite: let validation report it as corrupt.
+                return false;
+            }
+        }
+
+        // Removes a table-less kasir.db and its -wal/-shm so first-run can put the real
+        // database in place without stale WAL files next to it.
+        private static void DeleteEmptyDatabaseFiles()
+        {
+            SqliteConnection.ClearAllPools();
+            foreach (var path in new[] { DbPath, DbPath + "-wal", DbPath + "-shm", DbPath + "-journal" })
+            {
+                if (File.Exists(path)) File.Delete(path);
+            }
         }
 
         public static void InitializeDatabase()
@@ -96,10 +154,11 @@ namespace Kasir.Data
                 Directory.CreateDirectory(DbDirectory);
             }
 
-            bool isFresh = !File.Exists(DbPath) || new FileInfo(DbPath).Length == 0;
+            bool isFresh = IsFreshDatabaseFile(DbPath);
 
             if (isFresh)
             {
+                DeleteEmptyDatabaseFiles();
                 HandleFirstRun();
             }
             else
