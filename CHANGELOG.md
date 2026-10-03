@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.9.0](https://github.com/Panandika/kasir-pos/compare/v2.8.0...v2.9.0) (2026-10-03)
+
+
+### Features
+
+* **cloudsync:** --build-snapshot CLI and hub-less snapshot publishing ([e5355b9](https://github.com/Panandika/kasir-pos/commit/e5355b9a635ab0027a2a60394c62edf184aba89e))
+* **cloudsync:** --build-snapshot CLI and hub-less snapshot publishing ([0da8ca0](https://github.com/Panandika/kasir-pos/commit/0da8ca0e09f7a24092eea81f91999efa1d2e0097))
+* **snapshot:** Brotli-compress cloud snapshots; fix seeded login lost in WAL on restore ([bddf075](https://github.com/Panandika/kasir-pos/commit/bddf075df83cf9f0d2312802bb82493fe706b341))
+* **snapshot:** Brotli-compress cloud snapshots; fix seeded login lost in WAL on restore ([6ddd8d7](https://github.com/Panandika/kasir-pos/commit/6ddd8d791f03425ac0a5383cae0ba806dd6c650b))
+* **update:** self-update from GitHub Releases with signed packages ([a6cef9a](https://github.com/Panandika/kasir-pos/commit/a6cef9a8e7604d425c144268c0d445e40badbe9c))
+* **update:** self-update from GitHub Releases with signed packages ([d4d533a](https://github.com/Panandika/kasir-pos/commit/d4d533a4257c0ef6e55d89d6f2061767326d33bc))
+
+
+### Bug Fixes
+
+* **app:** embed application icon in Kasir.Avalonia.exe ([f0dffac](https://github.com/Panandika/kasir-pos/commit/f0dffac02c151a56feab600193720b9781f08f3e))
+* **app:** embed application icon in Kasir.Avalonia.exe ([541fd69](https://github.com/Panandika/kasir-pos/commit/541fd694eac7d21bb2d9e5342a4272a99c7688a8))
+* **cloud-import:** explain pairing failures, log attempts, make restored register usable ([6529085](https://github.com/Panandika/kasir-pos/commit/65290858bb77fcd4a7c6da4e82c082c374cbbce0))
+* **cloud-import:** explain pairing failures, log attempts, make restored register usable ([9813b88](https://github.com/Panandika/kasir-pos/commit/9813b8845021bb889ef75ec9d13888c6e7c57697))
+* **help:** Bantuan never crashes the app; badge opens it on click ([61bdf9b](https://github.com/Panandika/kasir-pos/commit/61bdf9bc92b62e10a81d41b2855453c61a66368e))
+* **help:** Bantuan never crashes the app; badge opens it on click ([eeb8e1d](https://github.com/Panandika/kasir-pos/commit/eeb8e1d5eed63d277f346f9f78d2c1fbf9c2d745))
+* **security:** Bantuan machine login comes from cloud pairing, not the public release zip ([176d64c](https://github.com/Panandika/kasir-pos/commit/176d64c94c10a8d1fa929a4fff7f9fe199188702))
+* **security:** Bantuan machine login comes from cloud pairing, not the public release zip ([7592761](https://github.com/Panandika/kasir-pos/commit/7592761b16716df0498df39880e63757301f7aab))
+* **ui:** Enter/Esc answer confirmation and input dialogs ([50ff225](https://github.com/Panandika/kasir-pos/commit/50ff225e80227410b974a28cc073bb1c014e0162))
+* **ui:** Enter/Esc answer confirmation and input dialogs ([b068c6e](https://github.com/Panandika/kasir-pos/commit/b068c6ec21cd119329c4af14c782060a8532a631))
+
 ## [2.8.0](https://github.com/Panandika/kasir-pos/compare/v2.7.0...v2.8.0) (2026-09-30)
 
 
