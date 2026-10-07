@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.10.0](https://github.com/Panandika/kasir-pos/compare/v2.9.2...v2.10.0) (2026-10-07)
+
+
+### Features
+
+* mirror purchase_items and shifts to the cloud ([#85](https://github.com/Panandika/kasir-pos/issues/85)) ([75dd1d4](https://github.com/Panandika/kasir-pos/commit/75dd1d485b3b336bd5a91926ee028329c9ef11fd))
+
+
+### Bug Fixes
+
+* back up WAL-mode kasir.db with SQLite backup API instead of File.Copy ([#81](https://github.com/Panandika/kasir-pos/issues/81)) ([ed5903c](https://github.com/Panandika/kasir-pos/commit/ed5903c6b80affa570786052205f6c9f0cddf31d))
+* background pollers no longer share the UI DB connection or print on probe ([#84](https://github.com/Panandika/kasir-pos/issues/84)) ([4497e98](https://github.com/Panandika/kasir-pos/commit/4497e9811bbd1e13d97b1f953b564d3cb068803b))
+* global crash logging in Kasir.Core and guarded database startup (F02) ([#83](https://github.com/Panandika/kasir-pos/issues/83)) ([a966ef8](https://github.com/Panandika/kasir-pos/commit/a966ef8d1382931f2c579afc4ab5fbb51c1024ee))
+* merge new public help.json keys on self-update ([#80](https://github.com/Panandika/kasir-pos/issues/80)) ([29e5000](https://github.com/Panandika/kasir-pos/commit/29e5000da3d7e4e65bdff132e1d696a974a23db7))
+* **pos:** keep the sale alive when a scan or payment handler throws ([#82](https://github.com/Panandika/kasir-pos/issues/82)) ([04a14ff](https://github.com/Panandika/kasir-pos/commit/04a14ff48248c73d504d6f4801f18729f2c53cb8))
+
 ## [2.9.2](https://github.com/Panandika/kasir-pos/compare/v2.9.1...v2.9.2) (2026-10-03)
 
 
