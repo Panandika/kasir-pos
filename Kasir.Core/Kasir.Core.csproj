@@ -10,8 +10,8 @@
          x-release-please-version markers let release-please bump these lines in each
          release PR; release.yml also passes -p:Version from the tag. AppVersion.Current
          reads InformationalVersion. -->
-    <Version>2.9.2</Version> <!-- x-release-please-version -->
-    <InformationalVersion>2.9.2</InformationalVersion> <!-- x-release-please-version -->
+    <Version>2.10.0</Version> <!-- x-release-please-version -->
+    <InformationalVersion>2.10.0</InformationalVersion> <!-- x-release-please-version -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>
