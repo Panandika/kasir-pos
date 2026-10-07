@@ -246,7 +246,16 @@ public partial class SaleView : UserControl, INavigationAware
         AddItemByCode(code, qty);
     }
 
+    // Every async void handler on the sale screen runs through UiGuard: an exception
+    // (e.g. SqliteException "database is locked" on a scan) is logged to crash.log and
+    // shown, and the sale stays open instead of the app dying mid-transaction (F08/F28).
     private async void AddItemByCode(string code, int qty = 1)
+    {
+        await UiGuard.RunAsync("Sale.AddItemByCode", () => AddItemByCodeAsync(code, qty),
+            ex => ShowSaleErrorAsync("Gagal menambah barang " + code, ex));
+    }
+
+    private async Task AddItemByCodeAsync(string code, int qty)
     {
         if (_currentShift == null)
         {
@@ -267,6 +276,21 @@ public partial class SaleView : UserControl, INavigationAware
         RefreshGrid();
         UpdateTotals();
         FooterStatus.Show(StatusLabel, $"Ditambahkan: {item.ProductCode} — {item.ProductName}" + (qty > 1 ? $" x{qty}" : ""));
+    }
+
+    // The cart in memory is intact (SalesService takes back a line it could not save),
+    // so redraw it, tell the cashier, and put the cursor back in the scan box.
+    private async Task ShowSaleErrorAsync(string what, Exception ex)
+    {
+        try { RefreshGrid(); UpdateTotals(); }
+        catch (Exception redrawEx) { CrashLog.Write("Sale.Redraw", redrawEx); }
+        FooterStatus.Show(StatusLabel, "⚠ " + what);
+        await MsgBox.Show(NavigationService.Owner,
+            what + ": " + ex.Message +
+            "\n\nTransaksi yang sedang berjalan tetap aman. Coba lagi; jika terus terjadi, hubungi admin." +
+            "\nDetail tersimpan di " + CrashLog.LogPath,
+            "Kesalahan");
+        TxtBarcode.Focus();
     }
 
     private void EnterPricePromptMode(int qty)
@@ -342,6 +366,12 @@ public partial class SaleView : UserControl, INavigationAware
 
     private async void OpenPayment()
     {
+        await UiGuard.RunAsync("Sale.OpenPayment", OpenPaymentAsync,
+            ex => ShowSaleErrorAsync("Gagal bayar", ex));
+    }
+
+    private async Task OpenPaymentAsync()
+    {
         if (_salesService.CurrentItems.Count == 0) { FooterStatus.Show(StatusLabel, "Tidak ada item."); return; }
         var totals = _salesService.GetTotals();
         var result = await PaymentWindow.Show(NavigationService.Owner, totals.NetAmount);
@@ -398,6 +428,12 @@ public partial class SaleView : UserControl, INavigationAware
     }
 
     private async void HandleQuickCash(string digits)
+    {
+        await UiGuard.RunAsync("Sale.HandleQuickCash", () => HandleQuickCashAsync(digits),
+            ex => ShowSaleErrorAsync("Gagal bayar", ex));
+    }
+
+    private async Task HandleQuickCashAsync(string digits)
     {
         if (_salesService.CurrentItems.Count == 0)
         {
@@ -604,6 +640,14 @@ public partial class SaleView : UserControl, INavigationAware
         base.OnKeyDown(e);
         PerfMetrics.Record(PerfMetrics.KeypressEcho, 0); // key routed to handler — latency is sub-ms
         if (SearchPanel.IsVisible) return;
+        // UiGuard runs the handler synchronously up to its first await, so e.Handled
+        // is still set before this method returns to Avalonia's routing.
+        await UiGuard.RunAsync("Sale.OnKeyDown", () => HandleSaleKeyAsync(e),
+            ex => ShowSaleErrorAsync("Perintah gagal", ex));
+    }
+
+    private async Task HandleSaleKeyAsync(KeyEventArgs e)
+    {
         if (KeyboardRouter.IsF1(e)) { e.Handled = true; ShowSearch(true); }
         else if (KeyboardRouter.IsF2(e)) { e.Handled = true; ShowSearch(false); }
         else if (KeyboardRouter.IsF3(e)) { e.Handled = true; await ChangeQty(); }

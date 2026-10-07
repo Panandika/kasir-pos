@@ -6,6 +6,7 @@ using Avalonia.Platform.Storage;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Utils;
+using Kasir.Services;
 
 namespace Kasir.Avalonia.Forms.Admin;
 
@@ -45,11 +46,16 @@ public partial class BackupView : UserControl
             string dest = System.IO.Path.Combine(
                 folders[0].Path.LocalPath,
                 $"kasir_{DateTime.Now:yyyyMMdd_HHmmss}.db");
-            File.Copy(src, dest, false);
+            // kasir.db is in WAL mode: File.Copy would miss commits still in kasir.db-wal.
+            // BackupService takes a consistent online snapshot and verifies it first.
+            SetStatus("Membuat backup...");
+            await System.Threading.Tasks.Task.Run(() => BackupService.BackupTo(src, dest));
+            SetStatus("Backup selesai");
             await MsgBox.Show(NavigationService.Owner, $"Backup tersimpan:\n{dest}");
         }
         catch (Exception ex)
         {
+            SetStatus("Backup gagal");
             await MsgBox.Show(NavigationService.Owner, "Backup gagal: " + ex.Message);
         }
     }
