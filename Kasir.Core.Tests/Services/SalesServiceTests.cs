@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using NUnit.Framework;
 using FluentAssertions;
@@ -452,6 +453,41 @@ namespace Kasir.Tests.Services
             var sale2 = _service.CompleteSale(1550000, 0, 0, "", "", "");
 
             sale1.JournalNo.Should().NotBe(sale2.JournalNo);
+        }
+
+        // A scan that fails to save the draft cart (e.g. SqliteException: database is locked)
+        // must not leave a line in memory that the screen never showed but CompleteSale charges.
+        private void BreakCartPersistence()
+        {
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "DROP TABLE pending_sales";
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        [Test]
+        public void AddItem_WhenCartPersistFails_ThrowsAndLeavesCartUnchanged()
+        {
+            _service.AddItem("P001", 1);
+            BreakCartPersistence();
+
+            System.Action act = () => _service.AddItem("P002", 1);
+
+            act.Should().Throw<SqliteException>();
+            _service.CurrentItems.Select(i => i.ProductCode).Should().Equal("P001");
+        }
+
+        [Test]
+        public void AddMiscItem_WhenCartPersistFails_ThrowsAndLeavesCartUnchanged()
+        {
+            _service.AddItem("P001", 1);
+            BreakCartPersistence();
+
+            System.Action act = () => _service.AddMiscItem(1, 500000);
+
+            act.Should().Throw<SqliteException>();
+            _service.CurrentItems.Select(i => i.ProductCode).Should().Equal("P001");
         }
     }
 }
