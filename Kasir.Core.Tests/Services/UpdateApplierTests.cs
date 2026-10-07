@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.Json;
 using NUnit.Framework;
 using Kasir.Services;
 
@@ -90,6 +91,102 @@ namespace Kasir.Tests.Services
             File.Delete(Path.Combine(_target, "help.json"));
             UpdateApplier.Run(Args(), _ => true, _ => { });
             Assert.That(Read(_target, "help.json"), Does.Contain("public"));
+        }
+
+        [Test]
+        public void Run_ExistingHelpJson_GetsNewPublicKeys_KeepsInstalledValues()
+        {
+            File.WriteAllText(Path.Combine(_target, "help.json"),
+                "{\"SupabaseUrl\":\"https://site.supabase.co\",\"RegisterId\":\"02\",\"MachinePassword\":\"keep\"}");
+            File.WriteAllText(Path.Combine(_source, "help.json"),
+                "{\"SupabaseUrl\":\"https://release.supabase.co\",\"RegisterId\":\"01\",\"DashboardUrl\":\"https://dash.example\"}");
+
+            int rc = UpdateApplier.Run(Args(), _ => true, _ => { });
+
+            Assert.AreEqual(0, rc);
+            using var doc = JsonDocument.Parse(Read(_target, "help.json"));
+            var root = doc.RootElement;
+            Assert.AreEqual("https://dash.example", root.GetProperty("DashboardUrl").GetString(), "new public key added");
+            Assert.AreEqual("https://site.supabase.co", root.GetProperty("SupabaseUrl").GetString(), "installed value wins");
+            Assert.AreEqual("02", root.GetProperty("RegisterId").GetString(), "installed value wins");
+            Assert.AreEqual("keep", root.GetProperty("MachinePassword").GetString(), "legacy login kept for unpaired registers");
+            Assert.That(Read(_target, UpdateApplier.BackupDir, "help.json"), Does.Not.Contain("DashboardUrl"),
+                "original help.json is backed up for rollback");
+            Assert.IsFalse(File.Exists(Path.Combine(_target, "help.json.tmp")), "temp file cleaned up");
+        }
+
+        [Test]
+        public void Run_MalformedInstalledHelpJson_LeftUntouched_UpdateStillSucceeds()
+        {
+            File.WriteAllText(Path.Combine(_target, "help.json"), "{ not json");
+            File.WriteAllText(Path.Combine(_source, "help.json"), "{\"DashboardUrl\":\"https://dash.example\"}");
+
+            int rc = UpdateApplier.Run(Args(), _ => true, _ => { });
+
+            Assert.AreEqual(0, rc);
+            Assert.AreEqual("{ not json", Read(_target, "help.json"));
+            Assert.AreEqual("new core", Read(_target, "Kasir.Core.dll"));
+            Assert.That(Read(_target, UpdateApplier.LogFile), Does.Contain("help.json"));
+        }
+
+        [Test]
+        public void Run_MalformedPackagedHelpJson_InstalledLeftUntouched()
+        {
+            const string installed = "{\"SupabaseUrl\":\"https://site.supabase.co\"}";
+            File.WriteAllText(Path.Combine(_target, "help.json"), installed);
+            File.WriteAllText(Path.Combine(_source, "help.json"), "[1,2,3]");
+
+            int rc = UpdateApplier.Run(Args(), _ => true, _ => { });
+
+            Assert.AreEqual(0, rc);
+            Assert.AreEqual(installed, Read(_target, "help.json"));
+        }
+
+        [Test]
+        public void Run_CopyFails_RestoresOriginalHelpJson()
+        {
+            const string installed = "{\"SupabaseUrl\":\"https://site.supabase.co\"}";
+            File.WriteAllText(Path.Combine(_target, "help.json"), installed);
+            File.WriteAllText(Path.Combine(_source, "help.json"), "{\"DashboardUrl\":\"https://dash.example\"}");
+            // version.txt is copied (alphabetically late) after help.json would be merged;
+            // a directory in its place makes the copy throw.
+            Directory.CreateDirectory(Path.Combine(_target, "version.txt"));
+
+            int rc = UpdateApplier.Run(Args(), _ => true, _ => { });
+
+            Assert.AreEqual(1, rc);
+            Assert.AreEqual(installed, Read(_target, "help.json"), "rollback restores the pre-merge help.json");
+        }
+
+        [Test]
+        public void MergeHelpJson_PackagedWithUtf8Bom_StillMerges()
+        {
+            // release.yml writes help.json via pwsh [Encoding]::UTF8, which emits a BOM.
+            string installed = Path.Combine(_target, "help.json");
+            File.WriteAllText(installed, "{\"SupabaseUrl\":\"https://site.supabase.co\"}");
+            string packaged = Path.Combine(_source, "help.json");
+            File.WriteAllText(packaged, "{\"DashboardUrl\":\"https://dash.example/?a=1&b=2\"}",
+                new System.Text.UTF8Encoding(true));
+
+            int added = UpdateApplier.MergeHelpJson(packaged, installed, _ => { });
+
+            Assert.AreEqual(1, added);
+            string text = File.ReadAllText(installed);
+            Assert.That(text, Does.Contain("https://dash.example/?a=1&b=2"), "URL written unescaped");
+            Assert.That(text, Does.Contain("https://site.supabase.co"));
+        }
+
+        [Test]
+        public void MergeHelpJson_NothingNew_DoesNotRewriteFile()
+        {
+            string installed = Path.Combine(_target, "help.json");
+            File.WriteAllText(installed, "{\"A\":\"1\",  \"B\":\"2\"}");
+            File.WriteAllText(Path.Combine(_source, "help.json"), "{\"A\":\"x\"}");
+
+            int added = UpdateApplier.MergeHelpJson(Path.Combine(_source, "help.json"), installed, _ => { });
+
+            Assert.AreEqual(0, added);
+            Assert.AreEqual("{\"A\":\"1\",  \"B\":\"2\"}", File.ReadAllText(installed));
         }
 
         [Test]
