@@ -23,6 +23,7 @@ namespace Kasir.Tests.Hardware
             }
 
             public string LastError => "err";
+            public bool IsReachable() => true;
 
             public bool Send(byte[] data)
             {

@@ -1,6 +1,5 @@
 using System;
 using Microsoft.Data.Sqlite;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -46,33 +45,51 @@ namespace Kasir.Data
         // creates an empty kasir.db that breaks first-run detection on the next start.
         public static bool IsInitialized { get; private set; }
 
+        private static readonly object ConnectionLock = new object();
+
+        /// <summary>
+        /// Makes the calling thread (the UI thread) the owner of the shared connection.
+        /// Call once at startup so a background caller can never become the owner by
+        /// reaching GetConnection() first. Without it the first caller becomes the owner.
+        /// </summary>
+        public static void BindToCurrentThread()
+        {
+            Interlocked.Exchange(ref _uiThreadId, Environment.CurrentManagedThreadId);
+        }
+
+        /// <summary>
+        /// The shared UI-thread connection. Background code (timers, Task.Run) must use
+        /// CreateConnection() and dispose it: SqliteConnection is not thread-safe, and a
+        /// background query on this connection can run inside the UI's open transaction.
+        /// Off-thread calls throw in every build, not just Debug.
+        /// </summary>
         public static SqliteConnection GetConnection()
         {
-            // Record UI thread on first call; warn if called from a background thread
-            if (_uiThreadId == 0)
+            int current = Environment.CurrentManagedThreadId;
+            int owner = Interlocked.CompareExchange(ref _uiThreadId, current, 0);
+            if (owner != 0 && owner != current)
             {
-                _uiThreadId = Thread.CurrentThread.ManagedThreadId;
+                throw new InvalidOperationException(
+                    "DbConnection.GetConnection() called from a background thread — use CreateConnection() instead.");
             }
-            Debug.Assert(Thread.CurrentThread.ManagedThreadId == _uiThreadId,
-                "GetConnection() called from background thread — use CreateConnection() instead");
             EnsureInitialized();
 
-            if (_connection == null)
+            lock (ConnectionLock)
             {
-                _connection = new SqliteConnection(ConnectionString);
-                _connection.Open();
-                ConfigurePragmas(_connection);
-                TryLoadFts5(_connection);
-            }
+                if (_connection == null)
+                {
+                    _connection = new SqliteConnection(ConnectionString);
+                }
 
-            if (_connection.State != System.Data.ConnectionState.Open)
-            {
-                _connection.Open();
-                ConfigurePragmas(_connection);
-                TryLoadFts5(_connection);
-            }
+                if (_connection.State != System.Data.ConnectionState.Open)
+                {
+                    _connection.Open();
+                    ConfigurePragmas(_connection);
+                    TryLoadFts5(_connection);
+                }
 
-            return _connection;
+                return _connection;
+            }
         }
 
         public static SqliteConnection CreateConnection()
@@ -426,14 +443,17 @@ namespace Kasir.Data
 
         public static void CloseConnection()
         {
-            if (_connection != null)
+            lock (ConnectionLock)
             {
-                if (_connection.State != System.Data.ConnectionState.Closed)
+                if (_connection != null)
                 {
-                    _connection.Close();
+                    if (_connection.State != System.Data.ConnectionState.Closed)
+                    {
+                        _connection.Close();
+                    }
+                    _connection.Dispose();
+                    _connection = null;
                 }
-                _connection.Dispose();
-                _connection = null;
             }
         }
     }

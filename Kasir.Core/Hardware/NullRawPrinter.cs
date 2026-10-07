@@ -4,5 +4,6 @@ namespace Kasir.Hardware
     {
         public string LastError => "printer_name belum diset — pilih printer di menu Admin → Printer Config";
         public bool Send(byte[] data) => false;
+        public bool IsReachable() => false;
     }
 }

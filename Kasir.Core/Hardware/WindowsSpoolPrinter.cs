@@ -34,6 +34,31 @@ namespace Kasir.Hardware
             return SendWindows(data);
         }
 
+        // Opens and closes the queue handle only — no StartDocPrinter, so no spool job.
+        public bool IsReachable()
+        {
+            LastError = null;
+            if (string.IsNullOrEmpty(_printerName)) { LastError = "Nama printer kosong"; return false; }
+            if (!OperatingSystem.IsWindows())
+            {
+                LastError = "Windows spooler tidak tersedia di OS ini";
+                return false;
+            }
+            return OpenAndCloseWindows();
+        }
+
+        [SupportedOSPlatform("windows")]
+        private bool OpenAndCloseWindows()
+        {
+            if (!OpenPrinter(_printerName, out IntPtr hPrinter, IntPtr.Zero))
+            {
+                LastError = $"OpenPrinter gagal (Win32 error {Marshal.GetLastWin32Error()}, printer='{_printerName}')";
+                return false;
+            }
+            ClosePrinter(hPrinter);
+            return true;
+        }
+
         [SupportedOSPlatform("windows")]
         private bool SendWindows(byte[] data)
         {
