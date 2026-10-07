@@ -89,6 +89,8 @@ namespace Kasir.Tests.Utils
         [TestCase("1,5", true, 150)]
         [TestCase("100,00", true, 10000)]
         [TestCase("1.000.000,5", true, 100000050)]
+        [TestCase("21.474.837", true, 2147483700L)]  // > int.MaxValue cents: the old (int)(price*100m) PO cast overflowed here (F30)
+        [TestCase("1.500.000.000", true, 150000000000L)]
         [TestCase("-5.000", true, -500000)]
         [TestCase("1rp000", false, 0)]             // "Rp" only as a prefix
         [TestCase("11.208,67,", false, 0)]
