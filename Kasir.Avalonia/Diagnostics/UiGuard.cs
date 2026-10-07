@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Kasir.Utils;
 
 namespace Kasir.Avalonia.Diagnostics;
 

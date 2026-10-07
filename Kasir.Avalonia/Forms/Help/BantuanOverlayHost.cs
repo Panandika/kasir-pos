@@ -7,7 +7,7 @@ using Kasir.Data.Repositories;
 using Kasir.Help;
 using Kasir.Help.Auth;
 using Kasir.Help.KnowledgeBase;
-using Kasir.Avalonia.Diagnostics;
+using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 
 namespace Kasir.Avalonia.Forms.Help;

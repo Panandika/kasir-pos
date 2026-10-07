@@ -1,8 +1,10 @@
 ﻿using Avalonia;
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Kasir.Avalonia.Diagnostics;
 using Kasir.Services;
+using Kasir.Utils;
 
 namespace Kasir.Avalonia;
 
@@ -25,10 +27,40 @@ class Program
             return UpdateApplier.TryParseArgs(args, out var applyArgs) ? UpdateApplier.Run(applyArgs) : 2;
         }
 
-        // Finish/undo an update interrupted mid-copy and remove the leftover staging folder.
-        UpdateApplier.RecoverInterrupted(AppContext.BaseDirectory);
+        RegisterProcessCrashHandlers();
 
-        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        try
+        {
+            // Finish/undo an update interrupted mid-copy and remove the leftover staging folder.
+            UpdateApplier.RecoverInterrupted(AppContext.BaseDirectory);
+
+            return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception ex)
+        {
+            // Startup / UI-loop failure: leave a trace in logs\crash.log instead of vanishing.
+            CrashLog.Write("Program.Main", ex);
+            return 1;
+        }
+    }
+
+    // Process-wide last-chance handlers, registered before Avalonia starts so failures
+    // during framework init are logged too. UI-thread exceptions are handled (and the app
+    // kept alive) by App's Dispatcher.UIThread.UnhandledException hook.
+    private static void RegisterProcessCrashHandlers()
+    {
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            var ex = e.ExceptionObject as Exception
+                ?? new Exception("Non-exception object thrown: " + e.ExceptionObject);
+            CrashLog.Write(e.IsTerminating ? "AppDomain.UnhandledException (terminating)"
+                                           : "AppDomain.UnhandledException", ex);
+        };
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            CrashLog.Write("TaskScheduler.UnobservedTaskException", e.Exception);
+            e.SetObserved();
+        };
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.
