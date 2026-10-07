@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Kasir.Data.Repositories;
+using Microsoft.Data.Sqlite;
 
 namespace Kasir.Hardware
 {
@@ -33,9 +35,22 @@ namespace Kasir.Hardware
             return _raw.Send(escPosData);
         }
 
+        // Polled every 30 s by the footer status; must not send anything to the printer.
         public bool IsAvailable()
         {
-            return _raw.Send(EscPosCommands.Init);
+            return _raw.IsReachable();
+        }
+
+        /// <summary>
+        /// Builds a printer from config read through a connection this method opens and
+        /// disposes. For background callers (status poller) that must not keep connections.
+        /// </summary>
+        public static ReceiptPrinter FromConfig(Func<SqliteConnection> openConnection)
+        {
+            using (var conn = openConnection())
+            {
+                return new ReceiptPrinter(new ConfigRepository(conn));
+            }
         }
 
         public bool PrintTestReceipt(string storeName)

@@ -1,10 +1,9 @@
 using System;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using Kasir.Avalonia.Diagnostics;
+using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Infrastructure;
 using Kasir.Data;
@@ -23,6 +22,10 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         RegisterGlobalErrorHandlers();
+
+        // The shared DB connection belongs to the UI thread; background callers get an
+        // exception from GetConnection() instead of silently sharing it.
+        DbConnection.BindToCurrentThread();
 
         // Apply persisted theme variant before opening MainWindow to avoid unstyled flash.
         ThemeService.Current.LoadAndApplyAtStartup();
@@ -43,22 +46,16 @@ public partial class App : Application
     private static bool _handlersRegistered;
     private static bool _showingError;
 
-    // Without these, any exception escaping an event handler (key press, button
-    // click, async void) closed the app with no message and no trace.
+    // Without this, any exception escaping an event handler (key press, button
+    // click, async void) closed the app with no message and no trace. Avalonia's own
+    // Dispatcher.UnhandledException (Avalonia.Threading, not WPF) — raised for exceptions
+    // escaping Dispatcher-run delegates, which includes async void continuations. The
+    // process-wide AppDomain / TaskScheduler handlers are registered in Program.Main.
     private static void RegisterGlobalErrorHandlers()
     {
         if (_handlersRegistered) return;
         _handlersRegistered = true;
 
-        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-        {
-            if (e.ExceptionObject is Exception ex) CrashLog.Write("AppDomain.UnhandledException", ex);
-        };
-        TaskScheduler.UnobservedTaskException += (_, e) =>
-        {
-            CrashLog.Write("TaskScheduler.UnobservedTaskException", e.Exception);
-            e.SetObserved();
-        };
         Dispatcher.UIThread.UnhandledException += OnUiThreadUnhandledException;
     }
 
@@ -93,8 +90,8 @@ public partial class App : Application
             // No DB before first-run registration; opening one would create an empty kasir.db.
             if (!DbConnection.IsInitialized) return null;
             // Background timer thread — must not call GetConnection() (UI-thread-only).
-            var conn = DbConnection.CreateConnection();
-            return new ReceiptPrinter(new ConfigRepository(conn));
+            // Runs every 30 s: the connection is disposed once config is read.
+            return ReceiptPrinter.FromConfig(DbConnection.CreateConnection);
         }
         catch
         {

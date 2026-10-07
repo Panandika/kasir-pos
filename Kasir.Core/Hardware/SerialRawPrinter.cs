@@ -16,6 +16,19 @@ namespace Kasir.Hardware
 
         public string LastError { get; private set; }
 
+        // Port existence only: opening it would take exclusive access away from a print.
+        public bool IsReachable()
+        {
+            LastError = null;
+            if (string.IsNullOrEmpty(_port)) { LastError = "Port serial kosong"; return false; }
+            foreach (var p in PrinterDiscovery.EnumerateSerialPorts())
+            {
+                if (string.Equals(p, _port, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            LastError = $"Port serial '{_port}' tidak ditemukan";
+            return false;
+        }
+
         public bool Send(byte[] data)
         {
             LastError = null;

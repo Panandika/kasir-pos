@@ -55,6 +55,23 @@ namespace Kasir.Services
             _pendingRepo.Save(_draftKey, _currentItems);
         }
 
+        // Append a line and persist the cart. If the save fails (e.g. "database is locked")
+        // the line is taken back out before rethrowing, so the in-memory cart never holds an
+        // item the screen did not show but CompleteSale would still charge (F08).
+        private void AddAndPersist(SaleItem item)
+        {
+            _currentItems.Add(item);
+            try
+            {
+                PersistCart();
+            }
+            catch
+            {
+                _currentItems.RemoveAt(_currentItems.Count - 1);
+                throw;
+            }
+        }
+
         // Recover a cart persisted by a previous (crashed) session. Product names are
         // re-looked-up since pending_sales stores only product_code. Returns the item count.
         public int RecoverPendingSale()
@@ -114,8 +131,7 @@ namespace Kasir.Services
                 PointValue = 0,
                 IsPriceOverridden = true,
             };
-            _currentItems.Add(item);
-            PersistCart();
+            AddAndPersist(item);
             return item;
         }
 
@@ -171,8 +187,7 @@ namespace Kasir.Services
                 IsPriceOverridden = overridePrice > 0
             };
 
-            _currentItems.Add(item);
-            PersistCart();
+            AddAndPersist(item);
             return item;
         }
 

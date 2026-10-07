@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Kasir.Data;
 using Kasir.Services;
 using Kasir.Utils;
+using Microsoft.Data.Sqlite;
 
 namespace Kasir.Avalonia.Infrastructure;
 
@@ -117,7 +118,9 @@ public sealed class UpdateStatusModel : INotifyPropertyChanged
             {
                 // No DB before first-run registration: check GitHub without touching it
                 // (opening a connection there would create an empty kasir.db).
-                var svc = new UpdateService(DbConnection.IsInitialized ? DbConnection.GetConnection() : null);
+                // Timer thread: own short-lived connection, not the UI's GetConnection().
+                using SqliteConnection? conn = DbConnection.IsInitialized ? DbConnection.CreateConnection() : null;
+                var svc = new UpdateService(conn);
                 result = await svc.CheckForUpdateAsync().ConfigureAwait(false);
             }
             catch

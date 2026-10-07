@@ -232,7 +232,8 @@ public sealed class CloudSyncStatusModel : INotifyPropertyChanged
         if (!DbConnection.IsInitialized) return;
         try
         {
-            var conn = DbConnection.GetConnection();
+            // Timer thread: GetConnection() is the UI thread's connection and throws here.
+            using var conn = DbConnection.CreateConnection();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM sync_queue WHERE cloud_synced=0";
             var result = cmd.ExecuteScalar();
