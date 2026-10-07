@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -28,6 +27,11 @@ namespace Kasir.CloudSync.Snapshot
     // Plan: ../../../.omc/plans/cloud-import-pairing.md §6
     public class SnapshotBuilder
     {
+        // Version of the snapshot *file* contract, checked by CloudSnapshotRestorer and
+        // the snapshot-download edge function (both reject anything above 1 in v2.9.x).
+        // Bump only when an older POS can no longer restore the file (e.g. a local
+        // Schema.sql change it can't open) - not for mirror-only changes such as adding
+        // a TableMapping, which just fills a table every POS schema already has.
         public const int SupportedSchemaVersion = 1;
 
         public class SnapshotResult
@@ -42,20 +46,21 @@ namespace Kasir.CloudSync.Snapshot
             public List<string> MissingInCloud = new List<string>();
         }
 
-        // FK-safe table order. Iterates TableMappings.All.Keys (not LoadOrder)
-        // because LoadOrder omits `shifts`; LoadOrder used only for ordering.
+        // FK-safe order of the tables a snapshot restores: LoadOrder first, then
+        // mapped tables LoadOrder doesn't cover (today: purchase_items). Mirror-only
+        // mappings (RestoreToRegister = false, today: shifts) are left out, so their
+        // local tables stay empty in the snapshot exactly as before they were mirrored.
         public static IEnumerable<string> OrderedTableNames()
         {
             var loadOrder = InitialLoader.LoadOrder;
-            var all = TableMappings.All.Keys.ToList();
-            Debug.Assert(
-                all.All(k => loadOrder.Contains(k) || k == "shifts"),
-                "TableMappings.All contains an unexpected table not in LoadOrder and not 'shifts'");
+            var restorable = TableMappings.All
+                .Where(kv => kv.Value.RestoreToRegister)
+                .Select(kv => kv.Key)
+                .ToList();
 
             foreach (var t in loadOrder)
-                if (all.Contains(t)) yield return t;
-            // Tables present in All but not in LoadOrder (today: `shifts`)
-            foreach (var t in all)
+                if (restorable.Contains(t)) yield return t;
+            foreach (var t in restorable)
                 if (!loadOrder.Contains(t)) yield return t;
         }
 

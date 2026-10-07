@@ -69,6 +69,7 @@ declare -a TABLES=(
     discounts discount_partners accounts locations credit_cards
     sales sale_items purchases cash_transactions memorial_journals
     orders stock_transfers stock_adjustments stock_movements
+    purchase_items shifts
 )
 declare -i DRIFT=0
 
@@ -101,6 +102,13 @@ EXCLUDED_PER_TABLE_stock_adjustments=""
 EXCLUDED_PER_TABLE_stock_movements=""
 EXCLUDED_PER_TABLE_discounts=""
 EXCLUDED_PER_TABLE_discount_partners=""
+# Legacy per-line fields the POS never writes (SkipList.ExcludedColumns).
+EXCLUDED_PER_TABLE_purchase_items="account_code sub_code group_code customer_code qty1 qty2 roll"
+EXCLUDED_PER_TABLE_shifts=""
+
+# Cloud-only columns allowed in the Postgres DDL (not in SQLite).
+# purchase_items.legacy_source is set by the legacy DBF sync.
+PG_ONLY_PER_TABLE_purchase_items="legacy_source"
 
 filter_excluded() {
     local table="$1"
@@ -108,6 +116,14 @@ filter_excluded() {
     local excluded="${!var:-}"
     if [ -z "$excluded" ]; then cat; return; fi
     grep -v -E "^($(echo "$excluded" | tr ' ' '|'))$" || true
+}
+
+filter_pg_only() {
+    local table="$1"
+    local var="PG_ONLY_PER_TABLE_${table}"
+    local pg_only="${!var:-}"
+    if [ -z "$pg_only" ]; then cat; return; fi
+    grep -v -E "^($(echo "$pg_only" | tr ' ' '|'))$" || true
 }
 
 for table in "${TABLES[@]}"; do
@@ -119,7 +135,7 @@ for table in "${TABLES[@]}"; do
     fi
 
     sqlite_cols=$(extract_columns_from_create_block "$CORE_SCHEMA" "$table" | filter_excluded "$table")
-    pg_cols=$(extract_columns_from_create_block "$pg_sql" "$table")
+    pg_cols=$(extract_columns_from_create_block "$pg_sql" "$table" | filter_pg_only "$table")
 
     # Tables we ship may legitimately have a different column set if the
     # Postgres mirror intentionally drops or adds columns. Today no such

@@ -224,7 +224,7 @@ namespace Kasir.CloudSync.Generation
                 T("tax_invoice1"), T("tax_invoice"), Ts("tax_inv_date"),
                 T("ref_no"), T("remark"),
                 T("sales_code"), Ts("due_date"),
-                I("disc_pct"), I("disc2_pct"), T("received_date"), T("terms"),
+                I("disc_pct"), I("disc2_pct"), T("received_date"), I("terms"),
                 T("warehouse"),
                 I("commission_pct"),
                 T("vat_flag"),
@@ -239,6 +239,21 @@ namespace Kasir.CloudSync.Generation
                 I("approved_by"),
                 T("period_code"), T("register_id"), T("legacy_source"),
                 I("changed_by"), Ts("changed_at")
+            });
+
+        // Purchase invoice / return lines under purchases.journal_no. Columns are what
+        // PurchaseRepository writes plus the legacy cost/discount fields; the unwritten
+        // legacy per-line codes are excluded in SkipList.ExcludedColumns.
+        public static readonly TableMapping PurchaseItems = new TableMapping(
+            "purchase_items",
+            new[]
+            {
+                IntPk("id"),
+                T("journal_no"), T("order_ref"), T("product_code"), T("remark"),
+                Q("quantity"), Q("qty_order"),
+                M("value"), M("unit_price"), M("inv_price"), M("cogs"),
+                I("disc_pct"), I("disc2_pct"),
+                M("disc_amount"), M("disc_value")
             });
 
         public static readonly TableMapping CashTransactions = new TableMapping(
@@ -325,12 +340,15 @@ namespace Kasir.CloudSync.Generation
                 I("changed_by"), Ts("changed_at")
             });
 
+        // Mirror-only (dashboard shift reports). shifts.id is a per-register rowid, so
+        // the cloud key is (id, register_id). Not restored into register snapshots: a
+        // freshly paired register must not inherit another PC's open shift.
         public static readonly TableMapping Shifts = new TableMapping(
             "shifts",
             new[]
             {
                 IntPk("id"),
-                T("register_id"),
+                Pk("register_id"),
                 T("shift_number"),
                 I("cashier_id"),
                 T("opened_at"),
@@ -340,7 +358,8 @@ namespace Kasir.CloudSync.Generation
                 M("expected_cash"),
                 M("cash_variance"),
                 T("status")
-            });
+            },
+            restoreToRegister: false);
 
         public static IReadOnlyDictionary<string, TableMapping> All { get; } =
             new Dictionary<string, TableMapping>
@@ -357,6 +376,7 @@ namespace Kasir.CloudSync.Generation
                 { "sales", Sales },
                 { "sale_items", SaleItems },
                 { "purchases", Purchases },
+                { "purchase_items", PurchaseItems },
                 { "cash_transactions", CashTransactions },
                 { "memorial_journals", MemorialJournals },
                 { "orders", Orders },

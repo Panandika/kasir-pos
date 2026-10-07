@@ -85,8 +85,10 @@ internal static class Program
                 "ERROR: schema drift detected.\n" +
                 $"  expected: {expected}\n" +
                 $"  actual:   {actual}\n" +
-                "Either revert the schema change or bump SUPPORTED_SCHEMA_VERSION in " +
-                "Kasir.CloudSync/Snapshot/SnapshotBuilder.cs AND update Kasir.CloudSync/schema-hash.txt.");
+                "Either revert the schema change or update Kasir.CloudSync/schema-hash.txt " +
+                "(`schema-hash compute`). Also bump SupportedSchemaVersion in " +
+                "Kasir.CloudSync/Snapshot/SnapshotBuilder.cs if older POS builds can no longer " +
+                "restore the snapshot (see the comment there).");
             return 5;
         }
         Console.WriteLine($"OK: schema hash matches ({actual})");
