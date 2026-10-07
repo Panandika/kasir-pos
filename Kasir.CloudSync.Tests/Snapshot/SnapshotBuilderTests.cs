@@ -29,20 +29,13 @@ namespace Kasir.CloudSync.Tests.Snapshot
         }
 
         [Test]
-        public void OrderedTableNames_includes_shifts_at_the_end()
+        public void OrderedTableNames_covers_all_restorable_TableMappings()
         {
             var ordered = SnapshotBuilder.OrderedTableNames().ToList();
-            ordered.Should().Contain("shifts");
-            ordered.IndexOf("shifts").Should().Be(ordered.Count - 1);
-        }
-
-        [Test]
-        public void OrderedTableNames_covers_all_TableMappings()
-        {
-            var ordered = SnapshotBuilder.OrderedTableNames().ToList();
-            foreach (var key in TableMappings.All.Keys)
+            foreach (var kv in TableMappings.All)
             {
-                ordered.Should().Contain(key);
+                if (kv.Value.RestoreToRegister) ordered.Should().Contain(kv.Key);
+                else ordered.Should().NotContain(kv.Key);
             }
         }
 

@@ -12,10 +12,15 @@ namespace Kasir.CloudSync.Generation
         public string TableName { get; }
         public IReadOnlyList<ColumnMapping> Columns { get; }
 
-        public TableMapping(string tableName, IReadOnlyList<ColumnMapping> columns)
+        // False for mirror-only tables: shipped to Supabase for the dashboard but
+        // never written into a register snapshot (SnapshotBuilder skips them).
+        public bool RestoreToRegister { get; }
+
+        public TableMapping(string tableName, IReadOnlyList<ColumnMapping> columns, bool restoreToRegister = true)
         {
             TableName = tableName;
             Columns = columns;
+            RestoreToRegister = restoreToRegister;
         }
 
         public IReadOnlyList<string> PrimaryKeyColumns =>
