@@ -24,6 +24,10 @@ public partial class App : Application
     {
         RegisterGlobalErrorHandlers();
 
+        // The shared DB connection belongs to the UI thread; background callers get an
+        // exception from GetConnection() instead of silently sharing it.
+        DbConnection.BindToCurrentThread();
+
         // Apply persisted theme variant before opening MainWindow to avoid unstyled flash.
         ThemeService.Current.LoadAndApplyAtStartup();
 
@@ -93,8 +97,8 @@ public partial class App : Application
             // No DB before first-run registration; opening one would create an empty kasir.db.
             if (!DbConnection.IsInitialized) return null;
             // Background timer thread — must not call GetConnection() (UI-thread-only).
-            var conn = DbConnection.CreateConnection();
-            return new ReceiptPrinter(new ConfigRepository(conn));
+            // Runs every 30 s: the connection is disposed once config is read.
+            return ReceiptPrinter.FromConfig(DbConnection.CreateConnection);
         }
         catch
         {

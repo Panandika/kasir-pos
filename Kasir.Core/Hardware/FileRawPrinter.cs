@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using ESCPOS_NET;
 
 namespace Kasir.Hardware
@@ -13,6 +14,29 @@ namespace Kasir.Hardware
         }
 
         public string LastError { get; private set; }
+
+        // Device node existence only, nothing written. Windows LPTn/COMn device names are
+        // not files and cannot be checked without opening the port, so they count as present.
+        public bool IsReachable()
+        {
+            LastError = null;
+            if (string.IsNullOrEmpty(_path)) { LastError = "Path device kosong"; return false; }
+            if (File.Exists(_path)) return true;
+            if (OperatingSystem.IsWindows() && IsDosDeviceName(_path)) return true;
+            LastError = $"Device '{_path}' tidak ditemukan";
+            return false;
+        }
+
+        private static bool IsDosDeviceName(string path)
+        {
+            string name = path.Trim().TrimEnd(':');
+            if (name.StartsWith(@"\\.\", StringComparison.Ordinal)) name = name.Substring(4);
+            if (string.Equals(name, "PRN", StringComparison.OrdinalIgnoreCase)) return true;
+            return name.Length == 4
+                && (name.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)
+                    || name.StartsWith("COM", StringComparison.OrdinalIgnoreCase))
+                && char.IsDigit(name[3]);
+        }
 
         public bool Send(byte[] data)
         {
