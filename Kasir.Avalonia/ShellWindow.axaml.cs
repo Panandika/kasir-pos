@@ -16,9 +16,11 @@ using Avalonia.Threading;
 using Kasir.Data;
 using Kasir.Help;
 using Kasir.Help.Auth;
+using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Forms;
 using Kasir.Avalonia.Forms.Admin;
+using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Diagnostics;
 using Kasir.Avalonia.Infrastructure;
 using Lucide.Avalonia;
@@ -229,7 +231,20 @@ public partial class ShellWindow : Window
             DbConnection.FirstRunHandler = () => result;
         }
 
-        await Task.Run(() => DbConnection.InitializeDatabase());
+        try
+        {
+            await Task.Run(() => DbConnection.InitializeDatabase());
+        }
+        catch (Exception ex)
+        {
+            // Without a database the shell cannot continue: log, tell the operator what
+            // to do (corrupt DB -> admin re-registers from cloud), then close.
+            CrashLog.Write("ShellWindow.InitializeDatabase", ex);
+            await MsgBox.Show(this, DatabaseInitFailureMessage.Build(ex, CrashLog.LogPath),
+                "Database Bermasalah");
+            Close();
+            return;
+        }
 
         // Auto-start HelpSyncService to drain queued Bantuan tickets.
         // Fire-and-forget: never block shell startup. Graceful degradation if

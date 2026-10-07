@@ -1,10 +1,9 @@
 using System;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using Kasir.Avalonia.Diagnostics;
+using Kasir.Utils;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Infrastructure;
 using Kasir.Data;
@@ -43,22 +42,16 @@ public partial class App : Application
     private static bool _handlersRegistered;
     private static bool _showingError;
 
-    // Without these, any exception escaping an event handler (key press, button
-    // click, async void) closed the app with no message and no trace.
+    // Without this, any exception escaping an event handler (key press, button
+    // click, async void) closed the app with no message and no trace. Avalonia's own
+    // Dispatcher.UnhandledException (Avalonia.Threading, not WPF) — raised for exceptions
+    // escaping Dispatcher-run delegates, which includes async void continuations. The
+    // process-wide AppDomain / TaskScheduler handlers are registered in Program.Main.
     private static void RegisterGlobalErrorHandlers()
     {
         if (_handlersRegistered) return;
         _handlersRegistered = true;
 
-        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-        {
-            if (e.ExceptionObject is Exception ex) CrashLog.Write("AppDomain.UnhandledException", ex);
-        };
-        TaskScheduler.UnobservedTaskException += (_, e) =>
-        {
-            CrashLog.Write("TaskScheduler.UnobservedTaskException", e.Exception);
-            e.SetObserved();
-        };
         Dispatcher.UIThread.UnhandledException += OnUiThreadUnhandledException;
     }
 
