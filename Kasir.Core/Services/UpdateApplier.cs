@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Kasir.Services
 {
@@ -24,6 +27,7 @@ namespace Kasir.Services
         public const string BackupDir = "update-backup";
         public const string MarkerFile = "update-complete.marker";
         public const string StagingDir = "update-staging";
+        public const string HelpJson = "help.json";
 
         // Never copied into (or backed up from) the install folder: data and runtime state.
         private static readonly HashSet<string> SkipDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -75,9 +79,10 @@ namespace Kasir.Services
 
         /// <summary>
         /// Relative paths (forward slashes) of the files to install from
-        /// <paramref name="source"/>. Skips data/state folders and files, and keeps an
-        /// existing help.json in the target (older installs may carry a Bantuan login
-        /// there; new zips only ship public fields).
+        /// <paramref name="source"/>. Skips data/state folders and files, and never
+        /// overwrites an existing help.json in the target (site values win, and older
+        /// installs may carry a Bantuan login there); <see cref="Run"/> merges new
+        /// keys into it instead via <see cref="MergeHelpJson"/>.
         /// </summary>
         public static List<string> FilesToInstall(string source, string target)
         {
@@ -91,8 +96,8 @@ namespace Kasir.Services
                 string name = Path.GetFileName(rel);
                 if (first == null && SkipFiles.Contains(name)) continue;
                 if (first == null && name.EndsWith(".db", StringComparison.OrdinalIgnoreCase)) continue;
-                if (first == null && string.Equals(name, "help.json", StringComparison.OrdinalIgnoreCase)
-                    && File.Exists(Path.Combine(target, "help.json")))
+                if (first == null && string.Equals(name, HelpJson, StringComparison.OrdinalIgnoreCase)
+                    && File.Exists(Path.Combine(target, HelpJson)))
                     continue;
                 result.Add(rel);
             }
@@ -120,6 +125,9 @@ namespace Kasir.Services
                 }
 
                 var files = FilesToInstall(a.Source, target);
+                string packagedHelp = Path.Combine(a.Source, HelpJson);
+                string installedHelp = Path.Combine(target, HelpJson);
+                bool mergeHelp = File.Exists(packagedHelp) && File.Exists(installedHelp);
 
                 // Back up every file the update will overwrite (relative layout preserved).
                 if (Directory.Exists(backup)) Directory.Delete(backup, true);
@@ -132,6 +140,9 @@ namespace Kasir.Services
                     Directory.CreateDirectory(Path.GetDirectoryName(dest));
                     File.Copy(existing, dest, true);
                 }
+                // help.json is merged in place rather than copied, so back it up too:
+                // rollback must restore the pre-merge file.
+                if (mergeHelp) File.Copy(installedHelp, Path.Combine(backup, HelpJson), true);
                 WriteState(target, "BACKUP_COMPLETE");
                 Log(target, $"Backup complete ({files.Count} files in package).");
 
@@ -142,6 +153,8 @@ namespace Kasir.Services
                     Directory.CreateDirectory(Path.GetDirectoryName(dest));
                     File.Copy(Path.Combine(a.Source, rel), dest, true);
                 }
+                if (mergeHelp)
+                    MergeHelpJson(packagedHelp, installedHelp, msg => Log(target, msg));
                 WriteState(target, "COPY_COMPLETE");
 
                 string versionFile = Path.Combine(a.Source, "version.txt");
@@ -165,6 +178,64 @@ namespace Kasir.Services
                 }
                 try { launch(Path.Combine(target, a.Exe)); } catch { /* best effort */ }
                 return 1;
+            }
+        }
+
+        /// <summary>
+        /// Adds top-level keys that the new release's help.json has but the installed
+        /// one lacks (e.g. DashboardUrl added in a later release). Installed values are
+        /// never changed: they may be operator/site edits. Legacy keys only present in
+        /// the installed file (MachineEmail/MachinePassword from pre-2.9 zips) are kept:
+        /// the file is local to the PC, and HelpConfigLoader still falls back to them on
+        /// registers that were never paired, so stripping them would break Bantuan there.
+        ///
+        /// Writes a temp file then replaces the original, so a crash never leaves a
+        /// half-written help.json. If either file is malformed (or not a JSON object),
+        /// the installed file is left untouched and the reason is logged. Never throws.
+        /// Returns the number of keys added.
+        /// </summary>
+        public static int MergeHelpJson(string packagedPath, string installedPath, Action<string> log)
+        {
+            string tmp = installedPath + ".tmp";
+            try
+            {
+                if (!(JsonNode.Parse(File.ReadAllText(packagedPath)) is JsonObject packaged))
+                {
+                    log("help.json merge skipped: packaged help.json is not a JSON object.");
+                    return 0;
+                }
+                if (!(JsonNode.Parse(File.ReadAllText(installedPath)) is JsonObject installed))
+                {
+                    log("help.json merge skipped: installed help.json is not a JSON object.");
+                    return 0;
+                }
+
+                var added = new List<string>();
+                foreach (var kv in packaged)
+                {
+                    if (installed.ContainsKey(kv.Key)) continue;
+                    installed[kv.Key] = kv.Value?.DeepClone();
+                    added.Add(kv.Key);
+                }
+                if (added.Count == 0) return 0;
+
+                // Relaxed escaping keeps URLs readable ('&' not '\u0026'): the file is
+                // local and operator-editable, never embedded in HTML.
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+                File.WriteAllText(tmp, installed.ToJsonString(options));
+                File.Move(tmp, installedPath, true);
+                log("help.json merged; added keys: " + string.Join(", ", added));
+                return added.Count;
+            }
+            catch (Exception ex)
+            {
+                log("help.json merge skipped, installed file kept: " + ex.GetType().Name + ": " + ex.Message);
+                try { if (File.Exists(tmp)) File.Delete(tmp); } catch { /* best effort */ }
+                return 0;
             }
         }
 
