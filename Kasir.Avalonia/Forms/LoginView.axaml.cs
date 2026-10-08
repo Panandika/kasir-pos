@@ -7,6 +7,7 @@ using Kasir.Utils;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Utils;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms;
 
@@ -27,7 +28,7 @@ public partial class LoginView : UserControl
                 AttemptLogin();
         };
         FooterStatus.RegisterDefault(StatusLabel, "Login — masukkan username dan password");
-        TxtUsername.Focus();
+        ViewShortcuts.FocusInputOnShow(this, TxtUsername, selectAll: false);
     }
 
     protected override async void OnKeyDown(KeyEventArgs e)

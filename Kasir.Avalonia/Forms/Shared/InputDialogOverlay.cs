@@ -141,14 +141,7 @@ public class InputDialogOverlay : UserControl
         card.Child = dock;
         Content = card;
 
-        AttachedToVisualTree += (_, _) =>
-        {
-            if (_inputs.Length > 0)
-            {
-                _inputs[0].Focus();
-                _inputs[0].SelectAll();
-            }
-        };
+        if (_inputs.Length > 0) ViewShortcuts.FocusInputOnShow(this, _inputs[0]);
 
         KeyDown += (_, e) =>
         {

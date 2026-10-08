@@ -10,6 +10,7 @@ using Kasir.Models;
 using Kasir.Avalonia.Behaviors;
 using Kasir.Services;
 using Kasir.Utils;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.POS;
 
@@ -19,6 +20,11 @@ public partial class PaymentOverlay : UserControl
     private readonly PaymentCalculator _paymentCalc;
     private readonly List<CreditCard> _cards;
     private readonly TaskCompletionSource<bool> _tcs = new();
+    // Last cash value the screen filled in itself. While the cash box still shows it, the
+    // cashier has not typed cash, so it follows card/voucher entry instead of being read
+    // as extra cash tendered (which showed the whole card amount as KEMBALI) (#19).
+    private string _autoCashText = "";
+    private bool _settingCash;
 
     public long CashAmount { get; private set; }
     public long CardAmount { get; private set; }
@@ -36,7 +42,8 @@ public partial class PaymentOverlay : UserControl
         _cards = new CreditCardRepository(DbConnection.GetConnection()).GetAll();
 
         LblTotal.Text = $"TOTAL: {Formatting.FormatCurrency(_totalDue)}";
-        TxtCash.Text = IndonesianMoneyFormatter.Format(_totalDue / 100);
+        _autoCashText = IndonesianMoneyFormatter.Format(_paymentCalc.SuggestedCash(_totalDue, 0, 0) / 100);
+        TxtCash.Text = _autoCashText;
         TxtCard.Text = "0";
         TxtVoucher.Text = "0";
 
@@ -46,18 +53,21 @@ public partial class PaymentOverlay : UserControl
 
         var cardItems = new List<string> { "(none)" };
         foreach (var c in _cards)
-            cardItems.Add($"{c.Name} ({c.FeePct / 100.0:F1}%)");
+            // Name only: the card fee (MDR) is borne by the store and never charged to the
+            // customer (PBI 23/6/PBI/2021 bans surcharging), so showing "%" here misled (#19).
+            cardItems.Add(c.Name);
         CboCardType.ItemsSource = cardItems;
         CboCardType.SelectedIndex = 0;
 
         TxtCash.TextChanged += (_, _) => Recalculate();
-        TxtCard.TextChanged += (_, _) => Recalculate();
-        TxtVoucher.TextChanged += (_, _) => Recalculate();
+        TxtCard.TextChanged += (_, _) => { SyncAutoCash(); Recalculate(); };
+        TxtVoucher.TextChanged += (_, _) => { SyncAutoCash(); Recalculate(); };
+        CboCardType.SelectionChanged += (_, _) => Recalculate();
 
         BtnOk.Click += (_, _) => Accept();
         BtnCancel.Click += (_, _) => _tcs.TrySetResult(false);
 
-        AttachedToVisualTree += (_, _) => { TxtCash.Focus(); TxtCash.SelectAll(); };
+        ViewShortcuts.FocusInputOnShow(this, TxtCash);
         KeyDown += OnKey;
 
         Recalculate();
@@ -69,33 +79,57 @@ public partial class PaymentOverlay : UserControl
         else if (KeyboardRouter.IsEscape(e)) { e.Handled = true; _tcs.TrySetResult(false); }
     }
 
+    private void SyncAutoCash()
+    {
+        if (_settingCash || (TxtCash.Text ?? "") != _autoCashText) return;
+        if (!TryParseAmount(TxtCard.Text, out long card) || !TryParseAmount(TxtVoucher.Text, out long voucher)) return;
+        string suggested = IndonesianMoneyFormatter.Format(_paymentCalc.SuggestedCash(_totalDue, card, voucher) / 100);
+        if (suggested == _autoCashText) return;
+        _settingCash = true;
+        try
+        {
+            _autoCashText = suggested;
+            TxtCash.Text = suggested;
+        }
+        finally { _settingCash = false; }
+    }
+
+    // Null when the tender can be accepted; otherwise the reason shown in place of KEMBALI.
+    private string? Validate(out PaymentValidation result)
+    {
+        result = new PaymentValidation();
+        if (!TryParseAmount(TxtCash.Text, out long cash)
+            || !TryParseAmount(TxtCard.Text, out long card)
+            || !TryParseAmount(TxtVoucher.Text, out long voucher))
+            return "JUMLAH TIDAK VALID";
+        result = _paymentCalc.ValidatePayment(_totalDue, cash, card, voucher);
+        if (result.NonCashOverpayment > 0)
+            return $"KARTU+VOUCHER LEBIH: {Formatting.FormatCurrency(result.NonCashOverpayment)}";
+        if (!result.IsValid)
+            return $"KURANG: {Formatting.FormatCurrency(result.Shortfall)}";
+        // Legacy JUAL1: "Jenis card harus di-isi" — the card decides the GL account.
+        if (card > 0 && CboCardType.SelectedIndex <= 0)
+            return "PILIH JENIS KARTU";
+        return null;
+    }
+
     private void Recalculate()
     {
-        long cash = ParseAmount(TxtCash.Text);
-        long card = ParseAmount(TxtCard.Text);
-        long voucher = ParseAmount(TxtVoucher.Text);
-        var result = _paymentCalc.ValidatePayment(_totalDue, cash, card, voucher);
-        if (result.IsValid)
-        {
-            LblChange.Text = $"KEMBALI: {Formatting.FormatCurrency(result.Change)}";
-            BtnOk.IsEnabled = true;
-        }
-        else
-        {
-            LblChange.Text = $"KURANG: {Formatting.FormatCurrency(result.Shortfall)}";
-            BtnOk.IsEnabled = false;
-        }
+        string? error = Validate(out var result);
+        LblChange.Text = error ?? $"KEMBALI: {Formatting.FormatCurrency(result.Change)}";
+        BtnOk.IsEnabled = error == null;
     }
 
     private void Accept()
     {
-        CashAmount = ParseAmount(TxtCash.Text);
-        CardAmount = ParseAmount(TxtCard.Text);
-        VoucherAmount = ParseAmount(TxtVoucher.Text);
-        var result = _paymentCalc.ValidatePayment(_totalDue, CashAmount, CardAmount, VoucherAmount);
-        if (!result.IsValid) return;
+        if (Validate(out var result) != null) return;
+        CashAmount = result.CashAmount;
+        CardAmount = result.CardAmount;
+        VoucherAmount = result.VoucherAmount;
         Change = result.Change;
-        if (CboCardType.SelectedIndex > 0)
+        CardCode = "";
+        CardType = "";
+        if (CardAmount > 0 && CboCardType.SelectedIndex > 0)
         {
             var card = _cards[CboCardType.SelectedIndex - 1];
             CardCode = card.CardCode;
@@ -107,11 +141,15 @@ public partial class PaymentOverlay : UserControl
 
     public Task<bool> Result => _tcs.Task;
 
-    private static long ParseAmount(string? text)
+    // Whole-Rupiah tender ("1.250.000") to cents. Blank = 0. Rejects input too large for
+    // long cents instead of letting "v * 100" wrap negative (#19).
+    private static bool TryParseAmount(string? text, out long cents)
     {
-        if (long.TryParse((text ?? "").Replace(".", "").Replace(",", ""), out long v))
-            return v * 100;
-        return 0;
+        cents = 0;
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        if (!Formatting.TryParseRupiah(text, out long rupiah) || rupiah < 0) return false;
+        cents = rupiah * 100;
+        return true;
     }
 }
 

@@ -103,6 +103,8 @@ public partial class SaleView : UserControl, INavigationAware
         _clockTimer.Start();
 
         ViewShortcuts.AutoFocusOnAttach(this, TxtBarcode);
+        // No open shift: ask for it as soon as Penjualan opens, before anything is scanned.
+        AttachedToVisualTree += (_, _) => Dispatcher.UIThread.Post(PromptShiftOnArrival, DispatcherPriority.Background);
 
         _ = CheckPrinterHealthAsync();
     }
@@ -216,7 +218,9 @@ public partial class SaleView : UserControl, INavigationAware
 
         if (code == SalesService.MiscProductCode)
         {
-            EnterPricePromptMode(qty);
+            // Barang Tanpa Kode needs an open shift just like a coded item.
+            if (_currentShift == null) OpenShiftThenEnterPrice(qty);
+            else EnterPricePromptMode(qty);
             return;
         }
 
@@ -235,19 +239,12 @@ public partial class SaleView : UserControl, INavigationAware
 
     private async Task AddItemByCodeAsync(string code, int qty)
     {
-        if (_currentShift == null)
-        {
-            bool openNow = await MsgBox.Confirm(NavigationService.Owner,
-                "Tidak ada shift terbuka. Buka shift sekarang?");
-            if (!openNow) { FooterStatus.Show(StatusLabel, "Shift belum dibuka."); return; }
-            NavigationService.Navigate(new ShiftView(_cashier.Id));
-            return;
-        }
+        if (_currentShift == null && !await PromptOpenShiftAsync()) return;
         var item = _salesService.AddItem(code, qty);
         if (item == null)
         {
-            if (long.TryParse(code, out long numVal))
-                LblSubtotal.Text = numVal.ToString("N0");
+            // SUBTOTAL keeps the running total (as in the old program); the unknown code
+            // only goes to the status line.
             FooterStatus.Show(StatusLabel, "Barang tidak ditemukan: " + code);
             return;
         }
@@ -269,6 +266,54 @@ public partial class SaleView : UserControl, INavigationAware
             "\nDetail tersimpan di " + CrashLog.LogPath,
             "Kesalahan");
         TxtBarcode.Focus();
+    }
+
+    // ── Shift ──────────────────────────────────────────────────────
+    private bool _shiftPromptOpen;
+
+    private async void PromptShiftOnArrival()
+    {
+        CheckShift();
+        if (_currentShift != null) return;
+        await UiGuard.RunAsync("Sale.OpenShift", async () => { await PromptOpenShiftAsync(); },
+            ex => ShowSaleErrorAsync("Gagal membuka shift", ex));
+    }
+
+    private async void OpenShiftThenEnterPrice(int qty)
+    {
+        await UiGuard.RunAsync("Sale.OpenShift", async () =>
+        {
+            if (await PromptOpenShiftAsync()) EnterPricePromptMode(qty);
+        }, ex => ShowSaleErrorAsync("Gagal membuka shift", ex));
+    }
+
+    // Opens the shift right here (opening-cash dialog), staying on Penjualan. True when a
+    // shift is open afterwards.
+    private async Task<bool> PromptOpenShiftAsync()
+    {
+        if (_shiftPromptOpen) return false;
+        _shiftPromptOpen = true;
+        try
+        {
+            CheckShift();
+            if (_currentShift == null)
+            {
+                await ShiftOpener.PromptAndOpenAsync(_cashier.Id, "Belum ada shift terbuka. Kas awal (Rp)");
+                CheckShift();
+            }
+            if (_currentShift == null)
+            {
+                FooterStatus.Show(StatusLabel, "Shift belum dibuka — barang belum bisa diinput. Ketik kode barang untuk membuka shift.");
+                return false;
+            }
+            FooterStatus.Show(StatusLabel, $"Shift {_currentShift.ShiftNumber} dibuka. Silakan scan barang.");
+            return true;
+        }
+        finally
+        {
+            _shiftPromptOpen = false;
+            TxtBarcode.Focus();
+        }
     }
 
     private void EnterPricePromptMode(int qty)
@@ -418,7 +463,8 @@ public partial class SaleView : UserControl, INavigationAware
             FooterStatus.Show(StatusLabel, "Tidak ada item.");
             return;
         }
-        if (!long.TryParse(digits, out long rupiah) || rupiah <= 0)
+        // Cap so "rupiah * 100" cannot wrap into a bogus positive cash amount (#19).
+        if (!long.TryParse(digits, out long rupiah) || rupiah <= 0 || rupiah > long.MaxValue / 100)
         {
             FooterStatus.Show(StatusLabel, "Jumlah tunai tidak valid.");
             return;
@@ -522,6 +568,8 @@ public partial class SaleView : UserControl, INavigationAware
         r.Add(EscPosCommands.BoldOff);
         if (sale.CashAmount > 0) r.Add(EscPosCommands.Text($"TUNAI: {Formatting.FormatCurrency(sale.CashAmount),26}\n"));
         if (sale.NonCash > 0) r.Add(EscPosCommands.Text($"KARTU: {Formatting.FormatCurrency(sale.NonCash),26}\n"));
+        // Without this line a voucher-paid receipt did not add up to TOTAL (#19).
+        if (sale.VoucherAmount > 0) r.Add(EscPosCommands.Text($"VOUCHER: {Formatting.FormatCurrency(sale.VoucherAmount),24}\n"));
         if (sale.ChangeAmount > 0) r.Add(EscPosCommands.Text($"KEMBALI: {Formatting.FormatCurrency(sale.ChangeAmount),24}\n"));
         r.Add(EscPosCommands.Text("================================\n"));
         r.Add(EscPosCommands.CenterAlign);

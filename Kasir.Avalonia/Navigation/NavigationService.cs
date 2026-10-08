@@ -72,7 +72,8 @@ public static class NavigationService
         view.IsTabStop = false;
         Dispatcher.UIThread.Post(() =>
         {
-            if (!view.IsKeyboardFocusWithin) view.Focus();
+            // Never pull focus out of a dialog the view opened on arrival.
+            if (!view.IsKeyboardFocusWithin && !Instance.IsOverlayOpen) view.Focus();
         }, DispatcherPriority.Background);
     }
 
