@@ -22,7 +22,8 @@ namespace Kasir.Data
             new Migration_009(),
             new Migration_010(),
             new Migration_011(),
-            // Migration_012 is PR-K3 (inactive_sale_log); merge K3 before K4.
+            // Migration_012 is PR-K3 (inactive_sale_log): merge AND release K3 before K4.
+            // Migration_013 also creates 012's table (idempotent) in case a K4 build ships first.
             new Migration_013()
             // Add new migrations here in order:
             // new Migration_014(),

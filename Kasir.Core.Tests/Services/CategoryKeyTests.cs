@@ -160,6 +160,86 @@ namespace Kasir.Tests.Services
             recovered.CurrentItems[0].Cogs.Should().Be(750000);
         }
 
+        [Test]
+        public void AddMiscItem_WithCategory_MarginAbove100Pct_IsClamped_NoNegativeCogs()
+        {
+            // L2: a mistyped margin_pct > 10000 must not produce a negative COGS.
+            Exec("UPDATE products SET margin_pct = 15000 WHERE product_code = 'AL'");
+            _service.AddMiscItem(1, 1000000, "AL").Cogs.Should().Be(0);
+        }
+
+        [Test]
+        public void CompleteSale_CategoryLine_IsTaggedEstimatedCogs()
+        {
+            // M8: estimated COGS lines are tagged so reports can split estimated vs actual.
+            _service.AddMiscItem(1, 1000000, "PL");
+            _service.AddMiscItem(1, 500000); // plain code "1": no estimate
+            var sale = _service.CompleteSale(1500000, 0, 0, "", "", "");
+
+            Text($"SELECT remark FROM sale_items WHERE journal_no = '{sale.JournalNo}' AND product_code = 'PL'")
+                .Should().Be(SalesService.EstimatedCogsRemark);
+            Text($"SELECT remark FROM sale_items WHERE journal_no = '{sale.JournalNo}' AND product_code = '1'")
+                .Should().BeEmpty();
+        }
+
+        [Test]
+        public void CompleteSale_RecoveredCategoryLine_IsStillTaggedEstimated()
+        {
+            // pending_sales does not keep the remark; the tag is derived from the code.
+            _service.AddMiscItem(1, 1000000, "MY");
+            var recovered = new SalesService(_db, new FakeClock(new DateTime(2026, 4, 4, 15, 0, 0)));
+            recovered.SetCashier("ADM", 1);
+            recovered.RecoverPendingSale();
+            var sale = recovered.CompleteSale(1000000, 0, 0, "", "", "");
+
+            Text($"SELECT remark FROM sale_items WHERE journal_no = '{sale.JournalNo}'")
+                .Should().Be(SalesService.EstimatedCogsRemark);
+        }
+
+        [Test]
+        public void OpnameSheet_ExcludesNonStockCodes()
+        {
+            // L3: category keys (and code "1") have no stock to count.
+            var repo = new ProductRepository(_db);
+            repo.Insert(new Product
+            {
+                ProductCode = "1", Name = "Barang Tanpa Kode", Status = "A",
+                OpenPrice = "Y", VatFlag = "N", LuxuryTaxFlag = "N", IsConsignment = "N"
+            });
+            repo.Insert(new Product
+            {
+                ProductCode = "P001", Name = "TEST", Price = 500000, Status = "A",
+                OpenPrice = "N", VatFlag = "N", LuxuryTaxFlag = "N", IsConsignment = "N"
+            });
+
+            var sheet = new StockOpnameService(_db, new FakeClock(new DateTime(2026, 4, 4, 10, 0, 0)))
+                .GetOpnameSheet(1000);
+
+            sheet.Select(l => l.ProductCode).Should().Contain("P001");
+            sheet.Select(l => l.ProductCode).Should().NotContain(c => SalesService.IsNonStockCode(c));
+        }
+
+        [Test]
+        public void Migration013_EnsuresMigration012Table_WhenK3WasSkipped()
+        {
+            // H3: a register that reached schema 13 from a build without 012 must still
+            // have inactive_sale_log (012 would never run there afterwards).
+            Exec("DROP TABLE IF EXISTS inactive_sale_log");
+            new Migration_013().Up(_db);
+            new Migration_013().Up(_db);
+            Scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'inactive_sale_log'").Should().Be(1);
+            Exec("INSERT OR IGNORE INTO inactive_sale_log (register_id, product_code, sale_date) VALUES ('01','X','2026-04-04')");
+            Exec("INSERT OR IGNORE INTO inactive_sale_log (register_id, product_code, sale_date) VALUES ('01','X','2026-04-04')");
+            Scalar("SELECT COUNT(*) FROM inactive_sale_log").Should().Be(1);
+        }
+
+        private string Text(string sql)
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = sql;
+            return Convert.ToString(cmd.ExecuteScalar());
+        }
+
         [TestCase("al", "AL")]
         [TestCase("AL", "AL")]
         [TestCase(" ll ", "LL")]

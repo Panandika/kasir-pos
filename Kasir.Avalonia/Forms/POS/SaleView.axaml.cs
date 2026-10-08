@@ -334,6 +334,9 @@ public partial class SaleView : UserControl, INavigationAware
 
     private void EnterPricePromptMode(int qty, string category)
     {
+        // The price starts from an empty box: nothing typed before (or leaked from the
+        // picker key) may prefix it.
+        TxtBarcode.Text = "";
         _pendingMiscQty = qty;
         _pendingCategory = category;
         _inputMode = InputMode.AwaitingMiscPrice;
@@ -350,8 +353,17 @@ public partial class SaleView : UserControl, INavigationAware
         _pendingCategory = null;
     }
 
+    // Rp 999.999.999 is far above any unlabelled item; more digits means a barcode was
+    // scanned into the price prompt.
+    private const int MaxMiscPriceDigits = 9;
+
     private void HandleMiscPriceInput(string text)
     {
+        if (text.Length > MaxMiscPriceDigits)
+        {
+            FooterStatus.Show(StatusLabel, "Harga terlalu besar (barcode?). Ketik harga atau Esc utk batal.");
+            return;
+        }
         if (!long.TryParse(text, out long rupiah) || rupiah <= 0)
         {
             FooterStatus.Show(StatusLabel, "Harga tidak valid. Ketik angka > 0 atau Esc utk batal.");
@@ -678,7 +690,12 @@ public partial class SaleView : UserControl, INavigationAware
         if (DgvSearch.SelectedItem is SearchRow row)
         {
             HideSearch();
-            AddItemByCode(row.Tag.ProductCode);
+            // Code "1" and the category keys are sold by typed price, never as a Rp 0
+            // line from the product row (review M3).
+            if (SalesService.IsNonStockCode(row.Tag.ProductCode))
+                BeginMiscEntry(1, SalesService.ResolveCategoryKey(row.Tag.ProductCode));
+            else
+                AddItemByCode(row.Tag.ProductCode);
         }
     }
 
