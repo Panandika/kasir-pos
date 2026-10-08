@@ -1503,7 +1503,11 @@ INSERT INTO config(key, value, description) VALUES
     ('store_name', 'TOKO SINAR MAKMUR', 'Store name for receipts'),
     ('store_address', 'JL PULAU BATAM NO. 26', 'Store address for receipts'),
     ('store_tagline', 'ALAT LISTRIK & KEBUTUHAN SEHARI-HARI', 'Store tagline for receipts'),
-    ('current_period', NULL, 'Current accounting period YYYYMM — set on first use');
+    ('current_period', NULL, 'Current accounting period YYYYMM — set on first use'),
+    -- Kasir.CloudSync WatermarkPusher (WP-02): last id pushed to the Supabase mirror.
+    -- Missing on an older DB = 0 (the pusher treats an absent key as 0).
+    ('cloud_push_wm_stock_movements', '0', 'Last pushed stock_movements.id'),
+    ('cloud_push_wm_shifts', '0', 'Last pushed shifts.id');
 
 -- ============================================================
 -- Section 8: Indexes
