@@ -112,10 +112,10 @@ public partial class SaleView : UserControl, INavigationAware
         if (_printerHealthChecked) return;
         _printerHealthChecked = true;
 
-        string kind = _configRepo.Get("printer_kind") ?? "";
-        string name = _configRepo.Get("printer_name") ?? "";
-
-        if (string.IsNullOrEmpty(name))
+        // Config is read on this (UI) thread inside RunAsync; only the device probe goes
+        // to the thread pool. _configRepo wraps the shared UI connection.
+        var health = await PrinterHealthCheck.RunAsync(_configRepo);
+        if (!health.Configured)
         {
             _printerStatusText = "OFF";
             _printerStatusOk = false;
@@ -123,29 +123,7 @@ public partial class SaleView : UserControl, INavigationAware
             return;
         }
 
-        var (warning, ok) = await Task.Run(() =>
-        {
-            // For Windows queues, prefer the WMI status check — it's instant and
-            // doesn't open a print job. Fall back to a real Init send for other kinds.
-            if (kind == "windows" || (string.IsNullOrEmpty(kind) && !name.StartsWith("COM", StringComparison.OrdinalIgnoreCase)
-                                                                  && !name.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)
-                                                                  && !name.StartsWith("/dev/", StringComparison.OrdinalIgnoreCase)))
-            {
-                string status = PrinterDiscovery.GetWindowsPrinterStatus(name);
-                return status switch
-                {
-                    null or "ready" or "printing" or "warmup" or "other" or "unknown" => ((string?)null, true),
-                    "paused"     => ($"Printer '{name}' di-pause di Windows", false),
-                    "offline"    => ($"Printer '{name}' offline", false),
-                    "not_found"  => ($"Printer '{name}' tidak ditemukan", false),
-                    _            => ($"Printer '{name}' status: {status}", false),
-                };
-            }
-
-            var printer = new ReceiptPrinter(_configRepo);
-            if (printer.IsAvailable()) return ((string?)null, true);
-            return (printer.LastError ?? "tidak tersedia", false);
-        });
+        var (warning, ok) = (health.Warning, health.Ok);
 
         _printerStatusOk = ok;
         _printerStatusText = ok ? "ON" : "OFF";
@@ -507,6 +485,8 @@ public partial class SaleView : UserControl, INavigationAware
             if (string.IsNullOrEmpty(printerName)) return;
             var items = _saleRepo.GetItemsByJournalNo(sale.JournalNo);
             byte[] data = BuildReceiptBytes(sale, items);
+            // Build on the UI thread: the constructor reads config through the shared
+            // connection. Print() only talks to the device.
             var printer = new ReceiptPrinter(_configRepo);
             bool ok = await Task.Run(() => printer.Print(data));
             if (!ok) await MsgBox.Show(NavigationService.Owner, "Struk tidak tercetak.\n" + (printer.LastError ?? "(tidak ada detail error)"));
