@@ -151,7 +151,7 @@ public partial class PaymentOverlay : UserControl
         if (PaymentCalculator.NeedsChangeConfirmation(result.Change) && !_awaitingChangeConfirm)
         {
             _awaitingChangeConfirm = true;
-            LblChange.Text = $"YAKIN? KEMBALI {Formatting.FormatCurrency(result.Change)} — Enter = Ya, Esc = ubah";
+            LblChange.Text = $"YAKIN? KEMBALI {Formatting.FormatCurrency(result.Change)}\nEnter = Ya   ·   Esc = ubah jumlah";
             BtnOk.Content = "Ya, Yakin (Enter)";
             return;
         }
