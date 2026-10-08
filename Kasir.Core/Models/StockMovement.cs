@@ -2,7 +2,8 @@ namespace Kasir.Models
 {
     public class StockMovement
     {
-        public int Id { get; set; }
+        // long: legacy GHIST ids reach ~4.29e9 and dashboard-originated rows start at 5e9 (OB-13).
+        public long Id { get; set; }
         public string ProductCode { get; set; }
         public string VendorCode { get; set; }
         public string DeptCode { get; set; }

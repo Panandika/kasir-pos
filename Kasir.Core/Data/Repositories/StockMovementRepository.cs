@@ -145,7 +145,7 @@ namespace Kasir.Data.Repositories
         {
             return new StockMovement
             {
-                Id = SqlHelper.GetInt(reader, "id"),
+                Id = SqlHelper.GetLong(reader, "id"),
                 ProductCode = SqlHelper.GetString(reader, "product_code"),
                 VendorCode = SqlHelper.GetString(reader, "vendor_code"),
                 DeptCode = SqlHelper.GetString(reader, "dept_code"),

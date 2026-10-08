@@ -72,6 +72,22 @@ namespace Kasir.Tests.Data
         }
 
         [Test]
+        public void Readers_HandleIdsAboveInt32()
+        {
+            _repo.InsertWithId(Sale("OPN-DB"), 5_000_000_001L, "2026-10-09 09:00:00");
+            var p = new StockMovement
+            {
+                ProductCode = "P001", JournalNo = "RCV-1", MovementType = "PURCHASE",
+                DocDate = "2026-10-09", PeriodCode = "202610", QtyIn = 100, ValIn = 1000, LocationCode = "T"
+            };
+            _repo.InsertWithId(p, 5_000_000_002L, "2026-10-09 10:00:00");
+
+            _repo.GetByJournal("OPN-DB").Should().ContainSingle().Which.Id.Should().Be(5_000_000_001L);
+            _repo.GetPurchaseMovements("P001").Should().ContainSingle().Which.Id.Should().Be(5_000_000_002L);
+            _repo.GetByProduct("P001", "2026-10-01", "2026-10-31").Should().HaveCount(2);
+        }
+
+        [Test]
         public void InventoryService_WithPlacement_WritesThePlacedRow_AndKeepsTheAverageEngine()
         {
             var cfg = new ConfigRepository(_db);
