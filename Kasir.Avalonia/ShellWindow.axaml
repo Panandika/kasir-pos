@@ -9,7 +9,7 @@
   <Grid>
   <DockPanel>
 
-    <!-- Status bar: sync badge row (forms render their own F-key hint bar) -->
+    <!-- Status bar: printer / cloud / version badge row (forms render their own F-key hint bar) -->
     <Border DockPanel.Dock="Bottom"
             Background="{DynamicResource Bg2Brush}"
             BorderBrush="{DynamicResource BorderSubtleBrush}"
@@ -27,25 +27,6 @@
             <Ellipse x:Name="PrinterDot" Width="6" Height="6" Fill="{DynamicResource WarningBrush}"/>
             <TextBlock x:Name="PrinterText"
                        Text="Printer offline"
-                       FontSize="{DynamicResource FontSizeXs}"
-                       Foreground="{DynamicResource FgSecondaryBrush}"/>
-          </StackPanel>
-        </Border>
-
-        <Border x:Name="SyncBadge"
-                Background="{DynamicResource BgSelectedBrush}"
-                BorderBrush="{DynamicResource BorderSubtleBrush}"
-                BorderThickness="1"
-                CornerRadius="999"
-                Padding="8,2"
-                VerticalAlignment="Center">
-          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <Ellipse x:Name="SyncDot" Width="6" Height="6" Fill="{DynamicResource SuccessBrush}"/>
-            <lucide:LucideIcon x:Name="SyncSpinner" Kind="RefreshCw" Size="10"
-                               IsVisible="False"
-                               Foreground="{DynamicResource FgSecondaryBrush}"/>
-            <TextBlock x:Name="SyncText"
-                       Text="Online · Sync 0d lalu"
                        FontSize="{DynamicResource FontSizeXs}"
                        Foreground="{DynamicResource FgSecondaryBrush}"/>
           </StackPanel>
