@@ -310,7 +310,7 @@ namespace Kasir.Tests.Services
             _service.VoidSale(sale.JournalNo);
             int afterVoid = movementRepo.GetStockOnHand("P001");
 
-            afterVoid.Should().Be(afterSale + 2, "voiding returns the 2 sold units to stock");
+            afterVoid.Should().Be(afterSale + StockQty.ToLedger(2), "voiding returns the 2 sold units to stock");
 
             using var cmd = _db.CreateCommand();
             cmd.CommandText = "SELECT control FROM sales WHERE journal_no = @j";
@@ -323,7 +323,7 @@ namespace Kasir.Tests.Services
         [Test]
         public void VoidSale_RestoresStockValue_AtUnitCost()
         {
-            new InventoryService(_db).RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-X", "2026-04-01", 1);
+            new InventoryService(_db).RecordStockIn("P001", StockQty.ToLedger(10), 1000, "PURCHASE", "BPB-X", "2026-04-01", 1);
             _service.AddItem("P001", 3);
             var sale = _service.CompleteSale(10000000, 0, 0, "", "", "");
 
@@ -435,7 +435,7 @@ namespace Kasir.Tests.Services
             var returnIn = new StockMovementRepository(_db).GetByJournal(sale.JournalNo)
                 .Where(m => m.MovementType == "RETURN_IN").ToList();
             returnIn.Should().ContainSingle();
-            returnIn[0].QtyIn.Should().Be(2);
+            returnIn[0].QtyIn.Should().Be(StockQty.ToLedger(2));
             returnIn[0].CostPrice.Should().Be(1000);
             new ProductRepository(_db).GetByCode("P001").CostPrice.Should().Be(1000,
                 "returning units at the average cost leaves the average unchanged");
@@ -745,7 +745,7 @@ namespace Kasir.Tests.Services
             movements.Should().ContainSingle();
             movements[0].ProductCode.Should().Be("P001");
             movements[0].MovementType.Should().Be("SALE");
-            movements[0].QtyOut.Should().Be(2);
+            movements[0].QtyOut.Should().Be(StockQty.ToLedger(2));
             movements[0].LocationCode.Should().Be("T");
         }
 
@@ -790,9 +790,9 @@ namespace Kasir.Tests.Services
         public void Sale_ZeroAndNegativeStock_Succeeds()
         {
             var inventory = new InventoryService(_db);
-            inventory.RecordStockOut("P002", 5, 0, "SALE", "KLR-OLD", "2026-04-01", 1);
-            inventory.GetStockOnHand("P001").Should().Be(0);
-            inventory.GetStockOnHand("P002").Should().Be(-5);
+            inventory.RecordStockOut("P002", StockQty.ToLedger(5), 0, "SALE", "KLR-OLD", "2026-04-01", 1);
+            inventory.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(0));
+            inventory.GetStockOnHand("P002").Should().Be(StockQty.ToLedger(-5));
             SeedProduct("P009", "BARANG NONAKTIF", status: "I");
 
             _service.AddItem("P001", 1).Should().NotBeNull("on-hand 0 must still sell");
@@ -804,9 +804,9 @@ namespace Kasir.Tests.Services
 
             act.Should().NotThrow();
             sale.Should().NotBeNull();
-            inventory.GetStockOnHand("P001").Should().Be(-1);
-            inventory.GetStockOnHand("P002").Should().Be(-6);
-            inventory.GetStockOnHand("P009").Should().Be(-1);
+            inventory.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(-1));
+            inventory.GetStockOnHand("P002").Should().Be(StockQty.ToLedger(-6));
+            inventory.GetStockOnHand("P009").Should().Be(StockQty.ToLedger(-1));
         }
     }
 }

@@ -97,9 +97,10 @@ public partial class InventoryReportView : UserControl
         {
             int stock = invSvc.GetStockOnHand(p.ProductCode);
             long cost = invSvc.CalculateAverageCost(p.ProductCode);
-            long value = stock * cost;
+            // stock is a ledger qty (x100); the value divides the scale out.
+            long value = StockQty.Value(cost, stock);
             _rows.Add(new InvRow(p.ProductCode, p.Name,
-                stock.ToString(),
+                StockQty.Format(stock),
                 Formatting.FormatCurrencyShort(cost),
                 Formatting.FormatCurrencyShort(value),
                 "", "", "", ""));

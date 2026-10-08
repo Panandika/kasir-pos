@@ -105,7 +105,7 @@ namespace Kasir.Tests.Services
             var p1 = _service.GetOrderReceiptStatus(po).Single(l => l.ProductCode == "P001");
             p1.Received.Should().Be(4);
             p1.Remaining.Should().Be(6);
-            _movementRepo.GetStockOnHand("P001").Should().Be(4);
+            _movementRepo.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(4));
         }
 
         [Test]
@@ -143,7 +143,7 @@ namespace Kasir.Tests.Services
             System.Action act = () => Receive(po, ("P001", 3, 300000)); // 8 + 3 > 10
 
             act.Should().Throw<PurchaseValidationException>().WithMessage("*P001*");
-            _movementRepo.GetStockOnHand("P001").Should().Be(8, "rejected receipt must not move stock");
+            _movementRepo.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(8), "rejected receipt must not move stock");
             CountRows("purchases").Should().Be(1);
         }
 
@@ -214,7 +214,7 @@ namespace Kasir.Tests.Services
                 new List<PurchaseItem> { new PurchaseItem { ProductCode = "P003", Quantity = 2, UnitPrice = 100 } }, 1);
 
             gr.Should().Contain("BPB");
-            _movementRepo.GetStockOnHand("P003").Should().Be(2);
+            _movementRepo.GetStockOnHand("P003").Should().Be(StockQty.ToLedger(2));
         }
 
         // ---------- Invoice against receipt ----------
@@ -323,7 +323,7 @@ namespace Kasir.Tests.Services
             _service.CreatePurchaseInvoice(new Purchase { SubCode = "V001", DueDate = "2026-05-04" }, lines, 1)
                 .Should().Contain("MSK");
 
-            _movementRepo.GetStockOnHand("P003").Should().Be(4);
+            _movementRepo.GetStockOnHand("P003").Should().Be(StockQty.ToLedger(4));
         }
 
         [Test]
@@ -334,7 +334,7 @@ namespace Kasir.Tests.Services
             _service.CreatePurchaseInvoice(new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
                 InvoiceLines(gr, ("P001", 10, 300000)), 1);
 
-            _movementRepo.GetStockOnHand("P001").Should().Be(10, "goods were already received on the BPB");
+            _movementRepo.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(10), "goods were already received on the BPB");
         }
 
         [Test]
@@ -345,7 +345,7 @@ namespace Kasir.Tests.Services
             string inv = _service.CreatePurchaseInvoice(new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
                 InvoiceLines(po, ("P001", 10, 300000), ("P002", 5, 200000)), 1);
 
-            _movementRepo.GetStockOnHand("P001").Should().Be(10);
+            _movementRepo.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(10));
             _service.GetOrderStatus(po).Should().Be(PurchasingService.OrderStatusDone);
             new PurchaseRepository(_db).GetItems(inv).First().QtyOrder.Should().Be(10);
         }
@@ -362,7 +362,7 @@ namespace Kasir.Tests.Services
             System.Action act = () => _service.CreatePurchaseInvoice(
                 new Purchase { SubCode = "V001", DueDate = "2026-05-04" }, lines, 1);
             act.Should().Throw<PurchaseValidationException>();
-            _movementRepo.GetStockOnHand("P001").Should().Be(8);
+            _movementRepo.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(8));
         }
 
         [Test]

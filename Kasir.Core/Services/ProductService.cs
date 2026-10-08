@@ -118,7 +118,8 @@ namespace Kasir.Services
                     });
 
                     string journalNo = _counterRepo.GetNext(QuickIntakePrefix, registerId);
-                    _inventoryService.RecordStockIn(code, qty, cost, "PURCHASE", journalNo, today, userId);
+                    // qty is a plain unit count; the ledger is x100 (StockQty).
+                    _inventoryService.RecordStockIn(code, StockQty.ToLedger(qty), cost, "PURCHASE", journalNo, today, userId);
 
                     txn.Commit();
                     return new QuickProductResult { ProductCode = code, JournalNo = journalNo };

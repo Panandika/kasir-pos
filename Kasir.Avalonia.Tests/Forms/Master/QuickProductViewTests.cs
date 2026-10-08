@@ -99,7 +99,8 @@ public class QuickProductViewTests
         Assert.That(p.DeptCode, Is.EqualTo("42"));
         Assert.That(p.CostPrice, Is.EqualTo(15000L * 100));
         Assert.That(p.Price, Is.EqualTo(25000L * 100));
-        Assert.That(new InventoryService(conn).GetStockOnHand("9000"), Is.EqualTo(3));
+        // The ledger is x100 (StockQty): 3 units typed = 300.
+        Assert.That(new InventoryService(conn).GetStockOnHand("9000"), Is.EqualTo(StockQty.ToLedger(3)));
 
         Press(Key.Enter); // close the message
         Assert.That(OverlayHost.IsVisible, Is.False);

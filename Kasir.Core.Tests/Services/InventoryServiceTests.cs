@@ -304,7 +304,7 @@ namespace Kasir.Tests.Services
             SeedProduct("P001", costPrice: 1000);
             long syncBefore = ProductSyncRows("P001");
 
-            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+            _service.RecordStockIn("P001", StockQty.ToLedger(10), 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
 
             CostPriceOf("P001").Should().Be(1000);
             ProductSyncRows("P001").Should().Be(syncBefore, "no products 'U' row may be queued");
@@ -344,10 +344,10 @@ namespace Kasir.Tests.Services
         {
             new ConfigRepository(_db).Set(InventoryService.CostEngineOwnsCostPriceKey, "false");
             SeedProduct("P001", costPrice: 1000);
-            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+            _service.RecordStockIn("P001", StockQty.ToLedger(10), 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
 
             _service.CalculateAverageCost("P001").Should().Be(1000);
-            _service.GetCostPrice("P001", 2).Should().Be(2000);
+            _service.GetCostPrice("P001", StockQty.ToLedger(2)).Should().Be(2000);
         }
 
         // EC8: on-hand and the purchase qty are in the same unit (the local ledger's), so the
@@ -370,9 +370,9 @@ namespace Kasir.Tests.Services
         [Test]
         public void CalculateFifoCost_SingleLot()
         {
-            _service.RecordStockIn("P001", 10, 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
+            _service.RecordStockIn("P001", StockQty.ToLedger(10), 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
 
-            long cost = _service.CalculateFifoCost("P001", 5);
+            long cost = _service.CalculateFifoCost("P001", StockQty.ToLedger(5));
             // 5 units at 100,000 each = 500,000
             cost.Should().Be(500000);
         }
@@ -381,12 +381,12 @@ namespace Kasir.Tests.Services
         public void CalculateFifoCost_MultipleLots_CrossesBoundary()
         {
             // Lot 1: 10 units at 100,000
-            _service.RecordStockIn("P001", 10, 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
+            _service.RecordStockIn("P001", StockQty.ToLedger(10), 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
             // Lot 2: 5 units at 120,000
-            _service.RecordStockIn("P001", 5, 120000, "PURCHASE", "BPB-01-2604-0002", "2026-04-05", 1);
+            _service.RecordStockIn("P001", StockQty.ToLedger(5), 120000, "PURCHASE", "BPB-01-2604-0002", "2026-04-05", 1);
 
             // Sell 12: should take 10 from lot1 + 2 from lot2
-            long cost = _service.CalculateFifoCost("P001", 12);
+            long cost = _service.CalculateFifoCost("P001", StockQty.ToLedger(12));
             // (10 × 100,000) + (2 × 120,000) = 1,000,000 + 240,000 = 1,240,000
             cost.Should().Be(1240000);
         }
@@ -394,14 +394,14 @@ namespace Kasir.Tests.Services
         [Test]
         public void CalculateFifoCost_AfterSomeConsumed()
         {
-            _service.RecordStockIn("P001", 10, 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
-            _service.RecordStockIn("P001", 5, 120000, "PURCHASE", "BPB-01-2604-0002", "2026-04-05", 1);
+            _service.RecordStockIn("P001", StockQty.ToLedger(10), 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
+            _service.RecordStockIn("P001", StockQty.ToLedger(5), 120000, "PURCHASE", "BPB-01-2604-0002", "2026-04-05", 1);
 
             // Sell 8 first (consumed from lot 1)
-            _service.RecordStockOut("P001", 8, 100000, "SALE", "KLR-01-2604-0001", "2026-04-04", 1);
+            _service.RecordStockOut("P001", StockQty.ToLedger(8), 100000, "SALE", "KLR-01-2604-0001", "2026-04-04", 1);
 
             // Now sell 4 more: should take remaining 2 from lot1 + 2 from lot2
-            long cost = _service.CalculateFifoCost("P001", 4);
+            long cost = _service.CalculateFifoCost("P001", StockQty.ToLedger(4));
             // (2 × 100,000) + (2 × 120,000) = 200,000 + 240,000 = 440,000
             cost.Should().Be(440000);
         }

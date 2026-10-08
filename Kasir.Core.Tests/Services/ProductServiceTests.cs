@@ -193,7 +193,7 @@ namespace Kasir.Tests.Services
             using var rd = cmd.ExecuteReader();
             rd.Read().Should().BeTrue();
             rd.GetString(0).Should().Be("PURCHASE");
-            rd.GetInt32(1).Should().Be(3);
+            rd.GetInt32(1).Should().Be(StockQty.ToLedger(3));
             rd.GetInt64(2).Should().Be(3000000);
             rd.GetInt64(3).Should().Be(9000000);
             rd.GetString(4).Should().Be(result.JournalNo);
@@ -201,7 +201,7 @@ namespace Kasir.Tests.Services
             rd.GetString(6).Should().Be("T");
             rd.Read().Should().BeFalse("one movement");
 
-            new InventoryService(_db).GetStockOnHand(result.ProductCode).Should().Be(3);
+            new InventoryService(_db).GetStockOnHand(result.ProductCode).Should().Be(StockQty.ToLedger(3));
         }
 
         [Test]
