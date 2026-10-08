@@ -86,7 +86,7 @@ namespace Kasir.Data.Repositories
                 var ftsResults = SqlHelper.Query(_db,
                     @"SELECT p.* FROM products_fts f
                       JOIN products p ON p.id = f.rowid
-                      WHERE products_fts MATCH @q
+                      WHERE products_fts MATCH @q AND p.status = 'A'
                       LIMIT @limit",
                     MapProduct,
                     SqlHelper.Param("@q", ftsQuery),
@@ -135,7 +135,7 @@ namespace Kasir.Data.Repositories
                 var ftsResults = SqlHelper.Query(_db,
                     @"SELECT p.* FROM products_fts f
                       JOIN products p ON p.id = f.rowid
-                      WHERE products_fts MATCH @q
+                      WHERE products_fts MATCH @q AND p.status = 'A'
                       LIMIT @limit",
                     MapProduct,
                     SqlHelper.Param("@q", ftsQuery),

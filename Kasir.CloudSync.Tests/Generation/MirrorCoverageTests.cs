@@ -162,6 +162,14 @@ namespace Kasir.CloudSync.Tests.Generation
         }
 
         [Test]
+        public void Inactive_sale_log_is_mirror_only_keyed_by_register()
+        {
+            // PR-K3: per-register rowids (two registers both log id 1), dashboard-only.
+            TableMappings.InactiveSaleLog.PrimaryKeyColumns.Should().BeEquivalentTo(new[] { "id", "register_id" });
+            SnapshotBuilder.OrderedTableNames().Should().NotContain("inactive_sale_log");
+        }
+
+        [Test]
         public void Snapshot_restores_purchase_items_after_purchases()
         {
             var ordered = SnapshotBuilder.OrderedTableNames().ToList();

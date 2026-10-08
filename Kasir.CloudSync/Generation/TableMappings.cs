@@ -361,6 +361,21 @@ namespace Kasir.CloudSync.Generation
             },
             restoreToRegister: false);
 
+        // Mirror-only (PR-K3: inactive products still being sold, for the dashboard).
+        // id is a per-register rowid, so the cloud key is (id, register_id) like shifts.
+        // Not restored into register snapshots: the log is per-register history.
+        public static readonly TableMapping InactiveSaleLog = new TableMapping(
+            "inactive_sale_log",
+            new[]
+            {
+                IntPk("id"),
+                Pk("register_id"),
+                T("product_code"),
+                T("sale_date"),
+                T("created_at")
+            },
+            restoreToRegister: false);
+
         public static IReadOnlyDictionary<string, TableMapping> All { get; } =
             new Dictionary<string, TableMapping>
             {
@@ -383,7 +398,8 @@ namespace Kasir.CloudSync.Generation
                 { "stock_transfers", StockTransfers },
                 { "stock_adjustments", StockAdjustments },
                 { "stock_movements", StockMovements },
-                { "shifts", Shifts }
+                { "shifts", Shifts },
+                { "inactive_sale_log", InactiveSaleLog }
             };
 
         public static TableMapping Get(string tableName)
