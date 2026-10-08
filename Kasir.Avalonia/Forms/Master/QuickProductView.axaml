@@ -1,0 +1,84 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.Master.QuickProductView"
+             x:DataType="x:Object"
+             Background="{DynamicResource Bg0Brush}">
+  <!-- PR-K5 Barang Masuk Cepat: marketplace stock without a barcode. Enter moves to the
+       next field; Enter on Qty (or F10) saves. The new code (9000-9999) is shown so it
+       can be written on the item. -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.lbl">
+      <Setter Property="Foreground" Value="{DynamicResource FgSecondaryBrush}" />
+      <Setter Property="FontFamily" Value="{DynamicResource JetBrainsMonoFont}" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBox.fld">
+      <Setter Property="Background" Value="{DynamicResource Bg1Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}" />
+      <Setter Property="FontFamily" Value="{DynamicResource JetBrainsMonoFont}" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="Margin" Value="0,4" />
+    </Style>
+  </UserControl.Styles>
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Bg2Brush}" Height="28">
+      <TextBlock x:Name="StatusLabel"
+                 Foreground="{DynamicResource FgPrimaryBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12"
+                 VerticalAlignment="Center"
+                 Margin="8,0" />
+    </Border>
+
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Bg1Brush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1"
+            Padding="16,12">
+      <Grid ColumnDefinitions="160,360,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="BARANG MASUK CEPAT"
+                   FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="18" FontWeight="Bold"
+                   Foreground="{DynamicResource FgPrimaryBrush}" Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="lbl" Text="Nama Barang:" />
+        <TextBox   Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" x:Name="TxtName" Classes="fld" MaxLength="75" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="lbl" Text="Kategori (1-6):" />
+        <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtCategory" Classes="fld" MaxLength="2" />
+        <TextBlock Grid.Row="2" Grid.Column="2" x:Name="LblCategory" Classes="lbl" Margin="12,0,0,0"
+                   TextWrapping="Wrap" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="lbl" Text="Harga Modal (Rp):" />
+        <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtCost" Classes="fld" TextAlignment="Right" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="lbl" Text="Harga Jual (Rp):" />
+        <TextBox   Grid.Row="4" Grid.Column="1" x:Name="TxtPrice" Classes="fld" TextAlignment="Right" />
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Classes="lbl" Text="Qty Masuk:" />
+        <TextBox   Grid.Row="5" Grid.Column="1" x:Name="TxtQty" Classes="fld" TextAlignment="Right" />
+      </Grid>
+    </Border>
+
+    <!-- Items entered in this session, so the codes can be written on the goods. -->
+    <DataGrid x:Name="DgvAdded"
+              AutoGenerateColumns="False"
+              Foreground="{DynamicResource FgPrimaryBrush}"
+              Background="{DynamicResource Bg1Brush}"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              FontFamily="{DynamicResource JetBrainsMonoFont}"
+              FontSize="14"
+              IsReadOnly="True"
+              Focusable="False"
+              x:CompileBindings="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Kode"        Binding="{Binding Code}"     Width="0.8*" CanUserSort="False" />
+        <DataGridTextColumn Header="Nama Barang" Binding="{Binding Name}"     Width="3*"   CanUserSort="False" />
+        <DataGridTextColumn Header="Kategori"    Binding="{Binding Category}" Width="1.4*" CanUserSort="False" />
+        <DataGridTextColumn Header="Qty"         Binding="{Binding Qty}"      Width="0.6*" CanUserSort="False" />
+        <DataGridTextColumn Header="Modal"       Binding="{Binding Cost}"     Width="1.2*" CanUserSort="False" />
+        <DataGridTextColumn Header="Jual"        Binding="{Binding Price}"    Width="1.2*" CanUserSort="False" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>
