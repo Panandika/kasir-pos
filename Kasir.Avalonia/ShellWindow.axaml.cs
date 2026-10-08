@@ -38,11 +38,9 @@ public partial class ShellWindow : Window
         InitializeComponent();
         NavigationService.Initialize(this, ContentArea);
         UpdateThemeIcon();
-        SyncStatusModel.Current.PropertyChanged += OnSyncStatusChanged;
         PrinterStatusModel.Current.PropertyChanged += OnPrinterStatusChanged;
         UpdateStatusModel.Current.PropertyChanged += OnUpdateStatusChanged;
         CloudSyncStatusModel.Current.PropertyChanged += OnCloudStatusChanged;
-        UpdateSyncBadge();
         UpdatePrinterBadge();
         UpdateVersionBadge();
         UpdateCloudBadge();
@@ -116,11 +114,6 @@ public partial class ShellWindow : Window
             : LucideIconKind.SunMedium;
     }
 
-    private void OnSyncStatusChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        Dispatcher.UIThread.Post(UpdateSyncBadge);
-    }
-
     private void OnPrinterStatusChanged(object? sender, PropertyChangedEventArgs e)
     {
         Dispatcher.UIThread.Post(UpdatePrinterBadge);
@@ -165,35 +158,6 @@ public partial class ShellWindow : Window
         CloudSpinner.IsVisible = m.ShowSpinner;
         CloudDot.IsVisible = m.ShowDot;
         if (m.ShowDot) CloudDot.Fill = m.DotBrush;
-    }
-
-    private void UpdateSyncBadge()
-    {
-        if (SyncText is null || SyncDot is null || SyncSpinner is null) return;
-
-        var model = SyncStatusModel.Current;
-        SyncText.Text = model.DisplayText;
-
-        bool isSyncing = model.State == SyncState.Syncing;
-        SyncSpinner.IsVisible = isSyncing;
-        SyncDot.IsVisible = !isSyncing && model.ShowDot;
-
-        if (!isSyncing)
-        {
-            var brushKey = model.State switch
-            {
-                SyncState.OnlineRecent        => "SuccessBrush",
-                SyncState.OnlineOverdue       => "WarningBrush",
-                SyncState.OfflineTransactable => "WarningBrush",
-                SyncState.OfflineBlocked      => "DangerBrush",
-                _                             => "SuccessBrush"
-            };
-            if (Application.Current?.Resources.TryGetResource(brushKey, ActualThemeVariant, out var res) == true
-                && res is IBrush brush)
-            {
-                SyncDot.Fill = brush;
-            }
-        }
     }
 
     protected override async void OnOpened(EventArgs e)
