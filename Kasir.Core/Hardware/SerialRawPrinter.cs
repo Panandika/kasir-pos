@@ -1,10 +1,14 @@
 using System;
-using ESCPOS_NET;
+using System.Diagnostics;
+using System.IO.Ports;
+using System.Threading;
 
 namespace Kasir.Hardware
 {
     public class SerialRawPrinter : IRawPrinter
     {
+        private const int WriteTimeoutMs = 10000;
+
         private readonly string _port;
         private readonly int _baud;
 
@@ -35,10 +39,25 @@ namespace Kasir.Hardware
             if (string.IsNullOrEmpty(_port)) { LastError = "Port serial kosong"; return false; }
             if (data == null || data.Length == 0) { LastError = "Data kosong"; return false; }
 
+            // Written synchronously and drained before closing: ESCPOS_NET's SerialPrinter
+            // queued bytes on a background task that Dispose could cut off mid-receipt.
             try
             {
-                using var printer = new SerialPrinter(_port, _baud);
-                printer.Write(data);
+                using (var port = new SerialPort(_port, _baud) { WriteTimeout = WriteTimeoutMs })
+                {
+                    port.Open();
+                    port.Write(data, 0, data.Length);
+                    var sw = Stopwatch.StartNew();
+                    while (port.BytesToWrite > 0)
+                    {
+                        if (sw.ElapsedMilliseconds > WriteTimeoutMs)
+                        {
+                            LastError = $"Timeout: {port.BytesToWrite} byte belum terkirim (port='{_port}', baud={_baud})";
+                            return false;
+                        }
+                        Thread.Sleep(10);
+                    }
+                }
                 return true;
             }
             catch (Exception ex)
