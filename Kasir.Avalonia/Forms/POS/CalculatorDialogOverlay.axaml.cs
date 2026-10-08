@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.POS;
 
@@ -20,7 +21,7 @@ public partial class CalculatorDialogOverlay : UserControl
         BtnOk.Click += (_, _) => _tcs.TrySetResult(true);
         BtnTutup.Click += (_, _) => _tcs.TrySetResult(false);
 
-        AttachedToVisualTree += (_, _) => TxtA.Focus();
+        ViewShortcuts.FocusInputOnShow(this, TxtA);
         KeyDown += OnKey;
 
         UpdateCalc();

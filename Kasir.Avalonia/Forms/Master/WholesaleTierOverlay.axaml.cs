@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Kasir.Avalonia.Behaviors;
 using Kasir.Models;
 using Kasir.Utils;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.Master;
 
@@ -39,7 +40,7 @@ public partial class WholesaleTierOverlay : UserControl
 
         BtnOk.Click += (_, _) => OnSave();
         BtnCancel.Click += (_, _) => _tcs.TrySetResult(false);
-        AttachedToVisualTree += (_, _) => TxtPrice1.Focus();
+        ViewShortcuts.FocusInputOnShow(this, TxtPrice1);
         KeyDown += OnKey;
     }
 

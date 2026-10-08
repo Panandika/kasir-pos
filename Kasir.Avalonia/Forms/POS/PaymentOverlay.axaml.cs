@@ -10,6 +10,7 @@ using Kasir.Models;
 using Kasir.Avalonia.Behaviors;
 using Kasir.Services;
 using Kasir.Utils;
+using Kasir.Avalonia.Infrastructure;
 
 namespace Kasir.Avalonia.Forms.POS;
 
@@ -57,7 +58,7 @@ public partial class PaymentOverlay : UserControl
         BtnOk.Click += (_, _) => Accept();
         BtnCancel.Click += (_, _) => _tcs.TrySetResult(false);
 
-        AttachedToVisualTree += (_, _) => { TxtCash.Focus(); TxtCash.SelectAll(); };
+        ViewShortcuts.FocusInputOnShow(this, TxtCash);
         KeyDown += OnKey;
 
         Recalculate();
