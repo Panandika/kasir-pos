@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.10.1](https://github.com/Panandika/kasir-pos/compare/v2.10.0...v2.10.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **pos:** read printer config on the UI thread in the sale-screen printer check ([#88](https://github.com/Panandika/kasir-pos/issues/88)) ([224d79e](https://github.com/Panandika/kasir-pos/commit/224d79efdea6c85898ac3b6c778c5acdadfa05b3))
+* receipt bytes dropped by ESCPOS_NET; drop ESCPOS_NET + ImageSharp (unbreaks CI) ([#92](https://github.com/Panandika/kasir-pos/issues/92)) ([15839c6](https://github.com/Panandika/kasir-pos/commit/15839c6c763931a808a14b2e2525e0e70901a3a1))
+* **security:** encrypt cloud sync credentials at rest with DPAPI ([#89](https://github.com/Panandika/kasir-pos/issues/89)) ([a409cd2](https://github.com/Panandika/kasir-pos/commit/a409cd2386ca7f5111a06b012271aaea4ecf5fa0))
+* **shell:** remove fake "Online · Sync 0d lalu" footer badge ([#87](https://github.com/Panandika/kasir-pos/issues/87)) ([3a71edf](https://github.com/Panandika/kasir-pos/commit/3a71edf495ba21516ec6783a62b73d38e6e3937e))
+
 ## [2.10.0](https://github.com/Panandika/kasir-pos/compare/v2.9.2...v2.10.0) (2026-10-07)
 
 
