@@ -114,7 +114,9 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@limit", limit));
         }
 
-        public List<Product> SearchByText(string query, int limit)
+        // includeInactive: Master > Barang passes true so the owner can still find an
+        // inactive product by name to fix or re-activate it; POS searches keep the default.
+        public List<Product> SearchByText(string query, int limit, bool includeInactive = false)
         {
             if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             {
@@ -135,10 +137,11 @@ namespace Kasir.Data.Repositories
                 var ftsResults = SqlHelper.Query(_db,
                     @"SELECT p.* FROM products_fts f
                       JOIN products p ON p.id = f.rowid
-                      WHERE products_fts MATCH @q AND p.status = 'A'
+                      WHERE products_fts MATCH @q AND (@all = 1 OR p.status = 'A')
                       LIMIT @limit",
                     MapProduct,
                     SqlHelper.Param("@q", ftsQuery),
+                    SqlHelper.Param("@all", includeInactive ? 1 : 0),
                     SqlHelper.Param("@limit", limit));
 
                 if (ftsResults.Count > 0)
@@ -156,11 +159,12 @@ namespace Kasir.Data.Repositories
             return SqlHelper.Query(_db,
                 @"SELECT * FROM products
                   WHERE (product_code LIKE @q OR name LIKE @q)
-                  AND status = 'A'
+                  AND (@all = 1 OR status = 'A')
                   ORDER BY name
                   LIMIT @limit",
                 MapProduct,
                 SqlHelper.Param("@q", likeQuery),
+                SqlHelper.Param("@all", includeInactive ? 1 : 0),
                 SqlHelper.Param("@limit", limit));
         }
 

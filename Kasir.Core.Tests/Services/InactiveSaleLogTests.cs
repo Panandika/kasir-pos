@@ -91,16 +91,16 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
-        public void AddItem_InactiveProduct_QueuesLogRowForCloudSync()
+        public void AddItem_InactiveProduct_DoesNotQueueSync()
         {
-            _service.AddItem("P-INA", 1);
-            _service.AddItem("P-INA", 1); // ignored duplicate must not queue again
+            // M1: the log stays out of sync_queue. Cloud delivery is deferred (the CloudSync
+            // worker is a no-op today); a later mirror loads it by natural key.
+            long queuedBefore = Scalar("SELECT COUNT(*) FROM sync_queue");
 
-            long id = Scalar("SELECT id FROM inactive_sale_log");
-            Scalar("SELECT COUNT(*) FROM sync_queue WHERE table_name = 'inactive_sale_log'")
-                .Should().Be(1);
-            Scalar($"SELECT COUNT(*) FROM sync_queue WHERE table_name = 'inactive_sale_log' AND record_key = '{id}' AND operation = 'I'")
-                .Should().Be(1, "record_key is the log row id the cloud outbox looks up");
+            _service.AddItem("P-INA", 1);
+
+            Scalar("SELECT COUNT(*) FROM inactive_sale_log").Should().Be(1);
+            Scalar("SELECT COUNT(*) FROM sync_queue").Should().Be(queuedBefore);
         }
 
         [Test]
@@ -127,6 +127,18 @@ namespace Kasir.Tests.Services
             repo.SearchByName("NONAKTIF", 10).Should().BeEmpty("the FTS path filters status too");
             repo.SearchByText("NONAKTIF", 10).Should().BeEmpty();
             _service.AddItem("P-INA", 1).Should().NotBeNull();
+        }
+
+        [Test]
+        public void SearchByText_IncludeInactive_FindsInactiveForMasterBarang()
+        {
+            // M4: Master > Barang must still find an inactive product by name to fix or
+            // re-activate it; only the POS search hides it.
+            var repo = new ProductRepository(_db);
+            repo.SearchByText("NONAKTIF", 10, includeInactive: true)
+                .Should().ContainSingle(p => p.ProductCode == "P-INA");
+            repo.SearchByText("NONAK", 10, includeInactive: true)
+                .Should().Contain(p => p.ProductCode == "P-INA");
         }
 
         [Test]

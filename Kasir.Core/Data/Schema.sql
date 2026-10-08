@@ -1193,8 +1193,7 @@ CREATE TABLE sync_queue (
                         'members', 'subsidiaries',
                         'departments', 'discounts',
                         'accounts', 'locations',
-                        'discount_partners', 'credit_cards',
-                        'inactive_sale_log'
+                        'discount_partners', 'credit_cards'
                     )),
     record_key      TEXT    NOT NULL,     -- business key (product_code or journal_no)
     operation       TEXT    NOT NULL CHECK(operation IN ('I','U','D')),
@@ -1817,8 +1816,9 @@ CREATE INDEX IF NOT EXISTS idx_help_tickets_dead
 -- ============================================================
 -- An inactive product (status 'I') scanned at the till still sells; the scan is
 -- logged once per product per day so the owner can see which "inactive" items are
--- still on the shelf. Mirror-only to Supabase via the cloud outbox: the cloud key is
--- (register_id, id) because id is a per-register rowid.
+-- still on the shelf. Local only for now: no sync_queue trigger (cloud delivery is
+-- deferred). A later mirror loads it by the natural key (register_id, product_code,
+-- sale_date); id is a per-register rowid and is never mirrored.
 
 CREATE TABLE IF NOT EXISTS inactive_sale_log (
     id              INTEGER PRIMARY KEY,
@@ -1829,10 +1829,3 @@ CREATE TABLE IF NOT EXISTS inactive_sale_log (
     UNIQUE(product_code, sale_date)
 );
 
--- INSERT OR IGNORE of a same-day duplicate inserts nothing, so it queues nothing.
-CREATE TRIGGER IF NOT EXISTS trg_inactive_sale_log_sync_i AFTER INSERT ON inactive_sale_log
-BEGIN
-    INSERT INTO sync_queue(register_id, table_name, record_key, operation)
-    VALUES (COALESCE((SELECT value FROM config WHERE key='register_id'), 'unknown'),
-            'inactive_sale_log', NEW.id, 'I');
-END;

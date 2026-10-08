@@ -164,8 +164,10 @@ namespace Kasir.CloudSync.Tests.Generation
         [Test]
         public void Inactive_sale_log_is_mirror_only_keyed_by_register()
         {
-            // PR-K3: per-register rowids (two registers both log id 1), dashboard-only.
-            TableMappings.InactiveSaleLog.PrimaryKeyColumns.Should().BeEquivalentTo(new[] { "id", "register_id" });
+            // PR-K3 (M2): natural key, so a re-commissioned register whose rowids restart
+            // at 1 cannot overwrite earlier cloud rows. The local rowid is not mirrored.
+            TableMappings.InactiveSaleLog.PrimaryKeyColumns.Should().BeEquivalentTo(new[] { "register_id", "product_code", "sale_date" });
+            TableMappings.InactiveSaleLog.Columns.Should().NotContain(c => c.Name == "id");
             SnapshotBuilder.OrderedTableNames().Should().NotContain("inactive_sale_log");
         }
 

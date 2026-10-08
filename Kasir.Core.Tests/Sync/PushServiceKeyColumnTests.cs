@@ -116,25 +116,5 @@ namespace Kasir.Tests.Sync
                 return (string)cmd.ExecuteScalar();
             }
         }
-
-        [Test]
-        public void Push_InactiveSaleLog_StaysOffTheLan_ButIsMarkedSyncedForTheCloudDrain()
-        {
-            // PR-K3: the log is mirror-only. The LAN batch skips it (the hub has no use
-            // for another register's log) but the row must reach status='synced', which
-            // the cloud outbox drain (GetPendingCloud) requires before shipping it.
-            using (var cmd = _db.CreateCommand())
-            {
-                cmd.CommandText = "INSERT INTO inactive_sale_log (register_id, product_code, sale_date) VALUES ('01','P1','2026-07-07')";
-                cmd.ExecuteNonQuery();
-            }
-
-            _push.Push().Success.Should().BeTrue();
-
-            var batch = JsonConvert.DeserializeObject<SyncBatch>(_fileWriter.Files.Values.Single());
-            batch.Events.Should().NotContain(e => e.TableName == "inactive_sale_log");
-            var cloudPending = new SyncQueueRepository(_db).GetPendingCloud(10);
-            cloudPending.Should().ContainSingle(e => e.TableName == "inactive_sale_log");
-        }
     }
 }
