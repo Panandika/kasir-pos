@@ -294,6 +294,19 @@ namespace Kasir.Services
                         totals.NetAmount, cashAmount + cardAmount + voucherAmount));
             }
 
+            // A card tender must name its card (legacy JUAL1: "Jenis card harus di-isi");
+            // the card type decides the GL clearing account. A card picked with no card
+            // amount is a cash sale and is stored without card data (#19).
+            if (cardAmount > 0 && string.IsNullOrWhiteSpace(cardCode))
+            {
+                throw new InvalidOperationException("Jenis kartu harus dipilih untuk pembayaran kartu.");
+            }
+            if (cardAmount == 0)
+            {
+                cardCode = "";
+                cardType = "";
+            }
+
             string registerId = _configRepo.Get("register_id") ?? "01";
             // Resolve active shift; fall back to _currentShift only when no shift
             // has been opened (e.g. tests). Real prod path always opens a shift first.
