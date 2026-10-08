@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.11.0](https://github.com/Panandika/kasir-pos/compare/v2.10.1...v2.11.0) (2026-10-08)
+
+
+### Features
+
+* **pos:** real pocket calculator for F9 Kalkulator ([#17](https://github.com/Panandika/kasir-pos/issues/17)) ([#94](https://github.com/Panandika/kasir-pos/issues/94)) ([d837897](https://github.com/Panandika/kasir-pos/commit/d83789754575d066b21ad6f790105e5cf9be9c7b))
+
+
+### Bug Fixes
+
+* **pos:** correct F5 payment tender logic for card and voucher ([#95](https://github.com/Panandika/kasir-pos/issues/95)) ([4edee9e](https://github.com/Panandika/kasir-pos/commit/4edee9eb4957ce97ef222bace6fba72a68512d49)), closes [#19](https://github.com/Panandika/kasir-pos/issues/19)
+* **pos:** typing works in dialogs at once, shift required for all items, focus back to code box ([#97](https://github.com/Panandika/kasir-pos/issues/97)) ([64afecb](https://github.com/Panandika/kasir-pos/commit/64afecb6001bf0a8576acb820887d06472a85c6b))
+* **ui:** center button labels and stop clipping them ([#20](https://github.com/Panandika/kasir-pos/issues/20)) ([#96](https://github.com/Panandika/kasir-pos/issues/96)) ([39840fd](https://github.com/Panandika/kasir-pos/commit/39840fdfed252b7190c6df6db9ed604516707e4f))
+
 ## [2.10.1](https://github.com/Panandika/kasir-pos/compare/v2.10.0...v2.10.1) (2026-10-08)
 
 
