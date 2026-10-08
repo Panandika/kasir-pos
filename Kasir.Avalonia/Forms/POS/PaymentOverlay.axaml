@@ -51,7 +51,7 @@
           <TextBox Grid.Column="1" x:Name="TxtVoucher" Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
                    FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" Height="30"/>
         </Grid>
-        <TextBlock x:Name="LblChange" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource WarningBrush}"
+        <TextBlock x:Name="LblChange" TextWrapping="Wrap" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource WarningBrush}"
                    FontFamily="{DynamicResource JetBrainsMonoFont}"/>
       </StackPanel>
     </DockPanel>

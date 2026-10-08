@@ -110,6 +110,19 @@ namespace Kasir.Services
             return sen == 0 ? remaining : remaining + (100 - sen);
         }
 
+        /// <summary>Change above this (Rp 1.000.000) must be confirmed before the sale completes.</summary>
+        public const long ChangeConfirmThresholdCents = 100_000_000;
+
+        /// <summary>
+        /// True when the change is so large it is more likely a mistake than real cash, e.g. a
+        /// barcode scanned into the Tunai box (the scanner types the digits and presses Enter).
+        /// The payment screen then asks for a second Enter instead of finishing the sale.
+        /// </summary>
+        public static bool NeedsChangeConfirmation(long changeCents)
+        {
+            return changeCents > ChangeConfirmThresholdCents;
+        }
+
         /// <summary>
         /// Calculate loyalty sticker points.
         /// Rp 10,000 = 1 sticker point (floor division).

@@ -178,6 +178,19 @@ namespace Kasir.Tests.Services
             _calc.SuggestedCash(due, card, voucher).Should().Be(expected);
         }
 
+        // A barcode scanned into the Tunai box types e.g. 8991234567890 and presses Enter,
+        // finishing the sale with an absurd KEMBALI. Change above Rp 1.000.000 needs a
+        // second Enter to confirm; normal change never does.
+        [TestCase(0L, false, Description = "exact cash")]
+        [TestCase(3800000L, false, Description = "Rp 38.000 change")]
+        [TestCase(100000000L, false, Description = "exactly Rp 1.000.000 change")]
+        [TestCase(100000100L, true, Description = "just over Rp 1.000.000")]
+        [TestCase(899123456789000L, true, Description = "barcode scanned into Tunai")]
+        public void NeedsChangeConfirmation_OnlyAboveOneMillion(long changeCents, bool expected)
+        {
+            PaymentCalculator.NeedsChangeConfirmation(changeCents).Should().Be(expected);
+        }
+
         // Loyalty points tests
         [TestCase(1000000L, 1, Description = "Rp 10,000 = 1 sticker")]
         [TestCase(5000000L, 5, Description = "Rp 50,000 = 5 stickers")]

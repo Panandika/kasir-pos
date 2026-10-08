@@ -243,6 +243,46 @@ public class SaleFlowTests
         AssertBarcodeReady("after F8 void");
     }
 
+    // A barcode scanned into the Tunai box: the scanner types the digits and presses Enter
+    // once. That must not finish the sale with a giant KEMBALI; a second Enter confirms.
+    [AvaloniaTest]
+    public void F5_Bayar_BarcodeInTunai_SingleEnterDoesNotCompleteSale()
+    {
+        OpenSaleScreen(withShift: true);
+        AddMiscItem("10000");
+        Press(Key.F5);
+        var pay = (PaymentOverlay)OverlayHost.Content!;
+        var label = pay.FindControl<TextBlock>("LblChange")!;
+
+        Scan("8991234567890");
+        Assert.That(ItemCount, Is.EqualTo(1), "one Enter from the scanner must not complete the sale");
+        Assert.That(OverlayHost.Content, Is.SameAs(pay), "payment screen stays open");
+        Assert.That(label.Text, Does.StartWith("YAKIN?"), "asks to confirm the huge change");
+
+        Press(Key.Escape);
+        Assert.That(OverlayHost.Content, Is.SameAs(pay), "Esc on the question goes back to editing, not out of payment");
+        var txtCash = pay.FindControl<TextBox>("TxtCash")!;
+        Assert.That(txtCash.IsFocused, Is.True, "cash box ready to correct");
+        Type("20000");
+        Assert.That(txtCash.Text, Is.EqualTo("20.000"), "typing replaces the wrong amount");
+        Press(Key.Enter);
+        Assert.That(ItemCount, Is.EqualTo(0), "normal change completes with one Enter");
+        AssertBarcodeReady("after correcting the cash");
+    }
+
+    [AvaloniaTest]
+    public void F5_Bayar_HugeChange_SecondEnterConfirms()
+    {
+        OpenSaleScreen(withShift: true);
+        AddMiscItem("10000");
+        Press(Key.F5);
+        Type("2000000");
+        Press(Key.Enter);
+        Assert.That(ItemCount, Is.EqualTo(1), "first Enter only asks");
+        Press(Key.Enter);
+        Assert.That(ItemCount, Is.EqualTo(0), "second Enter completes the sale");
+    }
+
     [AvaloniaTest]
     public void UnknownCode_DoesNotReplaceSubtotal()
     {
