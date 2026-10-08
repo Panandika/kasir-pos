@@ -15,7 +15,7 @@ namespace Kasir.Avalonia.Forms.Inventory;
 
 public partial class OpnameView : UserControl
 {
-    private record OpnameRow(string Code, string Name, string System, string Physical, string Variance);
+    private record OpnameRow(string Code, string Name, string System, string Physical, string Variance, string CountedAt);
 
     private readonly ObservableCollection<OpnameRow> _rows = new();
     private readonly List<OpnameLine> _lines = new();
@@ -77,7 +77,9 @@ public partial class OpnameView : UserControl
             return;
         }
 
-        line.PhysicalQty = physQty;
+        // Stamps the count time and takes the system qty now (PR-K6); later sales and
+        // receipts are allowed for when the opname is saved.
+        _service.RecordCount(line, physQty);
         RefreshGrid();
         DgvOpname.SelectedIndex = idx;
     }
@@ -87,13 +89,14 @@ public partial class OpnameView : UserControl
         _rows.Clear();
         foreach (var line in _lines)
         {
-            int variance = line.PhysicalQty - line.SystemQty;
+            bool counted = line.IsCounted;
             _rows.Add(new OpnameRow(
                 line.ProductCode ?? "",
                 line.ProductName ?? "",
-                line.SystemQty.ToString(),
-                line.PhysicalQty.ToString(),
-                variance.ToString()));
+                counted ? line.SystemQty.ToString() : "-",
+                counted ? line.PhysicalQty.ToString() : "belum dihitung",
+                counted ? line.Variance.ToString() : "-",
+                counted ? line.CountTime!.Value.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) : ""));
         }
     }
 
@@ -105,13 +108,22 @@ public partial class OpnameView : UserControl
             return;
         }
 
-        int varCount = 0;
+        int counted = 0;
         foreach (var line in _lines)
         {
-            if (line.PhysicalQty != line.SystemQty) varCount++;
+            if (line.IsCounted) counted++;
+        }
+        if (counted == 0)
+        {
+            await MsgBox.Show(NavigationService.Owner, "Belum ada barang yang dihitung. Pilih barang lalu Enter untuk isi qty fisik.");
+            return;
         }
 
-        bool confirmed = await MsgBox.Confirm(NavigationService.Owner, $"Simpan opname dengan {varCount} selisih?");
+        int uncounted = _lines.Count - counted;
+        bool confirmed = await MsgBox.Confirm(NavigationService.Owner,
+            $"Simpan opname: {counted} barang dihitung" +
+            (uncounted > 0 ? $", {uncounted} belum dihitung (stok tidak diubah)" : "") +
+            ".\nPenjualan/penerimaan setelah jam hitung ikut diperhitungkan.");
         if (!confirmed) return;
 
         string journalNo = _service.CreateOpnameAdjustment(_lines, _userId);
