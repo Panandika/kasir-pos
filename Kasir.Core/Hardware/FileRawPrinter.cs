@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using ESCPOS_NET;
 
 namespace Kasir.Hardware
 {
@@ -44,10 +43,16 @@ namespace Kasir.Hardware
             if (string.IsNullOrEmpty(_path)) { LastError = "Path device kosong"; return false; }
             if (data == null || data.Length == 0) { LastError = "Data kosong"; return false; }
 
+            // Written synchronously: ESCPOS_NET's FilePrinter queued bytes on a background
+            // task and dropped them on Dispose, so a receipt could report success yet never
+            // print. FileMode.Open so a wrong path fails instead of creating a plain file.
             try
             {
-                using var printer = new FilePrinter(_path);
-                printer.Write(data);
+                using (var stream = new FileStream(_path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
+                {
+                    stream.Write(data, 0, data.Length);
+                    stream.Flush();
+                }
                 return true;
             }
             catch (Exception ex)
