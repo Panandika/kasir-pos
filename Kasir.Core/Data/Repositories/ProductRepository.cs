@@ -242,6 +242,15 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@id", product.Id));
         }
 
+        public void UpdateCostPrice(string productCode, long costPrice)
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"UPDATE products SET cost_price = @cost, changed_at = datetime('now','localtime')
+                  WHERE product_code = @code",
+                SqlHelper.Param("@cost", costPrice),
+                SqlHelper.Param("@code", productCode));
+        }
+
         public void Deactivate(int id, int changedBy)
         {
             SqlHelper.ExecuteNonQuery(_db,

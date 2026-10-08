@@ -11,6 +11,7 @@ namespace Kasir.Services
         private readonly SqliteConnection _db;
         private readonly StockMovementRepository _movementRepo;
         private readonly ConfigRepository _configRepo;
+        private readonly ProductRepository _productRepo;
 
         // Single-store default location ('T' = Toko). Schema default is '' which made
         // per-location on-hand queries miss POS movements.
@@ -21,6 +22,7 @@ namespace Kasir.Services
             _db = db;
             _movementRepo = new StockMovementRepository(db);
             _configRepo = new ConfigRepository(db);
+            _productRepo = new ProductRepository(db);
         }
 
         public int GetStockOnHand(string productCode)
@@ -85,26 +87,36 @@ namespace Kasir.Services
             return totalCost;
         }
 
+        // Unit cost (x100 money) for COGS and stock valuation: the perpetual moving average
+        // kept in products.cost_price (maintained by RecordStockIn, or FoxPro AVGCOST via the
+        // snapshot). Fallback when it is 0: last PURCHASE unit_price, then 0.
         public long CalculateAverageCost(string productCode)
         {
-            // Weighted average: total purchase value / total purchase qty
-            long totalVal = SqlHelper.ExecuteScalar<long>(_db,
-                @"SELECT COALESCE(SUM(val_in), 0) FROM stock_movements
-                  WHERE product_code = @code AND movement_type = 'PURCHASE'",
-                SqlHelper.Param("@code", productCode));
+            var product = _productRepo.GetByCode(productCode);
+            if (product != null && product.CostPrice > 0) return product.CostPrice;
 
-            long totalQty = SqlHelper.ExecuteScalar<long>(_db,
-                @"SELECT COALESCE(SUM(qty_in), 0) FROM stock_movements
-                  WHERE product_code = @code AND movement_type = 'PURCHASE'",
+            // purchase_items has no doc_date; the JOIN to purchases supplies it.
+            return SqlHelper.ExecuteScalar<long>(_db,
+                @"SELECT pi.unit_price
+                  FROM purchase_items pi
+                  JOIN purchases p ON p.journal_no = pi.journal_no
+                  WHERE pi.product_code = @code
+                    AND p.doc_type = 'PURCHASE'
+                    AND pi.unit_price > 0
+                  ORDER BY p.doc_date DESC
+                  LIMIT 1",
                 SqlHelper.Param("@code", productCode));
-
-            if (totalQty <= 0) return 0L;
-            return totalVal / totalQty;
         }
 
+        // Perpetual moving average: every stock-in at a known cost re-weights
+        // products.cost_price; stock-outs (sales, purchase returns) never change it.
+        // on_hand and qty must be in the same unit (the local ledger's) - the average is a
+        // pure ratio, so it is unaffected by the x100 qty scale as long as it is not mixed.
         public void RecordStockIn(string productCode, int qty, long unitCost,
             string movementType, string journalNo, string docDate, int changedBy)
         {
+            int onHandBefore = _movementRepo.GetStockOnHand(productCode);
+
             var movement = new StockMovement
             {
                 ProductCode = productCode,
@@ -122,6 +134,35 @@ namespace Kasir.Services
             };
 
             _movementRepo.Insert(movement);
+
+            UpdatePerpetualAverage(productCode, onHandBefore, qty, unitCost);
+        }
+
+        private void UpdatePerpetualAverage(string productCode, int onHandBefore, int qty, long unitCost)
+        {
+            // A zero-cost stock-in (e.g. voiding a sale whose COGS was 0) carries no price
+            // information; don't let it wipe or dilute the average.
+            if (qty <= 0 || unitCost <= 0) return;
+
+            var product = _productRepo.GetByCode(productCode);
+            if (product == null) return;
+
+            long newAvg;
+            if (onHandBefore <= 0 || product.CostPrice <= 0)
+            {
+                // Nothing (or no known cost) on hand: the purchase cost is the new average.
+                newAvg = unitCost;
+            }
+            else
+            {
+                decimal total = (decimal)onHandBefore * product.CostPrice + (decimal)qty * unitCost;
+                newAvg = (long)Math.Round(total / (onHandBefore + qty), MidpointRounding.AwayFromZero);
+            }
+
+            if (newAvg != product.CostPrice)
+            {
+                _productRepo.UpdateCostPrice(productCode, newAvg);
+            }
         }
 
         public void RecordStockOut(string productCode, int qty, long costPrice,

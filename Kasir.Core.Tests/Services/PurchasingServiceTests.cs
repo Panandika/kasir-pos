@@ -133,6 +133,86 @@ namespace Kasir.Tests.Services
             _movementRepo.GetStockOnHand("P001").Should().Be(7); // 10 - 3
         }
 
+        // PR-K2: a purchase updates the perpetual average on products.cost_price.
+        [Test]
+        public void CreatePurchaseInvoice_UpdatesCostPrice_PerpetualAvg()
+        {
+            _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 300000 } },
+                1);
+            _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 400000 } },
+                1);
+
+            new ProductRepository(_db).GetByCode("P001").CostPrice.Should().Be(350000);
+        }
+
+        [Test]
+        public void PurchaseReturn_DoesNotChangeCostPrice()
+        {
+            _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 300000 } },
+                1);
+
+            // Return at a different price than the average: cost_price must not move.
+            _service.CreatePurchaseReturn(
+                new Purchase { SubCode = "V001" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 3, UnitPrice = 250000 } },
+                false, 1);
+
+            new ProductRepository(_db).GetByCode("P001").CostPrice.Should().Be(300000);
+        }
+
+        [Test]
+        public void PurchaseReturn_WritesReturnOutMovement()
+        {
+            _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 300000 } },
+                1);
+
+            string jnl = _service.CreatePurchaseReturn(
+                new Purchase { SubCode = "V001" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 3, UnitPrice = 300000 } },
+                false, 1);
+
+            var m = _movementRepo.GetByJournal(jnl);
+            m.Should().ContainSingle();
+            m[0].MovementType.Should().Be("RETURN_OUT");
+            m[0].QtyOut.Should().Be(3);
+        }
+
+        // Fallback chain step 1: cost_price 0 -> last PURCHASE unit_price by doc_date (via
+        // JOIN to purchases; purchase_items has no doc_date). Returns and zero prices skipped.
+        [Test]
+        public void CalculateAverageCost_FallbackToPurchaseUnitPrice()
+        {
+            _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", DocDate = "2026-03-01" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 310000 } },
+                1);
+            _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", DocDate = "2026-03-20" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 330000 } },
+                1);
+            // Entered later but dated earlier: must not win on insertion order.
+            _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", DocDate = "2026-03-10" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 320000 } },
+                1);
+            // A later purchase return is not a purchase price.
+            _service.CreatePurchaseReturn(
+                new Purchase { SubCode = "V001", DocDate = "2026-03-30" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 1, UnitPrice = 999999 } },
+                false, 1);
+
+            SqlHelper.ExecuteNonQuery(_db, "UPDATE products SET cost_price = 0 WHERE product_code = 'P001'");
+
+            new InventoryService(_db).CalculateAverageCost("P001").Should().Be(330000);
+        }
         [Test]
         public void CreatePurchaseReturn_WithInvoice_OffsetsAP()
         {

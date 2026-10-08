@@ -373,8 +373,8 @@ namespace Kasir.Services
                     journalNo = _counterRepo.GetNext("KLR", registerId);
                     sale.JournalNo = journalNo;
 
-                    // COGS must use the weighted-average cost that the stock ledger uses,
-                    // not the master CostPrice, so the GL COGS matches the inventory ledger
+                    // COGS uses the perpetual moving-average cost (products.cost_price, kept
+                    // current by every stock-in) so the GL COGS matches the inventory ledger
                     // (F20/F40). Capture the per-unit cost once and use it for BOTH the
                     // stored line COGS and the stock-out movement.
                     var unitCosts = new List<long>(_currentItems.Count);

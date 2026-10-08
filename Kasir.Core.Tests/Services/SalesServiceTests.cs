@@ -350,12 +350,12 @@ namespace Kasir.Tests.Services
             act.Should().Throw<System.InvalidOperationException>().WithMessage("*diposting*");
         }
 
-        // F20/F40: the stored line COGS must use the weighted-average cost from the stock
-        // ledger, not the master CostPrice, so GL COGS matches the inventory ledger.
+        // F20/F40 + PR-K2: the stored line COGS uses the perpetual moving average kept in
+        // products.cost_price (maintained by every stock-in), the same cost the stock ledger uses.
         [Test]
-        public void CompleteSale_UsesWeightedAverageCostForCogs_NotMasterCostPrice()
+        public void CompleteSale_UsesPerpetualAverageCostForCogs()
         {
-            // P001 master CostPrice is 0 in the seed; establish a weighted-average of 1000.
+            // P001 cost_price is 0 in the seed; the purchase sets the perpetual average to 1000.
             new InventoryService(_db).RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-X", "2026-04-01", 1);
 
             _service.AddItem("P001", 2);
@@ -365,7 +365,58 @@ namespace Kasir.Tests.Services
             cmd.CommandText = "SELECT cogs FROM sale_items WHERE journal_no = @j AND product_code = 'P001'";
             cmd.Parameters.AddWithValue("@j", sale.JournalNo);
             System.Convert.ToInt64(cmd.ExecuteScalar()).Should().Be(2000,
-                "COGS = weighted-average (1000) × qty (2), not master CostPrice (0)");
+                "COGS = perpetual average (1000) × qty (2)");
+        }
+
+        // GL consistency: every line's sale_items.cogs equals its SALE movement val_out.
+        [Test]
+        public void CompleteSale_LineCogs_EqualsMovementValOut()
+        {
+            var inventory = new InventoryService(_db);
+            inventory.RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-1", "2026-04-01", 1);
+            inventory.RecordStockIn("P002", 3, 700, "PURCHASE", "BPB-2", "2026-04-01", 1);
+            inventory.RecordStockIn("P002", 1, 1500, "PURCHASE", "BPB-3", "2026-04-02", 1);
+            _service.AddItem("P001", 2);
+            _service.AddItem("P002", 3);
+
+            var sale = _service.CompleteSale(100000000, 0, 0, "", "", "");
+
+            var movements = new StockMovementRepository(_db).GetByJournal(sale.JournalNo);
+            movements.Should().HaveCount(2);
+            foreach (var m in movements)
+            {
+                SaleItemCogs(sale.JournalNo, m.ProductCode).Should().Be(m.ValOut, m.ProductCode);
+            }
+            SaleItemCogs(sale.JournalNo, "P002").Should().Be(900 * 3, "(3*700 + 1*1500)/4 = 900");
+        }
+
+        [Test]
+        public void CompleteSale_DoesNotChangeCostPrice()
+        {
+            new InventoryService(_db).RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-1", "2026-04-01", 1);
+            _service.AddItem("P001", 4);
+
+            _service.CompleteSale(100000000, 0, 0, "", "", "");
+
+            new ProductRepository(_db).GetByCode("P001").CostPrice.Should().Be(1000);
+        }
+
+        [Test]
+        public void VoidSale_WritesReturnInMovement()
+        {
+            new InventoryService(_db).RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-1", "2026-04-01", 1);
+            _service.AddItem("P001", 2);
+            var sale = _service.CompleteSale(100000000, 0, 0, "", "", "");
+
+            _service.VoidSale(sale.JournalNo);
+
+            var returnIn = new StockMovementRepository(_db).GetByJournal(sale.JournalNo)
+                .Where(m => m.MovementType == "RETURN_IN").ToList();
+            returnIn.Should().ContainSingle();
+            returnIn[0].QtyIn.Should().Be(2);
+            returnIn[0].CostPrice.Should().Be(1000);
+            new ProductRepository(_db).GetByCode("P001").CostPrice.Should().Be(1000,
+                "returning units at the average cost leaves the average unchanged");
         }
 
         [Test]
