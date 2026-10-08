@@ -118,4 +118,24 @@ public class QuickProductViewTests
         Assert.That(OverlayHost.Content, Is.InstanceOf<MsgBoxOverlay>());
         Assert.That(new ProductRepository(DbConnection.GetConnection()).GetByCode("9000"), Is.Null);
     }
+
+    [AvaloniaTest]
+    public void DatabaseError_OnSave_ShowsMessage_AppKeepsRunning()
+    {
+        // M5: a SqliteException (e.g. "database is locked") must not escape async void Save.
+        Open();
+        using (var cmd = DbConnection.GetConnection().CreateCommand())
+        {
+            cmd.CommandText = "DROP TABLE counters";
+            cmd.ExecuteNonQuery();
+        }
+        Type("gunting"); Press(Key.Enter);
+        Type("2"); Press(Key.Enter);
+        Type("8000"); Press(Key.Enter);
+        Type("12000"); Press(Key.Enter);
+        Type("1"); Press(Key.Enter);
+
+        Assert.That(OverlayHost.Content, Is.InstanceOf<MsgBoxOverlay>(), "the error is shown");
+        Assert.That(new ProductRepository(DbConnection.GetConnection()).GetByCode("9000"), Is.Null);
+    }
 }

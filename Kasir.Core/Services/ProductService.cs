@@ -18,9 +18,15 @@ namespace Kasir.Services
     // a product row with its cost, and a PURCHASE stock movement in one transaction.
     public class ProductService
     {
-        // Internal codes for quick intake. Codes already in use (any status) are skipped.
-        public const int QuickCodeFirst = 9000;
-        public const int QuickCodeLast = 9999;
+        // Internal codes for quick intake: each register has its own block so two registers
+        // never hand out the same code before the next LAN sync (review H2). 9900-9999 is
+        // reserved. Codes come from a monotonic per-register counter, so a code freed by a
+        // hard delete is never reused; codes already in products (any status, e.g. the
+        // legacy 9003+ codes) are skipped.
+        public const string QuickCodeCounterPrefix = "QPC";
+        private const int QuickCodeBlockStart = 9000;
+        private const int QuickCodeBlockSize = 300;
+        private static readonly string[] QuickCodeRegisters = { "01", "02", "03" };
         // Counter prefix of the stock-in document (BMC-01-2610-0001).
         public const string QuickIntakePrefix = "BMC";
         private const int MaxNameLength = 75; // legacy NAME C(75)
@@ -42,19 +48,32 @@ namespace Kasir.Services
             _clock = clock;
         }
 
-        // Lowest 4-digit code in 9000-9999 that no product (active or not) uses.
-        public string NextFreeCode()
+        // (First, Last) of the register's code block, or null when it has none.
+        public static (int First, int Last)? QuickCodeBlock(string registerId)
         {
-            var used = new HashSet<string>(SqlHelper.Query(_db,
-                @"SELECT product_code FROM products
-                  WHERE length(product_code) = 4 AND product_code GLOB '9[0-9][0-9][0-9]'",
-                r => SqlHelper.GetString(r, "product_code")));
-            for (int code = QuickCodeFirst; code <= QuickCodeLast; code++)
+            int index = Array.IndexOf(QuickCodeRegisters, registerId ?? "");
+            if (index < 0) return null;
+            int first = QuickCodeBlockStart + index * QuickCodeBlockSize;
+            return (first, first + QuickCodeBlockSize - 1);
+        }
+
+        // Next unused code of this register's block. Call inside the save transaction: the
+        // counter advance rolls back with a failed save.
+        private string NextQuickCode(string registerId)
+        {
+            var block = QuickCodeBlock(registerId)
+                ?? throw new InvalidOperationException(
+                    "Barang Masuk Cepat hanya untuk kasir 01-03 (kasir " + registerId + " tidak punya blok kode).");
+            string range = block.First + "-" + block.Last;
+            while (true)
             {
+                int code = block.First + _counterRepo.NextValue(QuickCodeCounterPrefix, registerId) - 1;
+                if (code > block.Last)
+                    throw new InvalidOperationException(
+                        "Kode barang " + range + " untuk kasir " + registerId + " sudah habis terpakai.");
                 string candidate = code.ToString();
-                if (!used.Contains(candidate)) return candidate;
+                if (_productRepo.GetByCode(candidate) == null) return candidate;
             }
-            throw new InvalidOperationException("Kode barang 9000-9999 sudah habis terpakai.");
         }
 
         // cost / price are x100 money (per unit); qty in units. Category = one of the
@@ -80,7 +99,7 @@ namespace Kasir.Services
             {
                 try
                 {
-                    string code = NextFreeCode();
+                    string code = NextQuickCode(registerId);
                     _productRepo.Insert(new Product
                     {
                         ProductCode = code,

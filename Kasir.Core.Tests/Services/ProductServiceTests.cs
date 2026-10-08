@@ -11,8 +11,8 @@ using Kasir.Tests.TestHelpers.Fakes;
 
 namespace Kasir.Tests.Services
 {
-    // PR-K5 "Barang Masuk Cepat": a marketplace item gets an internal code from
-    // 9000-9999 (skipping codes in use), a product row with its cost, and a PURCHASE
+    // PR-K5 "Barang Masuk Cepat": a marketplace item gets an internal code from its
+    // register's block in 9000-9899 (skipping codes in use), a product row with its cost, and a PURCHASE
     // stock movement - in one go, from name/category/cost/price/qty.
     [TestFixture]
     public class ProductServiceTests
@@ -54,42 +54,112 @@ namespace Kasir.Tests.Services
             return Convert.ToInt64(cmd.ExecuteScalar());
         }
 
-        [Test]
-        public void NextFreeCode_EmptyRange_Is9000()
+        private string Create(string name = "X") =>
+            _service.CreateQuickProduct(name, "LL", 1000, 2000, 1, 1).ProductCode;
+
+        private void UseRegister(string registerId)
         {
-            _service.NextFreeCode().Should().Be("9000");
+            new ConfigRepository(_db).Set("register_id", registerId);
+            _service = new ProductService(_db, new FakeClock(new DateTime(2026, 10, 8, 11, 0, 0)));
+        }
+
+        // H2: each register hands out codes from its own block, so two registers can never
+        // pick the same code before the next LAN sync.
+        [TestCase("01", "9000", "9001")]
+        [TestCase("02", "9300", "9301")]
+        [TestCase("03", "9600", "9601")]
+        public void QuickCodes_ComeFromTheRegistersOwnBlock(string registerId, string first, string second)
+        {
+            UseRegister(registerId);
+            Create("A").Should().Be(first);
+            Create("B").Should().Be(second);
+        }
+
+        [TestCase("01", 9000, 9299)]
+        [TestCase("02", 9300, 9599)]
+        [TestCase("03", 9600, 9899)]
+        public void QuickCodeBlock_PerRegister(string registerId, int first, int last)
+        {
+            ProductService.QuickCodeBlock(registerId).Should().Be((first, last));
+        }
+
+        [TestCase("04")]
+        [TestCase("99")]
+        [TestCase("")]
+        public void QuickCodes_RegisterWithoutABlock_ThrowsClearly(string registerId)
+        {
+            // 9900-9999 is reserved; registers other than 01-03 get no block.
+            UseRegister(registerId);
+            Action act = () => Create();
+            act.Should().Throw<InvalidOperationException>().WithMessage("*kasir*");
+            Scalar("SELECT COUNT(*) FROM products WHERE product_code GLOB '9[0-9][0-9][0-9]'").Should().Be(0);
         }
 
         [Test]
-        public void NextFreeCode_SkipsCodesInUse_IncludingInactive()
+        public void QuickCodes_SkipCodesAlreadyInProducts_IncludingInactive()
         {
+            // 85 legacy products already use 9003+ codes.
             Existing("9000");
             Existing("9001", "I");
             Existing("9003");
-            _service.NextFreeCode().Should().Be("9002");
+            Create("A").Should().Be("9002");
+            Create("B").Should().Be("9004");
         }
 
         [Test]
-        public void NextFreeCode_IgnoresCodesOutsideTheRange()
+        public void QuickCodes_SkipExisting_InAnotherRegistersBlock()
         {
-            Existing("8999");
-            Existing("90000");
-            Existing("A9000");
-            Existing("09000");
-            _service.NextFreeCode().Should().Be("9000");
+            UseRegister("02");
+            Existing("9300");
+            Existing("9000"); // register 01's block: irrelevant here
+            Create().Should().Be("9301");
         }
 
         [Test]
-        public void NextFreeCode_RangeFull_Throws()
+        public void QuickCodes_AreMonotonic_ADeletedCodeIsNeverReused()
+        {
+            Create("A").Should().Be("9000");
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "DELETE FROM stock_movements WHERE product_code = '9000'; DELETE FROM products WHERE product_code = '9000'";
+                cmd.ExecuteNonQuery();
+            }
+            Create("B").Should().Be("9001", "historic sale_items/movements keep the old code");
+        }
+
+        [Test]
+        public void QuickCodes_BlockExhausted_ThrowsWithTheBlockRange()
+        {
+            UseRegister("02");
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "INSERT INTO counters (prefix, register_id, current_value) VALUES (@p, '02', 300)";
+                cmd.Parameters.AddWithValue("@p", ProductService.QuickCodeCounterPrefix);
+                cmd.ExecuteNonQuery();
+            }
+            Action act = () => Create();
+            act.Should().Throw<InvalidOperationException>().WithMessage("*9300-9599*");
+        }
+
+        [Test]
+        public void QuickCodes_BlockFullOfExistingCodes_Throws()
         {
             using (var cmd = _db.CreateCommand())
             {
-                cmd.CommandText = @"WITH RECURSIVE n(x) AS (SELECT 9000 UNION ALL SELECT x + 1 FROM n WHERE x < 9999)
+                cmd.CommandText = @"WITH RECURSIVE n(x) AS (SELECT 9000 UNION ALL SELECT x + 1 FROM n WHERE x < 9299)
                                     INSERT INTO products (product_code, name) SELECT CAST(x AS TEXT), 'X' FROM n";
                 cmd.ExecuteNonQuery();
             }
-            Action act = () => _service.NextFreeCode();
-            act.Should().Throw<InvalidOperationException>().WithMessage("*9000-9999*");
+            Action act = () => Create();
+            act.Should().Throw<InvalidOperationException>().WithMessage("*9000-9299*");
+        }
+
+        [Test]
+        public void QuickCodes_FailedSave_DoesNotBurnACode()
+        {
+            Action bad = () => _service.CreateQuickProduct("X", "ZZ", 1000, 2000, 1, 1);
+            bad.Should().Throw<ArgumentException>();
+            Create().Should().Be("9000");
         }
 
         [Test]

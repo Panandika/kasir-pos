@@ -4,6 +4,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Kasir.Avalonia.Behaviors;
+using Kasir.Avalonia.Diagnostics;
 using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Infrastructure;
 using Kasir.Avalonia.Navigation;
@@ -15,7 +16,7 @@ using Kasir.Utils;
 namespace Kasir.Avalonia.Forms.Master;
 
 // PR-K5 "Barang Masuk Cepat": name, category, cost, price, qty -> new product with an
-// internal code from 9000-9999 plus a PURCHASE stock movement at that cost. No label
+// internal code from the register's block (01: 9000-9299, 02: 9300-9599, 03: 9600-9899) plus a PURCHASE stock movement at that cost. No label
 // printing yet: the code is shown (dialog + list) so it can be written on the goods.
 public partial class QuickProductView : UserControl
 {
@@ -80,54 +81,63 @@ public partial class QuickProductView : UserControl
         else Save();
     }
 
+    // async void: every exception (e.g. SqliteException "database is locked" while a LAN
+    // pull writes) goes through UiGuard to crash.log and a message, never out of the
+    // handler (review M5).
     private async void Save()
     {
         if (_saving) return;
         _saving = true;
         try
         {
-            string? category = ResolveCategory(TxtCategory.Text);
-            if (string.IsNullOrWhiteSpace(TxtName.Text)) { await Invalid("Nama barang harus diisi.", TxtName); return; }
-            if (category == null) { await Invalid("Kategori: ketik angka 1-6.", TxtCategory); return; }
-            if (!Formatting.TryParseRupiahCents(TxtCost.Text ?? "", out long cost) || cost <= 0)
-            { await Invalid("Harga modal tidak valid.", TxtCost); return; }
-            if (!Formatting.TryParseRupiahCents(TxtPrice.Text ?? "", out long price) || price <= 0)
-            { await Invalid("Harga jual tidak valid.", TxtPrice); return; }
-            if (!int.TryParse((TxtQty.Text ?? "").Trim(), out int qty) || qty <= 0)
-            { await Invalid("Qty tidak valid.", TxtQty); return; }
-
-            if (price < cost &&
-                !await MsgBox.Confirm(NavigationService.Owner, "Harga jual di bawah harga modal. Tetap simpan?"))
-            {
-                ViewShortcuts.FocusInput(TxtPrice);
-                return;
-            }
-
-            QuickProductResult result;
-            try
-            {
-                result = _service.CreateQuickProduct(TxtName.Text!, category, cost, price, qty, _userId);
-            }
-            catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
-            {
-                await MsgBox.Show(NavigationService.Owner, "Gagal simpan: " + ex.Message);
-                return;
-            }
-
-            string name = TxtName.Text!.Trim().ToUpperInvariant();
-            _added.Insert(0, new AddedRow(result.ProductCode, name, CategoryName(category), qty.ToString(),
-                Formatting.FormatCurrencyShort(cost), Formatting.FormatCurrencyShort(price)));
-            FooterStatus.Show(StatusLabel, $"Tersimpan: {result.ProductCode} — {name} ({qty} pcs, {result.JournalNo})");
-            await MsgBox.Show(NavigationService.Owner,
-                $"KODE BARANG: {result.ProductCode}\n\n{name}\nTulis kode ini di barangnya.", "Tersimpan");
-
-            foreach (var f in _fields) f.Text = "";
-            ViewShortcuts.FocusInput(TxtName);
+            await UiGuard.RunAsync("QuickProduct.Save", SaveAsync,
+                ex => MsgBox.Show(NavigationService.Owner, "Gagal simpan: " + ex.Message));
         }
         finally
         {
             _saving = false;
         }
+    }
+
+    private async System.Threading.Tasks.Task SaveAsync()
+    {
+        string? category = ResolveCategory(TxtCategory.Text);
+        if (string.IsNullOrWhiteSpace(TxtName.Text)) { await Invalid("Nama barang harus diisi.", TxtName); return; }
+        if (category == null) { await Invalid("Kategori: ketik angka 1-6.", TxtCategory); return; }
+        if (!Formatting.TryParseRupiahCents(TxtCost.Text ?? "", out long cost) || cost <= 0)
+        { await Invalid("Harga modal tidak valid.", TxtCost); return; }
+        if (!Formatting.TryParseRupiahCents(TxtPrice.Text ?? "", out long price) || price <= 0)
+        { await Invalid("Harga jual tidak valid.", TxtPrice); return; }
+        if (!int.TryParse((TxtQty.Text ?? "").Trim(), out int qty) || qty <= 0)
+        { await Invalid("Qty tidak valid.", TxtQty); return; }
+
+        if (price < cost &&
+            !await MsgBox.Confirm(NavigationService.Owner, "Harga jual di bawah harga modal. Tetap simpan?"))
+        {
+            ViewShortcuts.FocusInput(TxtPrice);
+            return;
+        }
+
+        QuickProductResult result;
+        try
+        {
+            result = _service.CreateQuickProduct(TxtName.Text!, category, cost, price, qty, _userId);
+        }
+        catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
+        {
+            await MsgBox.Show(NavigationService.Owner, "Gagal simpan: " + ex.Message);
+            return;
+        }
+
+        string name = TxtName.Text!.Trim().ToUpperInvariant();
+        _added.Insert(0, new AddedRow(result.ProductCode, name, CategoryName(category), qty.ToString(),
+            Formatting.FormatCurrencyShort(cost), Formatting.FormatCurrencyShort(price)));
+        FooterStatus.Show(StatusLabel, $"Tersimpan: {result.ProductCode} — {name} ({qty} pcs, {result.JournalNo})");
+        await MsgBox.Show(NavigationService.Owner,
+            $"KODE BARANG: {result.ProductCode}\n\n{name}\nTulis kode ini di barangnya.", "Tersimpan");
+
+        foreach (var f in _fields) f.Text = "";
+        ViewShortcuts.FocusInput(TxtName);
     }
 
     private async System.Threading.Tasks.Task Invalid(string message, TextBox field)
