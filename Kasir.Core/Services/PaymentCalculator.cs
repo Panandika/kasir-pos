@@ -40,7 +40,20 @@ namespace Kasir.Services
             long cardAmount,
             long voucherAmount)
         {
-            long nonCash = cardAmount + voucherAmount;
+            // A tender amount can never be negative: a negative card/voucher line would
+            // "fund" an inflated cash amount and leave a sale whose GL journal cannot
+            // balance (#19).
+            if (cashAmount < 0 || cardAmount < 0 || voucherAmount < 0)
+            {
+                return new PaymentValidation { IsValid = false };
+            }
+
+            // Each tender is non-negative, so a wrapped (negative) sum means overflow.
+            long nonCash = unchecked(cardAmount + voucherAmount);
+            if (nonCash < 0)
+            {
+                return new PaymentValidation { IsValid = false };
+            }
 
             // Card and voucher tenders cannot produce change — you never hand back cash
             // for a card/voucher overpayment. So non-cash tender must not exceed the amount
@@ -78,6 +91,23 @@ namespace Kasir.Services
                 CardAmount = cardAmount,
                 VoucherAmount = voucherAmount
             };
+        }
+
+        /// <summary>
+        /// Cash still owed after the card and voucher tenders (never negative), rounded up
+        /// to whole Rupiah because the tender fields take whole Rupiah only. The
+        /// payment screen pre-fills the cash field with this so an untouched pre-fill is
+        /// not read as an extra cash tender and shown as change (#19).
+        /// </summary>
+        public long SuggestedCash(long totalDue, long cardAmount, long voucherAmount)
+        {
+            long remaining = Math.Max(0, totalDue);
+            remaining -= Math.Min(remaining, Math.Max(0, cardAmount));
+            remaining -= Math.Min(remaining, Math.Max(0, voucherAmount));
+            // Tender fields take whole Rupiah; round a sen remainder up so the
+            // suggestion always covers what is owed.
+            long sen = remaining % 100;
+            return sen == 0 ? remaining : remaining + (100 - sen);
         }
 
         /// <summary>

@@ -46,14 +46,25 @@ public partial class ShellWindow : Window
         UpdateCloudBadge();
     }
 
+    public bool IsOverlayOpen => OverlayHost.IsVisible;
+
+    // What had the keyboard before the first overlay opened (e.g. the sale code box), so
+    // it gets it back when the overlay closes.
+    private IInputElement? _focusBeforeOverlay;
+
     public void ShowOverlay(Control content)
     {
+        if (!OverlayHost.IsVisible) _focusBeforeOverlay = FocusManager?.GetFocusedElement();
         OverlayHost.Content = content;
         OverlayHost.IsVisible = true;
-        // Overlays focus their first field when attached, but that can happen before
-        // they are laid out, leaving focus on the screen behind (e.g. the sale code box):
-        // Enter/Esc then went to that screen instead of the dialog. Once laid out, make
-        // sure focus is inside the overlay.
+        // Overlays focus their first field when attached, but at that point the field is
+        // not in the visual tree yet and Focus() is ignored, leaving focus on the screen
+        // behind (e.g. the sale code box): typing, Enter and Esc then went to that screen
+        // instead of the dialog. Lay the overlay out now and move focus into it, so even
+        // keys that arrive straight away (a barcode scanner) reach the dialog; check
+        // again once loaded.
+        UpdateLayout();
+        EnsureFocusInside(content);
         Dispatcher.UIThread.Post(() => EnsureFocusInside(content), DispatcherPriority.Loaded);
     }
 
@@ -61,16 +72,41 @@ public partial class ShellWindow : Window
     {
         if (!ReferenceEquals(OverlayHost.Content, overlay)) return;
         if (FocusManager?.GetFocusedElement() is Visual focused && overlay.IsVisualAncestorOf(focused)) return;
-        var target = overlay.GetVisualDescendants()
+        // Prefer the first input box over a button: a dialog that shows an input is
+        // waiting for typing, and the OK button often comes first in the visual tree.
+        var candidates = overlay.GetVisualDescendants()
             .OfType<InputElement>()
-            .FirstOrDefault(c => c.Focusable && c.IsEffectivelyVisible && c.IsEffectivelyEnabled);
-        (target ?? overlay).Focus();
+            .Where(c => c.Focusable && c.IsEffectivelyVisible && c.IsEffectivelyEnabled)
+            .ToList();
+        var target = candidates.OfType<TextBox>().FirstOrDefault() ?? candidates.FirstOrDefault();
+        if (target is null) { overlay.Focus(); return; }
+        ViewShortcuts.FocusInput(target);
     }
 
     public void HideOverlay()
     {
         OverlayHost.IsVisible = false;
         OverlayHost.Content = null;
+        var previous = _focusBeforeOverlay;
+        _focusBeforeOverlay = null;
+        Dispatcher.UIThread.Post(() => RestoreFocusAfterOverlay(previous), DispatcherPriority.Loaded);
+    }
+
+    // The focused field was inside the overlay that just closed, so the keyboard went
+    // nowhere and the cashier had to click the code box before the next scan. Give focus
+    // back to what had it before the overlay, unless the screen already moved it.
+    private void RestoreFocusAfterOverlay(IInputElement? previous)
+    {
+        if (OverlayHost.IsVisible) return; // another dialog opened meanwhile
+        if (FocusManager?.GetFocusedElement() is Visual focused
+            && focused.IsEffectivelyVisible && ContentArea.IsVisualAncestorOf(focused)) return;
+        if (previous is InputElement prev && prev.IsEffectivelyVisible && prev.IsEffectivelyEnabled
+            && ContentArea.IsVisualAncestorOf(prev))
+        {
+            prev.Focus();
+            return;
+        }
+        (ContentArea.Content as InputElement)?.Focus();
     }
 
     // The "Ctrl+/ Bantuan" badge in the header used to be a hint only; clicking it
@@ -195,6 +231,10 @@ public partial class ShellWindow : Window
             DbConnection.FirstRunHandler = () => result;
         }
 
+        // Copying a cloud/imported database and running migrations can take a while on
+        // the store PCs: show a busy screen (no buttons) instead of the first-run choices.
+        NavigationService.ReplaceRoot(new PreparingDataView());
+
         try
         {
             await Task.Run(() => DbConnection.InitializeDatabase());
@@ -234,7 +274,7 @@ public partial class ShellWindow : Window
             Console.Error.WriteLine($"HelpSyncService startup failed: {ex.Message}");
         }
 
-        NavigationService.Navigate(new LoginView());
+        NavigationService.ReplaceRoot(new LoginView());
     }
 
     protected override void OnClosed(EventArgs e)

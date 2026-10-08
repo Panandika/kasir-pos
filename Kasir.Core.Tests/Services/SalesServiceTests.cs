@@ -402,6 +402,95 @@ namespace Kasir.Tests.Services
             sale.ChangeAmount.Should().Be(0);
         }
 
+        // #19: a card tender must name the card (legacy JUAL1: "Jenis card harus di-isi").
+        // Without it the sale has no card code and a credit-card amount is posted to the
+        // debit/QRIS clearing account.
+        [Test]
+        public void CompleteSale_CardAmountWithoutCard_Throws()
+        {
+            _service.AddItem("P001", 1); // 3200000
+
+            System.Action act = () => _service.CompleteSale(
+                cashAmount: 2000000,
+                cardAmount: 1200000,
+                voucherAmount: 0,
+                cardCode: "",
+                cardType: "",
+                memberCode: "");
+
+            act.Should().Throw<System.InvalidOperationException>().WithMessage("*kartu*");
+        }
+
+        // #19: a card picked in the dropdown but with no card amount is a cash sale; it
+        // must not be stored with a card code/type.
+        [Test]
+        public void CompleteSale_CardSelectedButZeroCardAmount_DoesNotStoreCard()
+        {
+            _service.AddItem("P001", 1); // 3200000
+
+            var sale = _service.CompleteSale(
+                cashAmount: 3200000,
+                cardAmount: 0,
+                voucherAmount: 0,
+                cardCode: "VISA",
+                cardType: "C",
+                memberCode: "");
+
+            sale.CardCode.Should().BeEmpty();
+            sale.CardType.Should().BeEmpty();
+            var saved = new SaleRepository(_db).GetByJournalNo(sale.JournalNo);
+            saved.CardCode.Should().BeEmpty();
+            saved.CardType.Should().BeEmpty();
+        }
+
+        [Test]
+        public void CompleteSale_NegativeCardTender_Throws()
+        {
+            _service.AddItem("P001", 1); // 3200000
+
+            System.Action act = () => _service.CompleteSale(
+                cashAmount: 4200000,
+                cardAmount: -1000000,
+                voucherAmount: 0,
+                cardCode: "VISA",
+                cardType: "C",
+                memberCode: "");
+
+            act.Should().Throw<System.InvalidOperationException>();
+        }
+
+        // #19 owner decision: stickers are for members only (legacy JUAL1 a_total gives 0
+        // when no member card is entered). New-POS sales without a member were getting points.
+        [Test]
+        public void CompleteSale_WithoutMember_GivesNoLoyaltyPoints()
+        {
+            _service.AddItem("P001", 1); // 3200000 = Rp 32,000
+
+            var sale = _service.CompleteSale(3200000, 0, 0, "", "", "");
+
+            sale.PointValue.Should().Be(0, "stickers are only for members");
+            new SaleRepository(_db).GetByJournalNo(sale.JournalNo).PointValue.Should().Be(0);
+        }
+
+        // #19 owner decision: no card surcharge (PBI 23/6/PBI/2021). A card with a fee in
+        // the master must not change what the customer pays or what is recorded.
+        [Test]
+        public void CompleteSale_CardWithFee_DoesNotSurchargeCustomer()
+        {
+            new CreditCardRepository(_db).Insert(new CreditCard
+            {
+                CardCode = "BCA", Name = "BCA KREDIT", FeePct = 250, CardType = "C"
+            });
+            _service.AddItem("P001", 1); // 3200000
+
+            var sale = _service.CompleteSale(0, 3200000, 0, "BCA", "C", "");
+
+            sale.TotalValue.Should().Be(3200000);
+            sale.NonCash.Should().Be(3200000);
+            sale.PaymentAmount.Should().Be(3200000);
+            sale.ChangeAmount.Should().Be(0);
+        }
+
         [Test]
         public void CompleteSale_WithMember_CalculatesLoyaltyPoints()
         {

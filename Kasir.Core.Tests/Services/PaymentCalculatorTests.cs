@@ -138,6 +138,46 @@ namespace Kasir.Tests.Services
             result.NonCashOverpayment.Should().Be(0);
         }
 
+        // #19: a negative tender must never validate. A negative card/voucher line
+        // "funds" an inflated cash amount, the sale saves, and the GL journal later fails
+        // to balance (the negative card line is skipped while cash is debited in full).
+        [TestCase(150000L, -50000L, 0L, Description = "negative card offset by extra cash")]
+        [TestCase(150000L, 0L, -50000L, Description = "negative voucher offset by extra cash")]
+        [TestCase(-10000L, 60000L, 50000L, Description = "negative cash")]
+        public void ValidatePayment_NegativeTender_IsRejected(long cash, long card, long voucher)
+        {
+            var result = _calc.ValidatePayment(100000, cash, card, voucher);
+            result.IsValid.Should().BeFalse("a tender amount can never be negative");
+            result.Change.Should().Be(0);
+        }
+
+        [Test]
+        public void ValidatePayment_HugeNonCash_DoesNotOverflowIntoValid()
+        {
+            // card + voucher overflows long and wraps negative; it must not read as "covered".
+            var result = _calc.ValidatePayment(100000, long.MaxValue, long.MaxValue, long.MaxValue);
+            result.IsValid.Should().BeFalse();
+        }
+
+        // #19: the payment screen pre-fills cash with the total. Once card/voucher is
+        // entered, the suggested cash must drop to what is still owed, otherwise the
+        // untouched pre-fill is read as cash tendered and shown as KEMBALI.
+        [TestCase(100000L, 0L, 0L, 100000L)]
+        [TestCase(100000L, 100000L, 0L, 0L)]
+        [TestCase(100000L, 60000L, 0L, 40000L)]
+        [TestCase(100000L, 30000L, 20000L, 50000L)]
+        [TestCase(100000L, 0L, 150000L, 0L, Description = "voucher over total: never negative")]
+        // Tender fields take whole Rupiah only, while a percentage discount leaves sen in
+        // the total. Flooring the pre-fill (Rp 1.234,50 -> 1.234) left it short and the
+        // screen opened on "KURANG: Rp 0,50"; round the suggestion UP to whole Rupiah.
+        [TestCase(123450L, 0L, 0L, 123500L, Description = "Rp 1.234,50 pre-fills Rp 1.235")]
+        [TestCase(123450L, 100000L, 0L, 23500L, Description = "remainder with sen rounds up")]
+        [TestCase(123401L, 0L, 0L, 123500L)]
+        public void SuggestedCash_IsRemainingAfterNonCash(long due, long card, long voucher, long expected)
+        {
+            _calc.SuggestedCash(due, card, voucher).Should().Be(expected);
+        }
+
         // Loyalty points tests
         [TestCase(1000000L, 1, Description = "Rp 10,000 = 1 sticker")]
         [TestCase(5000000L, 5, Description = "Rp 50,000 = 5 stickers")]
