@@ -6,79 +6,116 @@
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch"
              Focusable="True">
-  <Border Width="420"
+  <!-- F9 Kalkulator: pocket-calculator overlay. Keyboard goes to this control itself
+       (keypad buttons are not focusable), so typing works the instant it opens. -->
+  <UserControl.Styles>
+    <Style Selector="Button.calc">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Height" Value="56" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Margin" Value="4" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="FontFamily" Value="{DynamicResource JetBrainsMonoFont}" />
+      <Setter Property="FontSize" Value="22" />
+      <Setter Property="Background" Value="{DynamicResource Bg2Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.calc.op">
+      <Setter Property="Background" Value="{DynamicResource BgSelectedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource BrandBrush}" />
+      <Setter Property="FontSize" Value="26" />
+    </Style>
+    <Style Selector="Button.calc.eq">
+      <Setter Property="Background" Value="{DynamicResource BrandBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource FgOnBrandBrush}" />
+      <Setter Property="FontSize" Value="26" />
+    </Style>
+    <Style Selector="Button.calc.clear">
+      <Setter Property="Background" Value="{DynamicResource AccentBgBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+    <Style Selector="TextBlock#LblDisplay">
+      <Setter Property="Foreground" Value="{DynamicResource FgNumericBrush}" />
+    </Style>
+    <Style Selector="TextBlock#LblDisplay.error">
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Width="400"
           HorizontalAlignment="Center" VerticalAlignment="Center"
           Background="{DynamicResource Bg1Brush}"
           BorderBrush="{DynamicResource BorderSubtleBrush}"
           BorderThickness="1"
           CornerRadius="12"
-          Padding="24">
-    <DockPanel>
-      <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                  HorizontalAlignment="Right" Spacing="10" Margin="0,12,0,0">
-        <Button x:Name="BtnOk" Content="OK"
-                Width="90" Height="32"
-                Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
-                FontFamily="{DynamicResource JetBrainsMonoFont}"
-                FontSize="13" />
-        <Button x:Name="BtnTutup" Content="Tutup"
-                Width="90" Height="32"
+          Padding="20">
+    <StackPanel Spacing="12">
+      <DockPanel>
+        <Button x:Name="BtnTutup" DockPanel.Dock="Right"
+                Content="Tutup (Esc)" Focusable="False"
+                Height="30" Padding="10,0" VerticalContentAlignment="Center"
                 Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                 FontSize="13" />
-      </StackPanel>
-      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*" Margin="0,8,0,0">
-        <!-- Row 0: multiply -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12"
-                    VerticalAlignment="Center">
-          <TextBox x:Name="TxtA" Width="100" Height="30"
-                   TextAlignment="Right"
-                   Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+        <TextBlock Text="KALKULATOR" VerticalAlignment="Center"
+                   Foreground="{DynamicResource FgPrimaryBrush}"
                    FontFamily="{DynamicResource JetBrainsMonoFont}"
-                   FontSize="13" />
-          <TextBlock Text="×" Foreground="{DynamicResource FgPrimaryBrush}"
+                   FontSize="16" FontWeight="Bold" />
+      </DockPanel>
+
+      <!-- Display: running expression (small) above the current number (big). -->
+      <Border Background="{DynamicResource Bg0Brush}"
+              BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
+              CornerRadius="8" Padding="14,10">
+        <StackPanel Spacing="2">
+          <TextBlock x:Name="LblExpression" Text=" "
+                     HorizontalAlignment="Right" TextAlignment="Right"
+                     TextTrimming="CharacterEllipsis"
+                     Foreground="{DynamicResource FgSecondaryBrush}"
                      FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     FontSize="13" VerticalAlignment="Center" />
-          <TextBox x:Name="TxtB" Width="100" Height="30"
-                   TextAlignment="Right"
-                   Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
-                   FontFamily="{DynamicResource JetBrainsMonoFont}"
-                   FontSize="13" />
-          <TextBlock Text="=" Foreground="{DynamicResource FgPrimaryBrush}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     FontSize="13" VerticalAlignment="Center" />
-          <TextBlock x:Name="LblMultResult" Text="0"
-                     Foreground="{DynamicResource FgNumericBrush}" Width="100"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     FontSize="13" VerticalAlignment="Center"
-                     TextAlignment="Right" />
+                     FontSize="16" MinHeight="22" />
+          <Viewbox x:Name="DisplayBox" Height="52" StretchDirection="DownOnly" HorizontalAlignment="Right">
+            <TextBlock x:Name="LblDisplay" Text="0"
+                       TextAlignment="Right"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}"
+                       FontSize="40" FontWeight="Bold" />
+          </Viewbox>
         </StackPanel>
-        <!-- Row 1: add -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8"
-                    VerticalAlignment="Center">
-          <TextBox x:Name="TxtC" Width="100" Height="30"
-                   TextAlignment="Right"
-                   Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
-                   FontFamily="{DynamicResource JetBrainsMonoFont}"
-                   FontSize="13" />
-          <TextBlock Text="+" Foreground="{DynamicResource FgPrimaryBrush}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     FontSize="13" VerticalAlignment="Center" />
-          <TextBox x:Name="TxtD" Width="100" Height="30"
-                   TextAlignment="Right"
-                   Background="{DynamicResource Bg1Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
-                   FontFamily="{DynamicResource JetBrainsMonoFont}"
-                   FontSize="13" />
-          <TextBlock Text="=" Foreground="{DynamicResource FgPrimaryBrush}"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     FontSize="13" VerticalAlignment="Center" />
-          <TextBlock x:Name="LblAddResult" Text="0"
-                     Foreground="{DynamicResource FgNumericBrush}" Width="100"
-                     FontFamily="{DynamicResource JetBrainsMonoFont}"
-                     FontSize="13" VerticalAlignment="Center"
-                     TextAlignment="Right" />
-        </StackPanel>
+      </Border>
+
+      <Grid x:Name="Keypad" ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+        <Button Grid.Row="0" Grid.Column="0" Classes="calc" Tag="7" Content="7" />
+        <Button Grid.Row="0" Grid.Column="1" Classes="calc" Tag="8" Content="8" />
+        <Button Grid.Row="0" Grid.Column="2" Classes="calc" Tag="9" Content="9" />
+        <Button Grid.Row="0" Grid.Column="3" Classes="calc op" Tag="/" Content="÷" />
+
+        <Button Grid.Row="1" Grid.Column="0" Classes="calc" Tag="4" Content="4" />
+        <Button Grid.Row="1" Grid.Column="1" Classes="calc" Tag="5" Content="5" />
+        <Button Grid.Row="1" Grid.Column="2" Classes="calc" Tag="6" Content="6" />
+        <Button Grid.Row="1" Grid.Column="3" Classes="calc op" Tag="*" Content="×" />
+
+        <Button Grid.Row="2" Grid.Column="0" Classes="calc" Tag="1" Content="1" />
+        <Button Grid.Row="2" Grid.Column="1" Classes="calc" Tag="2" Content="2" />
+        <Button Grid.Row="2" Grid.Column="2" Classes="calc" Tag="3" Content="3" />
+        <Button Grid.Row="2" Grid.Column="3" Classes="calc op" Tag="-" Content="−" />
+
+        <Button Grid.Row="3" Grid.Column="0" Classes="calc" Tag="0" Content="0" />
+        <Button Grid.Row="3" Grid.Column="1" Classes="calc" Tag="000" Content="000" />
+        <Button Grid.Row="3" Grid.Column="2" Classes="calc" Tag="," Content="," />
+        <Button Grid.Row="3" Grid.Column="3" Classes="calc op" Tag="+" Content="+" />
+
+        <Button Grid.Row="4" Grid.Column="0" Classes="calc clear" Tag="C" Content="C" />
+        <Button Grid.Row="4" Grid.Column="1" Classes="calc" Tag="back" Content="⌫" />
+        <Button Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="2" Classes="calc eq" Tag="=" Content="=" />
       </Grid>
-    </DockPanel>
+
+      <TextBlock Text="Enter = hitung   Del = hapus semua   Esc = tutup"
+                 HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"
+                 Foreground="{DynamicResource FgDimBrush}"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}"
+                 FontSize="12" />
+    </StackPanel>
   </Border>
 </UserControl>
