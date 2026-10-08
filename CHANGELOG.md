@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.0](https://github.com/Panandika/kasir-pos/compare/v2.11.0...v2.12.0) (2026-10-08)
+
+
+### Features
+
+* **pos:** confirm huge change (barcode scanned into Tunai) ([#99](https://github.com/Panandika/kasir-pos/issues/99)) ([beb605c](https://github.com/Panandika/kasir-pos/commit/beb605c5b4d0398e8b9aa8f60fb94921325d3d8e))
+
 ## [2.11.0](https://github.com/Panandika/kasir-pos/compare/v2.10.1...v2.11.0) (2026-10-08)
 
 
