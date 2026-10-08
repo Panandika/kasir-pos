@@ -17,6 +17,11 @@ namespace Kasir.Services
         // per-location on-hand queries miss POS movements.
         public const string DefaultLocationCode = "T";
 
+        // Config key: "true" lets the POS cost engine write products.cost_price (perpetual
+        // average). Default OFF until Avalonia cutover: FoxPro AVGCOST is authoritative and a
+        // POS-side write would be pushed to Supabase via trg_products_sync_u / CloudSync.
+        public const string CostEngineOwnsCostPriceKey = "cost_engine_owns_cost_price";
+
         public InventoryService(SqliteConnection db)
         {
             _db = db;
@@ -88,8 +93,8 @@ namespace Kasir.Services
         }
 
         // Unit cost (x100 money) for COGS and stock valuation: the perpetual moving average
-        // kept in products.cost_price (maintained by RecordStockIn, or FoxPro AVGCOST via the
-        // snapshot). Fallback when it is 0: last PURCHASE unit_price, then 0.
+        // kept in products.cost_price (FoxPro AVGCOST via the snapshot; maintained by
+        // RecordStockIn once CostEngineOwnsCostPriceKey is on). Fallback when it is 0: last PURCHASE unit_price, then 0.
         public long CalculateAverageCost(string productCode)
         {
             var product = _productRepo.GetByCode(productCode);
@@ -102,8 +107,9 @@ namespace Kasir.Services
                   JOIN purchases p ON p.journal_no = pi.journal_no
                   WHERE pi.product_code = @code
                     AND p.doc_type = 'PURCHASE'
+                    AND p.control != 3
                     AND pi.unit_price > 0
-                  ORDER BY p.doc_date DESC
+                  ORDER BY p.doc_date DESC, p.id DESC, pi.id DESC
                   LIMIT 1",
                 SqlHelper.Param("@code", productCode));
         }
@@ -112,6 +118,9 @@ namespace Kasir.Services
         // products.cost_price; stock-outs (sales, purchase returns) never change it.
         // on_hand and qty must be in the same unit (the local ledger's) - the average is a
         // pure ratio, so it is unaffected by the x100 qty scale as long as it is not mixed.
+        // NOT safe yet on a snapshot-commissioned register: legacy movements are x100 and POS
+        // ones are raw units, so GetStockOnHand mixes scales - normalise before cutover.
+        // cost_price is only written when CostEngineOwnsCostPriceKey is "true".
         public void RecordStockIn(string productCode, int qty, long unitCost,
             string movementType, string journalNo, string docDate, int changedBy)
         {
@@ -135,11 +144,21 @@ namespace Kasir.Services
 
             _movementRepo.Insert(movement);
 
-            UpdatePerpetualAverage(productCode, onHandBefore, qty, unitCost);
+            UpdatePerpetualAverage(productCode, onHandBefore, qty, unitCost, movementType);
         }
 
-        private void UpdatePerpetualAverage(string productCode, int onHandBefore, int qty, long unitCost)
+        private bool CostEngineOwnsCostPrice()
         {
+            return string.Equals(_configRepo.Get(CostEngineOwnsCostPriceKey), "true",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void UpdatePerpetualAverage(string productCode, int onHandBefore, int qty, long unitCost,
+            string movementType)
+        {
+            // Pre-cutover: FoxPro AVGCOST owns cost_price; the movement is still recorded.
+            if (!CostEngineOwnsCostPrice()) return;
+
             // A zero-cost stock-in (e.g. voiding a sale whose COGS was 0) carries no price
             // information; don't let it wipe or dilute the average.
             if (qty <= 0 || unitCost <= 0) return;
@@ -148,9 +167,16 @@ namespace Kasir.Services
             if (product == null) return;
 
             long newAvg;
-            if (onHandBefore <= 0 || product.CostPrice <= 0)
+            if (product.CostPrice <= 0)
             {
-                // Nothing (or no known cost) on hand: the purchase cost is the new average.
+                // No known cost: any cost basis beats 0.
+                newAvg = unitCost;
+            }
+            else if (onHandBefore <= 0)
+            {
+                // Nothing on hand: only a purchase sets a fresh cost. A RETURN_IN (sale void)
+                // or OPNAME surplus carries an older cost and must not overwrite a newer one.
+                if (movementType != "PURCHASE") return;
                 newAvg = unitCost;
             }
             else

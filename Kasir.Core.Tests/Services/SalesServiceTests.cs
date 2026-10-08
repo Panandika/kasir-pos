@@ -40,6 +40,8 @@ namespace Kasir.Tests.Services
             // Seed config
             var configRepo = new ConfigRepository(_db);
             configRepo.Set("register_id", "01");
+            // Post-cutover mode: the POS cost engine maintains products.cost_price.
+            configRepo.Set(InventoryService.CostEngineOwnsCostPriceKey, "true");
 
             // Seed products
             var productRepo = new ProductRepository(_db);
@@ -399,6 +401,26 @@ namespace Kasir.Tests.Services
             _service.CompleteSale(100000000, 0, 0, "", "", "");
 
             new ProductRepository(_db).GetByCode("P001").CostPrice.Should().Be(1000);
+        }
+
+        // Review MEDIUM-1: voiding a sale of a negative-stock product must not reset
+        // cost_price to the stale sale-time cost when a newer cost has been set since.
+        [Test]
+        public void VoidSale_NegativeOnHand_DoesNotRevertNewerCost()
+        {
+            var productRepo = new ProductRepository(_db);
+            Kasir.Data.SqlHelper.ExecuteNonQuery(_db,
+                "UPDATE products SET cost_price = 1000 WHERE product_code = 'P001'");
+            _service.AddItem("P001", 5);
+            var sale = _service.CompleteSale(100000000, 0, 0, "", "", "");
+            SaleItemCogs(sale.JournalNo, "P001").Should().Be(5000);
+
+            // A newer cost arrives (purchase while on-hand stays <= 0, or FoxPro AVGCOST pull).
+            productRepo.UpdateCostPrice("P001", 2000);
+
+            _service.VoidSale(sale.JournalNo);
+
+            productRepo.GetByCode("P001").CostPrice.Should().Be(2000);
         }
 
         [Test]

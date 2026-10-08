@@ -26,6 +26,9 @@ namespace Kasir.Tests.Services
             var configRepo = new ConfigRepository(_db);
             configRepo.Set("register_id", "01");
             configRepo.Set("costing_method", "AVG");
+            // Post-cutover mode: the POS cost engine maintains products.cost_price.
+            // Flag-OFF (pre-cutover default) behaviour is covered by the *_FlagOff_* tests.
+            configRepo.Set(InventoryService.CostEngineOwnsCostPriceKey, "true");
         }
 
         [TearDown]
@@ -238,6 +241,113 @@ namespace Kasir.Tests.Services
             _service.RecordStockOut("P001", 2, 5000, "RETURN_OUT", "RMS-1", "2026-04-02", 1);
 
             CostPriceOf("P001").Should().Be(1000);
+        }
+
+        // Review MEDIUM-1: with on-hand <= 0, only a PURCHASE resets the average. A RETURN_IN
+        // (sale void) carries the stale sale-time cost and must not overwrite a newer cost.
+        [Test]
+        public void RecordStockIn_ReturnIn_NegativeOnHand_KeepsExistingCost()
+        {
+            SeedProduct("P001", costPrice: 2000);
+            _service.RecordStockOut("P001", 5, 1000, "SALE", "KLR-1", "2026-04-01", 1);
+
+            _service.RecordStockIn("P001", 2, 1000, "RETURN_IN", "KLR-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(2000);
+        }
+
+        [Test]
+        public void RecordStockIn_Opname_ZeroOnHand_KeepsExistingCost()
+        {
+            SeedProduct("P001", costPrice: 2000);
+
+            _service.RecordStockIn("P001", 3, 1500, "OPNAME", "OPN-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(2000);
+        }
+
+        [Test]
+        public void RecordStockIn_ReturnIn_NoCostBasis_UsesUnitCost()
+        {
+            SeedProduct("P001", costPrice: 0);
+
+            _service.RecordStockIn("P001", 2, 1000, "RETURN_IN", "KLR-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1000, "no known cost: any cost basis beats 0");
+        }
+
+        [Test]
+        public void RecordStockIn_ReturnIn_PositiveOnHand_StillAverages()
+        {
+            SeedProduct("P001");
+            _service.RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-1", "2026-04-01", 1);
+
+            _service.RecordStockIn("P001", 10, 2000, "RETURN_IN", "KLR-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1500);
+        }
+
+        // Review MEDIUM-3: pre-cutover FoxPro AVGCOST owns cost_price. With the flag OFF
+        // (the default) the POS writes the movement but never touches products.cost_price,
+        // so nothing reaches sync_queue / Supabase.
+        private long ProductSyncRows(string code)
+        {
+            return SqlHelper.ExecuteScalar<long>(_db,
+                "SELECT COUNT(*) FROM sync_queue WHERE table_name = 'products' AND record_key = @k",
+                SqlHelper.Param("@k", code));
+        }
+
+        [Test]
+        public void RecordStockIn_FlagOff_DoesNotUpdateCostPrice()
+        {
+            new ConfigRepository(_db).Set(InventoryService.CostEngineOwnsCostPriceKey, "false");
+            SeedProduct("P001", costPrice: 1000);
+            long syncBefore = ProductSyncRows("P001");
+
+            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1000);
+            ProductSyncRows("P001").Should().Be(syncBefore, "no products 'U' row may be queued");
+            var m = _movementRepo.GetByJournal("BPB-1");
+            m.Should().ContainSingle();
+            m[0].ValIn.Should().Be(30000);
+            m[0].CostPrice.Should().Be(3000);
+        }
+
+        [Test]
+        public void RecordStockIn_FlagAbsent_DefaultsOff()
+        {
+            SqlHelper.ExecuteNonQuery(_db, "DELETE FROM config WHERE key = @k",
+                SqlHelper.Param("@k", InventoryService.CostEngineOwnsCostPriceKey));
+            SeedProduct("P001", costPrice: 1000);
+
+            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1000);
+        }
+
+        [Test]
+        public void RecordStockIn_FlagOn_UpdatesCostPriceAndQueuesSync()
+        {
+            SeedProduct("P001", costPrice: 1000);
+            long syncBefore = ProductSyncRows("P001");
+
+            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(3000);
+            ProductSyncRows("P001").Should().BeGreaterThan(syncBefore);
+        }
+
+        // Flag OFF: COGS still comes from the fallback chain (cost_price, else last purchase).
+        [Test]
+        public void CalculateAverageCost_FlagOff_UsesExistingCostPrice()
+        {
+            new ConfigRepository(_db).Set(InventoryService.CostEngineOwnsCostPriceKey, "false");
+            SeedProduct("P001", costPrice: 1000);
+            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            _service.CalculateAverageCost("P001").Should().Be(1000);
+            _service.GetCostPrice("P001", 2).Should().Be(2000);
         }
 
         // EC8: on-hand and the purchase qty are in the same unit (the local ledger's), so the

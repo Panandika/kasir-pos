@@ -31,6 +31,8 @@ namespace Kasir.Tests.Services
 
             var configRepo = new ConfigRepository(_db);
             configRepo.Set("register_id", "01");
+            // Post-cutover mode: the POS cost engine maintains products.cost_price.
+            configRepo.Set(InventoryService.CostEngineOwnsCostPriceKey, "true");
 
             // Seed a product
             var productRepo = new ProductRepository(_db);
@@ -213,6 +215,41 @@ namespace Kasir.Tests.Services
 
             new InventoryService(_db).CalculateAverageCost("P001").Should().Be(330000);
         }
+        // Review LOW-4: the fallback skips deleted (control = 3) purchases and breaks
+        // same-date ties deterministically by the later-entered purchase.
+        [Test]
+        public void CalculateAverageCost_Fallback_SkipsDeletedPurchase()
+        {
+            _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", DocDate = "2026-03-01" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 310000 } },
+                1);
+            string deleted = _service.CreatePurchaseInvoice(
+                new Purchase { SubCode = "V001", DueDate = "2026-05-04", DocDate = "2026-03-20" },
+                new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 10, UnitPrice = 999000 } },
+                1);
+            SqlHelper.ExecuteNonQuery(_db, "UPDATE purchases SET control = 3 WHERE journal_no = @j",
+                SqlHelper.Param("@j", deleted));
+            SqlHelper.ExecuteNonQuery(_db, "UPDATE products SET cost_price = 0 WHERE product_code = 'P001'");
+
+            new InventoryService(_db).CalculateAverageCost("P001").Should().Be(310000);
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_SameDateTiebreakLatestPurchase()
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                _service.CreatePurchaseInvoice(
+                    new Purchase { SubCode = "V001", DueDate = "2026-05-04", DocDate = "2026-03-10" },
+                    new List<PurchaseItem> { new PurchaseItem { ProductCode = "P001", Quantity = 1, UnitPrice = 300000 + i * 10000 } },
+                    1);
+            }
+            SqlHelper.ExecuteNonQuery(_db, "UPDATE products SET cost_price = 0 WHERE product_code = 'P001'");
+
+            new InventoryService(_db).CalculateAverageCost("P001").Should().Be(320000);
+        }
+
         [Test]
         public void CreatePurchaseReturn_WithInvoice_OffsetsAP()
         {
