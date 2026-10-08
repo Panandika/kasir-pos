@@ -491,6 +491,29 @@ namespace Kasir.CloudSync.Tests.Pull
         }
 
         [Test]
+        public async Task failure_after_partial_writes_rolls_the_whole_request_back()
+        {
+            // The receipt header and line are written before the movement; make the
+            // movement insert fail and nothing of the request may remain.
+            Exec(@"CREATE TEMP TRIGGER fail_movement BEFORE INSERT ON stock_movements
+                   BEGIN SELECT RAISE(ABORT, 'disk full'); END;");
+            var req = Purchase("a", "P001", 100, 300000);
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+
+            _pull.LastResult.Failed.Should().Equal(req.Id);
+            Scalar("SELECT COUNT(*) FROM purchases").Should().Be(0);
+            Scalar("SELECT COUNT(*) FROM purchase_items").Should().Be(0);
+            Scalar("SELECT COUNT(*) FROM applied_requests").Should().Be(0);
+            new ConfigRepository(_db).Get(PosRequestApplier.MovementIdSeqKey).Should().Be("5000000000", "the id is not burnt");
+            _source.RowOf(req.Id).AppliedAt.Should().BeNull();
+
+            Exec("DROP TRIGGER fail_movement;");
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1, "retried next tick");
+            Scalar("SELECT id FROM stock_movements WHERE journal_no = 'RCV-0001'").Should().Be(Floor);
+        }
+
+        [Test]
         public async Task unknown_kind_or_bad_payload_is_rejected_and_the_rest_continue()
         {
             var junk = _source.Add(new PosStockRequest
