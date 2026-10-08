@@ -132,10 +132,67 @@ public class SaleFlowTests
         Barcode.Text = "";
     }
 
+    // Code "1" -> category picker (6 = LAIN-LAIN) -> price (PR-K4).
     private void AddMiscItem(string price)
     {
         Scan("1");
+        Press(Key.D6);
         Scan(price);
+    }
+
+    private SaleItem OnlyCartLine()
+    {
+        var sales = (Kasir.Services.SalesService)typeof(SaleView)
+            .GetField("_salesService", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_view)!;
+        Assert.That(sales.CurrentItems, Has.Count.EqualTo(1));
+        return sales.CurrentItems[0];
+    }
+
+    [AvaloniaTest]
+    public void Code1_AsksCategoryFirst_NumberKeyPicks_ThenPriceTypesStraightIntoCodeBox()
+    {
+        OpenSaleScreen(withShift: true);
+        Scan("1");
+        Assert.That(OverlayHost.Content, Is.InstanceOf<CategoryPickerOverlay>(), "code 1 asks for the category");
+
+        Press(Key.D1); // ALAT LISTRIK, no click needed
+        Assert.That(OverlayHost.IsVisible, Is.False, "picker closes on the number key");
+        Assert.That(Barcode.IsFocused, Is.True, "price is typed into the code box straight away");
+
+        Scan("10000");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("AL"));
+        Assert.That(line.UnitPrice, Is.EqualTo(10000L * 100));
+        Assert.That(line.Cogs, Is.EqualTo(7500L * 100), "estimated COGS at the default 25% margin");
+        AssertBarcodeReady("after a category line");
+    }
+
+    [AvaloniaTest]
+    public void TypedCategoryCode_GoesStraightToPrice()
+    {
+        OpenSaleScreen(withShift: true);
+        Scan("pl");
+        Assert.That(OverlayHost.IsVisible, Is.False, "a typed category code needs no picker");
+        Scan("5000");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("PL"));
+        Assert.That(line.ProductName, Is.EqualTo("PLASTIK"));
+    }
+
+    [AvaloniaTest]
+    public void F4_OpensCategoryPicker_NumpadPicks_EscCancels()
+    {
+        OpenSaleScreen(withShift: true);
+        Press(Key.F4);
+        Assert.That(OverlayHost.Content, Is.InstanceOf<CategoryPickerOverlay>());
+        Press(Key.Escape);
+        Assert.That(ItemCount, Is.EqualTo(0));
+        AssertBarcodeReady("after cancelling the category picker");
+
+        Press(Key.F4);
+        Press(Key.NumPad5); // MAINAN
+        Scan("2000");
+        Assert.That(OnlyCartLine().ProductCode, Is.EqualTo("MY"));
     }
 
     [AvaloniaTest]

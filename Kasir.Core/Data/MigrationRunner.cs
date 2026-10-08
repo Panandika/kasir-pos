@@ -21,9 +21,11 @@ namespace Kasir.Data
             new Migration_008(),
             new Migration_009(),
             new Migration_010(),
-            new Migration_011()
+            new Migration_011(),
+            // Migration_012 is PR-K3 (inactive_sale_log); merge K3 before K4.
+            new Migration_013()
             // Add new migrations here in order:
-            // new Migration_012(),
+            // new Migration_014(),
         };
 
         /// <summary>

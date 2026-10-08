@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.POS.CategoryPickerOverlay"
+             x:DataType="x:Object"
+             Background="#CC0F1419"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             Focusable="True">
+  <!-- PR-K4: barang tanpa kode - pick a category (1-6) before typing the price.
+       Buttons are not focusable; the overlay owns keyboard focus so the number key
+       works the instant it opens. -->
+  <UserControl.Styles>
+    <Style Selector="Button.cat">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Height" Value="48" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,3" />
+      <Setter Property="Padding" Value="14,0" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="FontFamily" Value="{DynamicResource JetBrainsMonoFont}" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="Background" Value="{DynamicResource Bg2Brush}" />
+      <Setter Property="Foreground" Value="{DynamicResource FgPrimaryBrush}" />
+    </Style>
+  </UserControl.Styles>
+  <Border Width="460"
+          HorizontalAlignment="Center" VerticalAlignment="Center"
+          Background="{DynamicResource Bg1Brush}"
+          BorderBrush="{DynamicResource BorderSubtleBrush}"
+          BorderThickness="1"
+          CornerRadius="12"
+          Padding="24">
+    <DockPanel>
+      <TextBlock DockPanel.Dock="Top" Text="BARANG TANPA KODE - PILIH KATEGORI"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="18" FontWeight="Bold"
+                 Foreground="{DynamicResource FgPrimaryBrush}" Margin="0,0,0,4" />
+      <TextBlock DockPanel.Dock="Top" Text="Tekan angka 1-6. Esc = batal."
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="14"
+                 Foreground="{DynamicResource FgDimBrush}" Margin="0,0,0,12" />
+      <StackPanel x:Name="ButtonList" />
+    </DockPanel>
+  </Border>
+</UserControl>
