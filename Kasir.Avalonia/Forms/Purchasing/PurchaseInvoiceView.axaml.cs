@@ -27,6 +27,7 @@ public partial class PurchaseInvoiceView : UserControl
     private string _vendorCode = "";
 
     private readonly int _userId;
+    private readonly PurchasingLockGate _lockGate;
 
     public PurchaseInvoiceView(int userId)
     {
@@ -48,11 +49,13 @@ public partial class PurchaseInvoiceView : UserControl
         TxtVatFlag.TextChanged += (_, _) => UpdateTotals();
         UpdateDueDate();
         UpdateTotals();
+        _lockGate = PurchasingLockGate.Attach(this, conn, "Nota Pembelian");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if (_lockGate.HandleKey(e)) return;
         if (KeyboardRouter.IsF2(e))          { e.Handled = true; SelectVendor(); }
         else if (KeyboardRouter.IsF3(e))     { e.Handled = true; LoadFromDocument(); }
         else if (KeyboardRouter.IsF4(e))     { e.Handled = true; EditItem(); }
@@ -259,6 +262,7 @@ public partial class PurchaseInvoiceView : UserControl
 
     private async void Save()
     {
+        if (_lockGate.BlocksSave()) { await MsgBox.Show(NavigationService.Owner, PurchasingLockService.LockedMessage); return; }
         if (string.IsNullOrEmpty(_vendorCode)) { await MsgBox.Show(NavigationService.Owner, "Pilih supplier."); return; }
         if (_items.Count == 0) { await MsgBox.Show(NavigationService.Owner, "Tambah item dulu."); return; }
 

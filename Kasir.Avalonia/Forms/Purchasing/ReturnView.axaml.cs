@@ -26,6 +26,7 @@ public partial class ReturnView : UserControl
     private string _vendorCode = "";
 
     private readonly int _userId;
+    private readonly PurchasingLockGate _lockGate;
 
     public ReturnView(int userId)
     {
@@ -38,11 +39,13 @@ public partial class ReturnView : UserControl
         DgvItems.ItemsSource = _rows;
         TxtDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
         FooterStatus.RegisterDefault(StatusLabel, "Retur Pembelian — F2: Supplier, Ins: Tambah Item, Del: Hapus, F10: Simpan, Esc: Keluar");
+        _lockGate = PurchasingLockGate.Attach(this, conn, "Retur Pembelian");
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if (_lockGate.HandleKey(e)) return;
         if (KeyboardRouter.IsF2(e))          { e.Handled = true; SelectVendor(); }
         else if (KeyboardRouter.IsInsert(e)) { e.Handled = true; AddItem(); }
         else if (KeyboardRouter.IsDelete(e)) { e.Handled = true; DeleteItem(); }
@@ -122,6 +125,7 @@ public partial class ReturnView : UserControl
 
     private async void Save()
     {
+        if (_lockGate.BlocksSave()) { await MsgBox.Show(NavigationService.Owner, PurchasingLockService.LockedMessage); return; }
         if (string.IsNullOrEmpty(_vendorCode)) { await MsgBox.Show(NavigationService.Owner, "Pilih supplier."); return; }
         if (_items.Count == 0) { await MsgBox.Show(NavigationService.Owner, "Tambah item dulu."); return; }
 
