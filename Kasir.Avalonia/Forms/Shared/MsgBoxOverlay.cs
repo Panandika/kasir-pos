@@ -62,8 +62,8 @@ public class MsgBoxOverlay : UserControl
         var btnYes = new Button
         {
             Content = "Ya / OK",
-            Width = 100,
-            Height = 34,
+            MinWidth = 100,
+            MinHeight = 34,
             FontFamily = fontFamily,
             FontSize = 13,
             Background = ThemeResources.Brush("BgSelectedBrush"),
@@ -72,8 +72,8 @@ public class MsgBoxOverlay : UserControl
         var btnNo = new Button
         {
             Content = "Tidak / Batal",
-            Width = 100,
-            Height = 34,
+            MinWidth = 100,
+            MinHeight = 34,
             FontFamily = fontFamily,
             FontSize = 13,
             Background = ThemeResources.Brush("AccentBgBrush"),

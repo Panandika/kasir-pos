@@ -21,7 +21,7 @@
                  Background="{DynamicResource Bg1Brush}"
                  Foreground="{DynamicResource FgPrimaryBrush}"
                  FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>
-        <Button Grid.Column="2" x:Name="BtnSearch" Content="F2" Width="50" Height="28"
+        <Button Grid.Column="2" x:Name="BtnSearch" Content="F2" MinWidth="50" MinHeight="28" Padding="10,4"
                 Background="{DynamicResource BgSelectedBrush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13"/>

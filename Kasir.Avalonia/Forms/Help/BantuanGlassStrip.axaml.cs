@@ -421,6 +421,8 @@ public partial class BantuanGlassStrip : UserControl
             {
                 Content = "[" + (i + 1) + "]  " + cand.Title,
                 HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Stretch,
+                // List entry: keep the label left-aligned (shared Button style centers).
+                HorizontalContentAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
                 Padding = new Thickness(10, 6),
                 FontSize = 11
             };

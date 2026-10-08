@@ -30,7 +30,7 @@
                    HorizontalAlignment="Center" />
         <Button x:Name="BtnBackup"
                 Content="Backup Sekarang"
-                Width="250" Height="44"
+                MinWidth="250" MinHeight="44"
                 Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                 FontSize="13"

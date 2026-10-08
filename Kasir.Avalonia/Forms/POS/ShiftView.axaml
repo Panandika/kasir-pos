@@ -36,13 +36,13 @@
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
           <Button x:Name="BtnOpenShift"
                   Content="F1 - Buka Shift"
-                  Width="220" Height="44"
+                  MinWidth="220" MinHeight="44"
                   Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="13" />
           <Button x:Name="BtnCloseShift"
                   Content="F2 - Tutup Shift"
-                  Width="220" Height="44"
+                  MinWidth="220" MinHeight="44"
                   Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="13" />

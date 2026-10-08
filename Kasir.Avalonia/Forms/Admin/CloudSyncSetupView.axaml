@@ -131,7 +131,7 @@
                          FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
                 <Button Grid.Column="1" x:Name="BtnReveal"
                         Content="F6 Lihat"
-                        Width="110"
+                        MinWidth="110"
                         Background="{DynamicResource Bg1Brush}"
                         Foreground="{DynamicResource FgSecondaryBrush}"
                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" />
@@ -157,19 +157,19 @@
         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
           <Button x:Name="BtnTest"
                   Content="F5 Uji Koneksi"
-                  Width="170" Height="34"
+                  MinWidth="170" MinHeight="34"
                   Background="{DynamicResource BgSelectedBrush}"
                   Foreground="{DynamicResource FgPrimaryBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
           <Button x:Name="BtnSave"
                   Content="F10 Simpan"
-                  Width="170" Height="34"
+                  MinWidth="170" MinHeight="34"
                   Background="{DynamicResource BgSelectedBrush}"
                   Foreground="{DynamicResource FgPrimaryBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
           <Button x:Name="BtnBack"
                   Content="Esc Kembali"
-                  Width="170" Height="34"
+                  MinWidth="170" MinHeight="34"
                   Background="{DynamicResource Bg1Brush}"
                   Foreground="{DynamicResource FgSecondaryBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />

@@ -102,6 +102,7 @@
               Classes="ghost"
               ToolTip.Tip="Toggle theme (Ctrl+Shift+L)"
               Width="36" Height="36"
+              Padding="0"
               HorizontalAlignment="Right"
               VerticalAlignment="Top"
               Margin="0,8,8,0"

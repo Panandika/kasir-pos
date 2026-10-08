@@ -77,7 +77,7 @@
                   Content="LOGIN"
                   Background="{DynamicResource BgSelectedBrush}"
                   Foreground="{DynamicResource FgPrimaryBrush}"
-                  Height="40"
+                  MinHeight="40"
                   HorizontalAlignment="Stretch"
                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="15"

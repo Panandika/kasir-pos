@@ -64,8 +64,8 @@ public class InputDialogOverlay : UserControl
         var btnOk = new Button
         {
             Content = "OK",
-            Width = 90,
-            Height = 32,
+            MinWidth = 90,
+            MinHeight = 32,
             FontFamily = fontFamily,
             FontSize = 13,
             Background = ThemeResources.Brush("BgSelectedBrush"),
@@ -74,8 +74,8 @@ public class InputDialogOverlay : UserControl
         var btnCancel = new Button
         {
             Content = "Batal",
-            Width = 90,
-            Height = 32,
+            MinWidth = 90,
+            MinHeight = 32,
             FontFamily = fontFamily,
             FontSize = 13,
             Background = ThemeResources.Brush("AccentBgBrush"),

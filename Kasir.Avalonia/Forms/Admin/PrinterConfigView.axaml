@@ -50,7 +50,7 @@
           <Button x:Name="BtnRefresh"
                   Grid.Column="1"
                   Content="↻"
-                  Width="40" Height="34"
+                  MinWidth="40" MinHeight="34"
                   Margin="6,0,0,0"
                   Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}"
@@ -74,19 +74,19 @@
         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" Margin="0,8,0,0">
           <Button x:Name="BtnTestPrint"
                   Content="Test Print"
-                  Width="150" Height="34"
+                  MinWidth="150" MinHeight="34"
                   Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="13" />
           <Button x:Name="BtnTestDrawer"
                   Content="Test Drawer"
-                  Width="150" Height="34"
+                  MinWidth="150" MinHeight="34"
                   Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="13" />
           <Button x:Name="BtnSave"
                   Content="Simpan"
-                  Width="150" Height="34"
+                  MinWidth="150" MinHeight="34"
                   Background="{DynamicResource BgSelectedBrush}" Foreground="{DynamicResource FgPrimaryBrush}"
                   FontFamily="{DynamicResource JetBrainsMonoFont}"
                   FontSize="13" />
