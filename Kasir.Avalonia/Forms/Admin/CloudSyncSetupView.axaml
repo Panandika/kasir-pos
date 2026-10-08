@@ -123,11 +123,19 @@
                          VerticalAlignment="Center"
                          Foreground="{DynamicResource FgPrimaryBrush}"
                          FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
-              <TextBox Grid.Row="4" Grid.Column="1" x:Name="TxtPassword"
-                       PasswordChar="•"
-                       Background="{DynamicResource Bg0Brush}"
-                       Foreground="{DynamicResource FgPrimaryBrush}"
-                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+              <Grid Grid.Row="4" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <TextBox Grid.Column="0" x:Name="TxtPassword"
+                         PasswordChar="•"
+                         Background="{DynamicResource Bg0Brush}"
+                         Foreground="{DynamicResource FgPrimaryBrush}"
+                         FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
+                <Button Grid.Column="1" x:Name="BtnReveal"
+                        Content="F6 Lihat"
+                        Width="110"
+                        Background="{DynamicResource Bg1Brush}"
+                        Foreground="{DynamicResource FgSecondaryBrush}"
+                        FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="12" />
+              </Grid>
 
               <TextBlock Grid.Row="5" Grid.Column="0" Text="SSL Mode:"
                          VerticalAlignment="Center"
@@ -138,6 +146,10 @@
                          Foreground="{DynamicResource FgDimBrush}"
                          FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="13" />
             </Grid>
+            <TextBlock x:Name="LblStorage"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource FgDimBrush}"
+                       FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="11" />
           </StackPanel>
         </Border>
 

@@ -223,7 +223,42 @@ dotnet run --project Kasir.Avalonia
 dotnet run --project Kasir.CloudSync
 ```
 
-The worker reads creds from `~/Library/Application Support/Kasir/cloudsync.json` (macOS) or `%LocalAppData%\Kasir\cloudsync.json` (Windows). Configure via in-app screen: F8 Admin → Cloud Sync.
+The worker reads creds from `~/Library/Application Support/Kasir/cloudsync.dat` (macOS, owner-only file) or `%LocalAppData%\Kasir\cloudsync.dat` (Windows, DPAPI-encrypted). Configure via in-app screen: F8 Admin → Cloud Sync. See [Where credentials are stored and how to read them](#where-credentials-are-stored-and-how-to-read-them).
+
+## Where credentials are stored and how to read them
+
+Secrets entered into or delivered to a register are never written as plain text on Windows. All of them go through `Kasir.Core/Security/ProtectedFile.cs` with **Windows DPAPI, CurrentUser scope, no extra entropy**:
+
+| What | File (Windows) | Written by |
+|------|----------------|------------|
+| Cloud sync Postgres login (host, port, database, username, password) | `%LOCALAPPDATA%\Kasir\cloudsync.dat` | F8 Admin → Cloud Sync (`CloudSyncCredentialStore`) |
+| Bantuan machine login (email, password, store, register) | `%APPDATA%\Kasir\machine-credentials.dat` | Cloud pairing (`MachineCredentialStore`) |
+| Bantuan refresh token | `%APPDATA%\Kasir\auth.dat` | `SupabaseMachineAuth` |
+
+Builds up to v2.10.0 wrote the cloud sync login as plain JSON to `%LOCALAPPDATA%\Kasir\cloudsync.json`. The first time a newer build reads it, it writes the encrypted `cloudsync.dat`, decrypts it again to check it matches, and only then deletes `cloudsync.json`. If encryption fails, the plain file stays and keeps working (the reason is logged to stderr).
+
+**Where is the key?** It is not in the app folder and not in Windows Credential Manager. DPAPI derives it from the Windows user's own master key (`%APPDATA%\Microsoft\Protect\<SID>\`), and Windows protects that master key with the user's logon password. In practice:
+
+- The **same Windows user on the same PC** can decrypt it, both the POS and the methods below, with no password prompt.
+- **Copying** the file or the whole `Kasir` folder to another PC does not work. The copy cannot be decrypted.
+- **Another Windows user** on the same PC cannot decrypt it, and neither can a Windows service running as `LocalSystem`. The production `Kasir.CloudSync` service gets its connection string from `KASIR_CLOUDSYNC_SUPABASE` / `appsettings.json` instead.
+- **The user changing their own password** (Ctrl+Alt+Del → Change password) is fine. **An administrator resetting** a local account's password (`net user`, Computer Management) cuts off access to the old master key, so the files can no longer be read.
+- **Reinstalling Windows** loses them as well.
+
+When a file cannot be decrypted, the app treats the credentials as missing. It never crashes, and it does not delete the file. **Recovery:** for cloud sync, re-enter the values from Bitwarden on F8 Admin → Cloud Sync and press F10 Simpan. For the Bantuan machine login, re-pair the register from the dashboard (`/admin/registers`).
+
+**Reading the values on the store PC:**
+
+1. **In the app (easiest):** open F8 Admin → Cloud Sync. The stored values are decrypted into the form. The password is masked; press **F6** (or the *Lihat* button) to show it, and F6 again to hide it. The screen also shows the file path and whether the file is encrypted.
+2. **PowerShell:** must run as the **same Windows user** that runs the POS. It works on Windows 7's PowerShell 2.0 and on newer versions:
+
+   ```powershell
+   Add-Type -AssemblyName System.Security; [Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes("$env:LOCALAPPDATA\Kasir\cloudsync.dat"), $null, 'CurrentUser'))
+   ```
+
+   For the Bantuan machine login, replace the path with `"$env:APPDATA\Kasir\machine-credentials.dat"`. The output is the JSON the app stores. Do not paste it into chats or tickets.
+
+On macOS/Linux dev machines there is no DPAPI. The same files (`~/Library/Application Support/Kasir/cloudsync.dat`, `~/.kasir/machine-credentials.json`) hold plain JSON with mode `0600` (owner read/write only).
 
 ## Production deployment (Windows 10 gateway)
 

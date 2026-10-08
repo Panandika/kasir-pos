@@ -1,50 +1,24 @@
-using System;
-using System.IO;
-using System.Text.Json;
+using Kasir.Security;
 
 namespace Kasir.Avalonia.Infrastructure;
 
-public sealed class CloudSyncCreds
-{
-    public string Host { get; set; } = "";
-    public int Port { get; set; } = 6543;
-    public string Database { get; set; } = "postgres";
-    public string Username { get; set; } = "";
-    public string Password { get; set; } = "";
-}
-
+/// <summary>
+/// POS-side facade over <see cref="CloudSyncCredentialStore"/> (Kasir.Core), which
+/// keeps the cloud sync credentials DPAPI-encrypted at
+/// %LOCALAPPDATA%\Kasir\cloudsync.dat and migrates the old plaintext
+/// cloudsync.json on first load. The Kasir.CloudSync worker reads the same store.
+/// </summary>
 public static class CloudSyncCredsService
 {
-    private static readonly string ConfigDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Kasir");
-    public static readonly string ConfigPath = Path.Combine(ConfigDir, "cloudsync.json");
+    public static string ConfigPath => CloudSyncCredentialStore.FilePath;
 
-    public static CloudSyncCreds? Load()
-    {
-        try
-        {
-            if (!File.Exists(ConfigPath)) return null;
-            return JsonSerializer.Deserialize<CloudSyncCreds>(File.ReadAllText(ConfigPath));
-        }
-        catch { return null; }
-    }
+    public static bool IsEncrypted => CloudSyncCredentialStore.IsEncrypted;
 
-    public static bool Save(CloudSyncCreds creds)
-    {
-        try
-        {
-            Directory.CreateDirectory(ConfigDir);
-            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(creds, new JsonSerializerOptions { WriteIndented = true }));
-            return true;
-        }
-        catch { return false; }
-    }
+    public static CloudSyncCreds? Load() => CloudSyncCredentialStore.TryLoad();
 
-    public static void Delete()
-    {
-        try { if (File.Exists(ConfigPath)) File.Delete(ConfigPath); } catch { }
-    }
+    public static bool Save(CloudSyncCreds creds) => CloudSyncCredentialStore.TrySave(creds);
+
+    public static void Delete() => CloudSyncCredentialStore.TryDelete();
 
     public static string BuildConnectionString(CloudSyncCreds creds)
         => $"Host={creds.Host};Port={creds.Port};Database={creds.Database};Username={creds.Username};Password={creds.Password};SslMode=Require";
