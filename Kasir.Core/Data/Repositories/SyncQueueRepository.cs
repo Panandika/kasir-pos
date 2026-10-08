@@ -57,6 +57,32 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@limit", limit));
         }
 
+        // Same as GetPendingCloud, limited to the given tables (CloudSync push scope,
+        // WP-02 / OB-8). Filtering in SQL keeps an out-of-scope backlog (e.g. products)
+        // from starving the in-scope rows behind it.
+        public List<SyncQueueEntry> GetPendingCloud(int limit, IReadOnlyCollection<string> tables)
+        {
+            if (tables == null) return GetPendingCloud(limit);
+            if (tables.Count == 0) return new List<SyncQueueEntry>();
+
+            var parameters = new List<SqliteParameter> { SqlHelper.Param("@limit", limit) };
+            var names = new List<string>();
+            int i = 0;
+            foreach (var t in tables)
+            {
+                string n = "@t" + i++;
+                names.Add(n);
+                parameters.Add(SqlHelper.Param(n, t));
+            }
+            return SqlHelper.Query(_db,
+                @"SELECT * FROM sync_queue
+                  WHERE cloud_synced = 0 AND status = 'synced'
+                    AND table_name IN (" + string.Join(", ", names) + @")
+                  ORDER BY id ASC LIMIT @limit",
+                MapEntry,
+                parameters.ToArray());
+        }
+
         public void MarkSynced(int id)
         {
             SqlHelper.ExecuteNonQuery(_db,
