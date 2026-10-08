@@ -319,7 +319,10 @@ namespace Kasir.Services
             string today = _clock.Now.ToString("yyyy-MM-dd");
             string period = _clock.Now.ToString("yyyyMM");
 
-            int loyaltyPoints = _paymentCalc.CalculateLoyaltyPoints(totals.NetAmount);
+            // Stickers are for members only (legacy JUAL1 a_total: no member card -> 0).
+            int loyaltyPoints = string.IsNullOrWhiteSpace(memberCode)
+                ? 0
+                : _paymentCalc.CalculateLoyaltyPoints(totals.NetAmount);
 
             var sale = new Sale
             {
