@@ -1510,7 +1510,10 @@ INSERT INTO config(key, value, description) VALUES
     ('cloud_push_wm_shifts', '0', 'Last pushed shifts.id'),
     -- Kasir.CloudSync PullService (WP-04): next id for a dashboard-originated
     -- stock_movements row (reserved range, OB-13).
-    ('pull_movement_id_seq', '5000000000', 'Next id for dashboard-originated stock_movements');
+    ('pull_movement_id_seq', '5000000000', 'Next id for dashboard-originated stock_movements'),
+    -- WP-05: purchasing is entered on the dashboard; the POS purchasing screens are
+    -- locked by default. Emergency unlock (owner password) lasts until the app restarts.
+    ('purchasing_locked', 'true', 'When true, POS purchasing is disabled; use dashboard instead');
 
 -- ============================================================
 -- Section 8: Indexes
@@ -1850,3 +1853,17 @@ CREATE TABLE IF NOT EXISTS applied_requests (
     applied_at      TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
     PRIMARY KEY (request_kind, idempotency_key)
 );
+
+-- ============================================================
+-- WP-05 purchasing lock: every change to a lock-type config key (who, when,
+-- old -> new, and how: emergency / admin / startup). Local only, never synced.
+CREATE TABLE IF NOT EXISTS config_audit (
+    id          INTEGER PRIMARY KEY,
+    key         TEXT    NOT NULL,
+    old_value   TEXT,
+    new_value   TEXT,
+    changed_at  TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
+    username    TEXT,
+    source      TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_config_audit_key ON config_audit(key, changed_at);

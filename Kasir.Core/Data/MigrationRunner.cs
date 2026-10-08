@@ -27,9 +27,10 @@ namespace Kasir.Data
             // Migration_013 also creates 012's table (idempotent) in case a K4 build ships first.
             new Migration_013(),
             new Migration_014(),
-            new Migration_015()
+            new Migration_015(),
+            new Migration_016()
             // Add new migrations here in order:
-            // new Migration_016(),
+            // new Migration_017(),
         };
 
         /// <summary>
