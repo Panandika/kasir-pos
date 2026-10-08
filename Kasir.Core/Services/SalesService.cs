@@ -138,6 +138,10 @@ namespace Kasir.Services
         // Margin assumed when a category row has no margin_pct: 25.00% (x100 scale).
         public const int DefaultCategoryMarginPct = 2500;
 
+        // sale_items.remark on category-key lines: their COGS is an estimate from the
+        // category margin, so reports can separate estimated from actual COGS (review M8).
+        public const string EstimatedCogsRemark = "EST";
+
         // The category code a cashier typed ("al", " LL "), or null when it is not one.
         public static string ResolveCategoryKey(string typed)
         {
@@ -166,6 +170,7 @@ namespace Kasir.Services
                     ?? throw new ArgumentException("Kategori tidak dikenal: " + categoryCode, nameof(categoryCode));
                 var category = _productRepo.GetByCode(code);
                 int marginPct = category != null && category.MarginPct > 0 ? category.MarginPct : DefaultCategoryMarginPct;
+                marginPct = Math.Clamp(marginPct, 0, 10000); // > 100% would give a negative COGS
                 name = category?.Name ?? code;
                 cogs = unitPrice * (10000 - marginPct) / 10000 * qty;
             }
@@ -182,6 +187,7 @@ namespace Kasir.Services
                 DiscValue = 0,
                 PointValue = 0,
                 IsPriceOverridden = true,
+                Remark = categoryCode != null ? EstimatedCogsRemark : null,
             };
             AddAndPersist(item);
             return item;
@@ -436,6 +442,8 @@ namespace Kasir.Services
                         // estimate); they have no stock ledger to average.
                         if (IsNonStockCode(item.ProductCode))
                         {
+                            // Derived from the code: pending_sales does not keep the remark.
+                            if (CategoryKeyCodes.Contains(item.ProductCode)) item.Remark = EstimatedCogsRemark;
                             unitCosts.Add(0);
                             continue;
                         }
