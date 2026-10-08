@@ -208,6 +208,10 @@
       <system:Double x:Key="RowHeightComfortable">40</system:Double>
       <system:Double x:Key="ControlHeight">36</system:Double>
       <system:Double x:Key="ControlHeightLg">44</system:Double>
+      <!-- Button inner padding (H = Space3, V = 6). Labels must never touch or cross
+           the button edge; buttons grow (MinWidth/MinHeight) instead of clipping. -->
+      <Thickness x:Key="ButtonPadding">12,6</Thickness>
+      <Thickness x:Key="ButtonPaddingLg">16,8</Thickness>
 
       <!-- ============================================================ -->
       <!-- RADIUS TOKENS                                                 -->
@@ -269,7 +273,15 @@
     <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
     <Setter Property="FontFamily" Value="{DynamicResource InterFont}"/>
     <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
-    <Setter Property="Height" Value="{DynamicResource ControlHeight}"/>
+    <!-- Owner report #20: labels sat in the top-left corner of tall/wide buttons
+         (Fluent leaves Button content Stretch-aligned, so the label TextBlock filled
+         the box), and fixed Height/Width clipped longer labels. Center the label both
+         ways, give it real padding and let the button grow instead of clipping. -->
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="Padding" Value="{DynamicResource ButtonPadding}"/>
+    <Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/>
   </Style>
 
   <Style Selector="Menu">
@@ -310,7 +322,8 @@
   </Style>
 
   <Style Selector="Button.lg">
-    <Setter Property="Height" Value="{DynamicResource ControlHeightLg}"/>
+    <Setter Property="MinHeight" Value="{DynamicResource ControlHeightLg}"/>
+    <Setter Property="Padding" Value="{DynamicResource ButtonPaddingLg}"/>
     <Setter Property="FontSize" Value="{DynamicResource FontSizeMd}"/>
   </Style>
 
@@ -418,6 +431,9 @@
   <Style Selector="DataGrid /template/ ScrollViewer /template/ ScrollBar Button">
     <Setter Property="Width" Value="0"/>
     <Setter Property="Height" Value="0"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
   </Style>
 
 </Styles>

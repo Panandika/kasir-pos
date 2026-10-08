@@ -23,7 +23,7 @@
                  PlaceholderText="Cari nama vendor..." />
         <Button x:Name="BtnSearch"
                 Content="F2"
-                Width="48" Height="28"
+                MinWidth="48" MinHeight="28" Padding="10,4"
                 Background="{DynamicResource BgSelectedBrush}"
                 Foreground="{DynamicResource FgPrimaryBrush}"
                 FontFamily="{DynamicResource JetBrainsMonoFont}"
