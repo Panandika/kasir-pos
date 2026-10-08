@@ -25,6 +25,9 @@ public partial class PaymentOverlay : UserControl
     // as extra cash tendered (which showed the whole card amount as KEMBALI) (#19).
     private string _autoCashText = "";
     private bool _settingCash;
+    // Set by the first Enter when the change is suspiciously large; a second Enter completes
+    // the sale. A scanner sends a single Enter, so a barcode scanned into Tunai can't finish it.
+    private bool _awaitingChangeConfirm;
 
     public long CashAmount { get; private set; }
     public long CardAmount { get; private set; }
@@ -59,10 +62,10 @@ public partial class PaymentOverlay : UserControl
         CboCardType.ItemsSource = cardItems;
         CboCardType.SelectedIndex = 0;
 
-        TxtCash.TextChanged += (_, _) => Recalculate();
-        TxtCard.TextChanged += (_, _) => { SyncAutoCash(); Recalculate(); };
-        TxtVoucher.TextChanged += (_, _) => { SyncAutoCash(); Recalculate(); };
-        CboCardType.SelectionChanged += (_, _) => Recalculate();
+        TxtCash.TextChanged += (_, _) => { ClearChangeConfirm(); Recalculate(); };
+        TxtCard.TextChanged += (_, _) => { ClearChangeConfirm(); SyncAutoCash(); Recalculate(); };
+        TxtVoucher.TextChanged += (_, _) => { ClearChangeConfirm(); SyncAutoCash(); Recalculate(); };
+        CboCardType.SelectionChanged += (_, _) => { ClearChangeConfirm(); Recalculate(); };
 
         BtnOk.Click += (_, _) => Accept();
         BtnCancel.Click += (_, _) => _tcs.TrySetResult(false);
@@ -76,7 +79,29 @@ public partial class PaymentOverlay : UserControl
     private void OnKey(object? sender, KeyEventArgs e)
     {
         if (KeyboardRouter.IsEnter(e)) { e.Handled = true; Accept(); }
-        else if (KeyboardRouter.IsEscape(e)) { e.Handled = true; _tcs.TrySetResult(false); }
+        else if (KeyboardRouter.IsEscape(e))
+        {
+            e.Handled = true;
+            // Esc on the "Yakin?" prompt goes back to correcting the cash, not out of payment.
+            if (_awaitingChangeConfirm)
+            {
+                ClearChangeConfirm();
+                Recalculate();
+                TxtCash.Focus();
+                TxtCash.SelectAll();
+            }
+            else
+            {
+                _tcs.TrySetResult(false);
+            }
+        }
+    }
+
+    private void ClearChangeConfirm()
+    {
+        if (!_awaitingChangeConfirm) return;
+        _awaitingChangeConfirm = false;
+        BtnOk.Content = "Konfirmasi (Enter)";
     }
 
     private void SyncAutoCash()
@@ -123,6 +148,13 @@ public partial class PaymentOverlay : UserControl
     private void Accept()
     {
         if (Validate(out var result) != null) return;
+        if (PaymentCalculator.NeedsChangeConfirmation(result.Change) && !_awaitingChangeConfirm)
+        {
+            _awaitingChangeConfirm = true;
+            LblChange.Text = $"YAKIN? KEMBALI {Formatting.FormatCurrency(result.Change)} — Enter = Ya, Esc = ubah";
+            BtnOk.Content = "Ya, Yakin (Enter)";
+            return;
+        }
         CashAmount = result.CashAmount;
         CardAmount = result.CardAmount;
         VoucherAmount = result.VoucherAmount;
