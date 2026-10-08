@@ -52,7 +52,9 @@ public partial class PaymentOverlay : UserControl
 
         var cardItems = new List<string> { "(none)" };
         foreach (var c in _cards)
-            cardItems.Add($"{c.Name} ({c.FeePct / 100.0:F1}%)");
+            // Name only: the card fee (MDR) is borne by the store and never charged to the
+            // customer (PBI 23/6/PBI/2021 bans surcharging), so showing "%" here misled (#19).
+            cardItems.Add(c.Name);
         CboCardType.ItemsSource = cardItems;
         CboCardType.SelectedIndex = 0;
 
