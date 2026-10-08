@@ -16,7 +16,8 @@ public class InputDialogOverlay : UserControl
     private readonly TextBox[] _inputs;
     private readonly TaskCompletionSource<(bool ok, string[] values)> _tcs = new();
 
-    public InputDialogOverlay(string title, string[] labels, string[] defaults)
+    // masked[i] = true shows field i as a password box (characters hidden).
+    public InputDialogOverlay(string title, string[] labels, string[] defaults, bool[]? masked = null)
     {
         _inputs = new TextBox[labels.Length];
         Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x0F, 0x14, 0x19));
@@ -106,6 +107,7 @@ public class InputDialogOverlay : UserControl
                 FontSize = ThemeConstants.FontSize,
                 Height = 30,
             };
+            if (masked != null && i < masked.Length && masked[i]) tb.PasswordChar = '*';
 
             // Fields labelled "Rp" are whole-rupiah (digits-only live formatting). Don't label a
             // field that allows sen with "Rp": a typed ",67" would be merged into the rupiah.
