@@ -220,9 +220,22 @@ namespace Kasir.CloudSync.Tests.Worker
                 var hosted = sp.GetServices<IHostedService>().ToList();
                 hosted.Should().ContainSingle().Which.Should().BeOfType<CloudSyncWorker>();
                 sp.GetRequiredService<IMirrorSink>().Should().BeOfType<GenericSink>();
-                sp.GetRequiredService<IPullService>().Should().BeOfType<NoOpPullService>();
+                sp.GetRequiredService<IPullService>().Should().BeOfType<PullService>("the hub applies dashboard requests (WP-04)");
+                sp.GetRequiredService<IPosRequestSource>().Should().BeOfType<PostgresPosRequestSource>();
                 sp.GetRequiredService<OutboxRouter>().AllowedTables.Should().Equal("sales");
                 sp.GetRequiredService<SqliteConnection>().State.Should().Be(System.Data.ConnectionState.Open);
+
+                var pushOnly = new ServiceCollection();
+                pushOnly.AddLogging();
+                pushOnly.Configure<CloudSyncConfig>(c =>
+                {
+                    c.SupabaseConnectionString = "Host=127.0.0.1;Port=1;Database=x;Username=x;Password=x";
+                    c.KasirDbPath = path;
+                    c.PullEnabled = false;
+                });
+                Program.AddWorkerServices(pushOnly);
+                await using var sp2 = pushOnly.BuildServiceProvider();
+                sp2.GetRequiredService<IPullService>().Should().BeOfType<NoOpPullService>("CloudSync:PullEnabled=false");
             }
             finally
             {

@@ -40,6 +40,12 @@ namespace Kasir.CloudSync
         public int PushBatchSize { get; set; } = 500;
         public int PushMaxBatchesPerTick { get; set; } = 20;
 
+        // PullService (WP-04): apply dashboard pos_stock_requests to this kasir.db.
+        // Only the hub runs CloudSync (single-hub-applicant model, OB-12), so this is on
+        // by default; false keeps the worker push-only. PullBatchSize = requests per tick.
+        public bool PullEnabled { get; set; } = true;
+        public int PullBatchSize { get; set; } = 200;
+
         // Parsed OutboxTables; null = no restriction ("*").
         public System.Collections.Generic.IReadOnlyCollection<string> OutboxTableList()
         {

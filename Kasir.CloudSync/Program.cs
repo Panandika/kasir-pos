@@ -18,7 +18,7 @@ namespace Kasir.CloudSync
     // Kasir.CloudSync entry point. The hosted worker pushes POS data to the
     // Supabase mirror every tick (WP-02): OutboxRouter for sync_queue tables in the
     // push scope (sales), then WatermarkPusher for stock_movements and shifts, then
-    // the pull step (WP-04; a no-op until it lands).
+    // PullService applies dashboard pos_stock_requests to kasir.db (WP-04).
     public static class Program
     {
         public static async Task<int> Main(string[] args)
@@ -119,7 +119,18 @@ namespace Kasir.CloudSync
                 sp.GetRequiredService<SqliteConnection>(),
                 sp.GetRequiredService<IMirrorSink>(),
                 sp.GetRequiredService<ILogger<WatermarkPusher>>()));
-            services.AddSingleton<IPullService, NoOpPullService>();
+            services.AddSingleton<IPosRequestSource>(sp =>
+                new PostgresPosRequestSource(sp.GetRequiredService<IOptions<CloudSyncConfig>>().Value.SupabaseConnectionString));
+            services.AddSingleton<IPullService>(sp =>
+            {
+                var cfg = sp.GetRequiredService<IOptions<CloudSyncConfig>>().Value;
+                if (!cfg.PullEnabled) return new NoOpPullService();
+                return new PullService(
+                    sp.GetRequiredService<SqliteConnection>(),
+                    sp.GetRequiredService<IPosRequestSource>(),
+                    sp.GetRequiredService<ILogger<PullService>>(),
+                    cfg.PullBatchSize);
+            });
             services.AddHostedService<CloudSyncWorker>();
         }
 
@@ -133,8 +144,8 @@ namespace Kasir.CloudSync
                 return "CloudSync:KasirDbPath is not set (path to the hub's kasir.db)";
             if (!System.IO.File.Exists(cfg.KasirDbPath))
                 return "CloudSync:KasirDbPath does not exist: " + cfg.KasirDbPath;
-            if (cfg.BatchSize <= 0 || cfg.PushBatchSize <= 0 || cfg.PushMaxBatchesPerTick <= 0)
-                return "CloudSync:BatchSize, PushBatchSize and PushMaxBatchesPerTick must be > 0";
+            if (cfg.BatchSize <= 0 || cfg.PushBatchSize <= 0 || cfg.PushMaxBatchesPerTick <= 0 || cfg.PullBatchSize <= 0)
+                return "CloudSync:BatchSize, PushBatchSize, PushMaxBatchesPerTick and PullBatchSize must be > 0";
             return null;
         }
 
