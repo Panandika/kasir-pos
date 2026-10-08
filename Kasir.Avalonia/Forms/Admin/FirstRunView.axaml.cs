@@ -28,11 +28,14 @@ public partial class FirstRunView : UserControl
         var view = new CloudImportView();
         NavigationService.Navigate(view);
         var result = await view.WaitForChoice();
-        NavigationService.GoBack();
-        if (result != null)
+        if (result == null)
         {
-            _tcs.TrySetResult(result);
+            NavigationService.GoBack();
+            return;
         }
+        // Do not go back to the choices: the shell now replaces this screen with the
+        // busy screen while the downloaded database is put in place.
+        _tcs.TrySetResult(result);
     }
 
     public Task<FirstRunResult?> WaitForChoice() => _tcs.Task;

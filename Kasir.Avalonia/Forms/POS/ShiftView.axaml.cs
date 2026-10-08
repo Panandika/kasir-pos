@@ -67,28 +67,7 @@ public partial class ShiftView : UserControl
             return;
         }
 
-        var (ok, vals) = await InputDialogWindow.Show(NavigationService.Owner,
-            "Buka Shift",
-            new[] { "Kas awal (Rp)" },
-            new[] { "0" });
-
-        if (!ok) return;
-
-        if (!Formatting.TryParseRupiah(vals[0], out long openingCash))
-        {
-            await MsgBox.Show(NavigationService.Owner, "Jumlah tidak valid.");
-            return;
-        }
-
-        string today = DateTime.Now.ToString("yyyy-MM-dd");
-        var shift = new Shift
-        {
-            RegisterId = regId,
-            CashierId = _cashierId,
-            OpenedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-            OpeningCash = openingCash * 100
-        };
-        _shiftRepo.OpenShiftAtomic(shift, today);
+        if (await ShiftOpener.PromptAndOpenAsync(_cashierId) == null) return;
         RefreshStatus();
         await MsgBox.Show(NavigationService.Owner, "Shift dibuka.");
     }
