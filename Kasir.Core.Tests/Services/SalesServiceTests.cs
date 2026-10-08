@@ -578,5 +578,162 @@ namespace Kasir.Tests.Services
             act.Should().Throw<SqliteException>();
             _service.CurrentItems.Select(i => i.ProductCode).Should().Equal("P001");
         }
+
+        // ---- Stock integrity PR-K1: non-stock guard + location default ----
+
+        private void SeedProduct(string code, string name, string status = "A", long price = 1000000)
+        {
+            new ProductRepository(_db).Insert(new Product
+            {
+                ProductCode = code,
+                Name = name,
+                Price = price,
+                Status = status,
+                OpenPrice = "N",
+                VatFlag = "N",
+                LuxuryTaxFlag = "N",
+                IsConsignment = "N"
+            });
+        }
+
+        private long CountMovements(string productCode)
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM stock_movements WHERE product_code = @p";
+            cmd.Parameters.AddWithValue("@p", productCode);
+            return System.Convert.ToInt64(cmd.ExecuteScalar());
+        }
+
+        private long SaleItemCogs(string journalNo, string productCode)
+        {
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT cogs FROM sale_items WHERE journal_no = @j AND product_code = @p";
+            cmd.Parameters.AddWithValue("@j", journalNo);
+            cmd.Parameters.AddWithValue("@p", productCode);
+            return System.Convert.ToInt64(cmd.ExecuteScalar());
+        }
+
+        [Test]
+        public void CompleteSale_MiscItem_NoStockMovement()
+        {
+            SeedProduct(SalesService.MiscProductCode, SalesService.MiscProductName);
+            _service.AddMiscItem(2, 500000);
+
+            var sale = _service.CompleteSale(1000000, 0, 0, "", "", "");
+
+            CountMovements("1").Should().Be(0, "code \"1\" is non-stock: no stock_movements row");
+            SaleItemCogs(sale.JournalNo, "1").Should().Be(0, "misc line COGS is still stored (0 until PR-K4 estimates it)");
+        }
+
+        // The line COGS set when the non-stock item was added (PR-K4 will estimate it) must
+        // survive CompleteSale; it must not be overwritten by a stock-ledger average.
+        [Test]
+        public void CompleteSale_MiscItem_KeepsLineCogs()
+        {
+            SeedProduct(SalesService.MiscProductCode, SalesService.MiscProductName);
+            var item = _service.AddMiscItem(2, 500000);
+            item.Cogs = 750000; // estimated COGS (75% of value)
+
+            var sale = _service.CompleteSale(1000000, 0, 0, "", "", "");
+
+            SaleItemCogs(sale.JournalNo, "1").Should().Be(750000);
+        }
+
+        [TestCase("AL")]
+        [TestCase("AT")]
+        [TestCase("PR")]
+        [TestCase("PL")]
+        [TestCase("MY")]
+        [TestCase("LL")]
+        public void CompleteSale_CategoryKeyItem_NoStockMovement(string code)
+        {
+            SeedProduct(code, "KATEGORI " + code);
+            _service.AddItem(code, 1);
+
+            _service.CompleteSale(1000000, 0, 0, "", "", "");
+
+            CountMovements(code).Should().Be(0, "category key codes are non-stock");
+        }
+
+        [Test]
+        public void CategoryKeyCodes_ContainsExactlyTheSixCategoryKeys()
+        {
+            SalesService.CategoryKeyCodes.Should().BeEquivalentTo(new[] { "AL", "AT", "PR", "PL", "MY", "LL" });
+        }
+
+        [Test]
+        public void CompleteSale_RegularItem_CreatesStockMovement()
+        {
+            _service.AddItem("P001", 2);
+
+            var sale = _service.CompleteSale(10000000, 0, 0, "", "", "");
+
+            var movements = new StockMovementRepository(_db).GetByJournal(sale.JournalNo);
+            movements.Should().ContainSingle();
+            movements[0].ProductCode.Should().Be("P001");
+            movements[0].MovementType.Should().Be("SALE");
+            movements[0].QtyOut.Should().Be(2);
+            movements[0].LocationCode.Should().Be("T");
+        }
+
+        // Critic #4: pending_sales stores only product_code (no non-stock flag), so the
+        // guard must derive non-stock-ness from the code after a crash recovery.
+        [Test]
+        public void CompleteSale_CrashRecovery_MiscItem_NoStockMovement()
+        {
+            SeedProduct(SalesService.MiscProductCode, SalesService.MiscProductName);
+            _service.AddMiscItem(1, 500000);
+            _service.AddItem("P001", 1);
+
+            // Simulate crash + restart: a brand-new service recovers the persisted cart.
+            var recovered = new SalesService(_db, _clock);
+            recovered.SetCashier("ADM", 1);
+            recovered.RecoverPendingSale().Should().Be(2);
+
+            var sale = recovered.CompleteSale(10000000, 0, 0, "", "", "");
+
+            CountMovements("1").Should().Be(0, "recovered code \"1\" line must still skip stock-out");
+            var movements = new StockMovementRepository(_db).GetByJournal(sale.JournalNo);
+            movements.Select(m => m.ProductCode).Should().Equal("P001");
+        }
+
+        [Test]
+        public void VoidSale_MiscItem_NoStockMovement()
+        {
+            SeedProduct(SalesService.MiscProductCode, SalesService.MiscProductName);
+            _service.AddMiscItem(1, 500000);
+            _service.AddItem("P001", 1);
+            var sale = _service.CompleteSale(10000000, 0, 0, "", "", "");
+
+            _service.VoidSale(sale.JournalNo);
+
+            CountMovements("1").Should().Be(0, "voiding a non-stock line must not create a RETURN_IN");
+            CountMovements("P001").Should().Be(2, "SALE + RETURN_IN for the stock item");
+        }
+
+        // EC1 / owner decision "selling never blocks": on-hand 0, on-hand negative and an
+        // inactive (status 'I') product all sell without exception.
+        [Test]
+        public void Sale_ZeroAndNegativeStock_Succeeds()
+        {
+            var inventory = new InventoryService(_db);
+            inventory.RecordStockOut("P002", 5, 0, "SALE", "KLR-OLD", "2026-04-01", 1);
+            inventory.GetStockOnHand("P001").Should().Be(0);
+            inventory.GetStockOnHand("P002").Should().Be(-5);
+            SeedProduct("P009", "BARANG NONAKTIF", status: "I");
+
+            _service.AddItem("P001", 1).Should().NotBeNull("on-hand 0 must still sell");
+            _service.AddItem("P002", 1).Should().NotBeNull("negative on-hand must still sell");
+            _service.AddItem("P009", 1).Should().NotBeNull("inactive product must still sell by code");
+
+            Sale sale = null;
+            System.Action act = () => sale = _service.CompleteSale(100000000, 0, 0, "", "", "");
+
+            act.Should().NotThrow();
+            sale.Should().NotBeNull();
+            inventory.GetStockOnHand("P001").Should().Be(-1);
+            inventory.GetStockOnHand("P002").Should().Be(-6);
+            inventory.GetStockOnHand("P009").Should().Be(-1);
+        }
     }
 }
