@@ -15,14 +15,45 @@ namespace Kasir.Data.Repositories
             _db = db;
         }
 
+        // OB-13: stock_movements ids >= this are dashboard-originated (Kasir.CloudSync
+        // PullService, WP-04). POS-written rows stay below it.
+        public const long DashboardIdFloor = 5_000_000_000L;
+
+        // The id is assigned explicitly as (highest id below DashboardIdFloor) + 1.
+        // stock_movements.id is a plain INTEGER PRIMARY KEY, so SQLite's own choice
+        // would be MAX(rowid) + 1 over the whole table: after the first pulled row
+        // (id 5,000,000,000) every POS sale would land in the reserved range, collide
+        // with the next pulled id, and be skipped by the cloud push (id < floor).
+        // The ORDER BY id DESC LIMIT 1 form is a single rowid b-tree seek.
         public int Insert(StockMovement m)
         {
+            return (int)InsertCore(m, null, null);
+        }
+
+        // Insert at a caller-chosen id (the dashboard range) with created_at and
+        // changed_at set to `movedAt` ('yyyy-MM-dd HH:mm:ss' local) instead of now, so
+        // GetMovementsSince places the movement at the time it happened. Returns the id.
+        public long InsertWithId(StockMovement m, long id, string movedAt)
+        {
+            if (id <= 0) throw new ArgumentOutOfRangeException(nameof(id));
+            return InsertCore(m, id, movedAt);
+        }
+
+        private long InsertCore(StockMovement m, long? explicitId, string movedAt)
+        {
             SqlHelper.ExecuteNonQuery(_db,
-                @"INSERT INTO stock_movements (product_code, vendor_code, dept_code, location_code,
+                @"INSERT INTO stock_movements (id, product_code, vendor_code, dept_code, location_code,
                   account_code, sub_code, journal_no, movement_type, doc_date, period_code,
-                  qty_in, qty_out, val_in, val_out, cost_price, is_posted, changed_by, changed_at)
-                  VALUES (@product, @vendor, @dept, @loc, @acc, @sub, @jnl, @type, @date, @period,
-                  @qtyIn, @qtyOut, @valIn, @valOut, @cost, 0, @changedBy, datetime('now','localtime'))",
+                  qty_in, qty_out, val_in, val_out, cost_price, is_posted, changed_by, changed_at, created_at)
+                  VALUES (COALESCE(@id,
+                            COALESCE((SELECT id FROM stock_movements WHERE id < @floor ORDER BY id DESC LIMIT 1), 0) + 1),
+                  @product, @vendor, @dept, @loc, @acc, @sub, @jnl, @type, @date, @period,
+                  @qtyIn, @qtyOut, @valIn, @valOut, @cost, 0, @changedBy,
+                  COALESCE(@movedAt, datetime('now','localtime')),
+                  COALESCE(@movedAt, datetime('now','localtime')))",
+                SqlHelper.Param("@id", explicitId.HasValue ? (object)explicitId.Value : null),
+                SqlHelper.Param("@floor", DashboardIdFloor),
+                SqlHelper.Param("@movedAt", movedAt),
                 SqlHelper.Param("@product", m.ProductCode),
                 SqlHelper.Param("@vendor", m.VendorCode ?? ""),
                 SqlHelper.Param("@dept", m.DeptCode ?? ""),
@@ -40,7 +71,7 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@cost", m.CostPrice),
                 SqlHelper.Param("@changedBy", m.ChangedBy));
 
-            return (int)SqlHelper.LastInsertRowId(_db);
+            return SqlHelper.LastInsertRowId(_db);
         }
 
         public int GetStockOnHand(string productCode)
