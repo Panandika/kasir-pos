@@ -2,9 +2,8 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
+using Kasir.Security;
 
 namespace Kasir.Help.Auth
 {
@@ -53,6 +52,9 @@ namespace Kasir.Help.Auth
         private static bool UseDpapi =>
             string.IsNullOrEmpty(PathOverride) && RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
+        private static ISecretProtector Protector =>
+            UseDpapi ? SecretProtectors.PlatformDefault : PlainSecretProtector.Instance;
+
         public static bool TrySave(MachineCredentials credentials)
         {
             try
@@ -64,8 +66,6 @@ namespace Kasir.Help.Auth
                     return false;
                 }
 
-                string path = ResolvePath();
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 byte[] plain = JsonSerializer.SerializeToUtf8Bytes(new Dto
                 {
                     Email = credentials.Email,
@@ -74,21 +74,8 @@ namespace Kasir.Help.Auth
                     RegisterId = credentials.RegisterId ?? "",
                 });
 
-                if (UseDpapi)
-                {
-#pragma warning disable CA1416 // guarded by UseDpapi (Windows only)
-                    byte[] enc = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
-#pragma warning restore CA1416
-                    File.WriteAllBytes(path, enc);
-                }
-                else
-                {
-                    File.WriteAllBytes(path, plain);
-                    if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-                    }
-                }
+                // DPAPI CurrentUser on Windows; plain + mode 0600 elsewhere / under test override.
+                ProtectedFile.Write(ResolvePath(), plain, Protector);
                 return true;
             }
             catch (Exception ex)
@@ -104,13 +91,7 @@ namespace Kasir.Help.Auth
             {
                 string path = ResolvePath();
                 if (!File.Exists(path)) return null;
-                byte[] data = File.ReadAllBytes(path);
-                if (UseDpapi)
-                {
-#pragma warning disable CA1416
-                    data = ProtectedData.Unprotect(data, null, DataProtectionScope.CurrentUser);
-#pragma warning restore CA1416
-                }
+                byte[] data = ProtectedFile.Read(path, Protector);
                 var dto = JsonSerializer.Deserialize<Dto>(data);
                 if (dto == null
                     || string.IsNullOrWhiteSpace(dto.Email)

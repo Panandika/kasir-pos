@@ -9,6 +9,7 @@ using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Infrastructure;
 using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Utils;
+using Kasir.Security;
 using Npgsql;
 
 namespace Kasir.Avalonia.Forms.Admin;
@@ -22,6 +23,7 @@ public partial class CloudSyncSetupView : UserControl
         InitializeComponent();
 
         LoadCredsIntoForm();
+        LblStorage.Text = StorageNote(CloudSyncCredsService.IsEncrypted, CloudSyncCredsService.ConfigPath);
         RefreshStatusPanel();
 
         _status.PropertyChanged += OnStatusChanged;
@@ -29,8 +31,9 @@ public partial class CloudSyncSetupView : UserControl
         BtnTest.Click += async (_, _) => await OnTest();
         BtnSave.Click += async (_, _) => await OnSave();
         BtnBack.Click += (_, _) => NavigationService.GoBack();
+        BtnReveal.Click += (_, _) => TogglePasswordReveal();
 
-        FooterStatus.RegisterDefault(StatusLabel, "Cloud Sync — F5=Uji Koneksi  F10=Simpan  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "Cloud Sync — F5=Uji Koneksi  F6=Lihat Password  F10=Simpan  Esc=Keluar");
     }
 
     protected override void OnDetachedFromVisualTree(global::Avalonia.VisualTreeAttachmentEventArgs e)
@@ -46,7 +49,21 @@ public partial class CloudSyncSetupView : UserControl
         if (KeyboardRouter.IsEscape(e)) { e.Handled = true; NavigationService.GoBack(); return; }
         if (e.Key == Key.F5) { e.Handled = true; _ = OnTest(); return; }
         if (e.Key == Key.F10) { e.Handled = true; _ = OnSave(); return; }
+        if (e.Key == Key.F6) { e.Handled = true; TogglePasswordReveal(); return; }
     }
+
+    // The saved password is decrypted into the (masked) box on load; F6 shows it
+    // so the owner can read it back on the store PC without any tooling.
+    private void TogglePasswordReveal()
+    {
+        bool reveal = TxtPassword.PasswordChar != '\0';
+        TxtPassword.PasswordChar = reveal ? '\0' : '•';
+        BtnReveal.Content = reveal ? "F6 Sembunyi" : "F6 Lihat";
+    }
+
+    internal static string StorageNote(bool encrypted, string path) => encrypted
+        ? $"Tersimpan terenkripsi (Windows DPAPI, hanya bisa dibuka user Windows ini di PC ini): {path}"
+        : $"Tersimpan TANPA enkripsi (bukan Windows, file hanya bisa dibaca pemilik): {path}";
 
     private void LoadCredsIntoForm()
     {

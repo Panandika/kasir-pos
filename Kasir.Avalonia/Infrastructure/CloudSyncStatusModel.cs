@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media;
 using Kasir.Data;
+using Kasir.Security;
 using Microsoft.Data.Sqlite;
 using Npgsql;
 

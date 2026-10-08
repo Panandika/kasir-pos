@@ -3,11 +3,11 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Kasir.Security;
 
 namespace Kasir.Help.Auth
 {
@@ -248,10 +248,7 @@ namespace Kasir.Help.Auth
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return "";
                 string path = AuthDatPath();
                 if (!File.Exists(path)) return "";
-                byte[] enc = File.ReadAllBytes(path);
-#pragma warning disable CA1416 // platform check above
-                byte[] plain = ProtectedData.Unprotect(enc, null, DataProtectionScope.CurrentUser);
-#pragma warning restore CA1416
+                byte[] plain = ProtectedFile.Read(path, SecretProtectors.PlatformDefault);
                 return Encoding.UTF8.GetString(plain);
             }
             catch (Exception ex)
@@ -279,13 +276,8 @@ namespace Kasir.Help.Auth
             try
             {
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
-                string path = AuthDatPath();
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                byte[] plain = Encoding.UTF8.GetBytes(refreshToken);
-#pragma warning disable CA1416
-                byte[] enc = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
-#pragma warning restore CA1416
-                File.WriteAllBytes(path, enc);
+                // DPAPI CurrentUser (Windows only, checked above), atomic write.
+                ProtectedFile.Write(AuthDatPath(), Encoding.UTF8.GetBytes(refreshToken), SecretProtectors.PlatformDefault);
             }
             catch (Exception ex)
             {
