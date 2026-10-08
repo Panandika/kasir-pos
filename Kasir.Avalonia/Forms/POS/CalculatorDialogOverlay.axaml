@@ -55,7 +55,7 @@
       <DockPanel>
         <Button x:Name="BtnTutup" DockPanel.Dock="Right"
                 Content="Tutup (Esc)" Focusable="False"
-                Height="30" Padding="10,0" VerticalContentAlignment="Center"
+                MinHeight="30" Padding="10,0" VerticalContentAlignment="Center"
                 Background="{DynamicResource AccentBgBrush}" Foreground="{DynamicResource DangerBrush}"
                 FontFamily="{DynamicResource JetBrainsMonoFont}"
                 FontSize="13" />
