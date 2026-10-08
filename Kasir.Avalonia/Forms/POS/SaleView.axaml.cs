@@ -418,7 +418,8 @@ public partial class SaleView : UserControl, INavigationAware
             FooterStatus.Show(StatusLabel, "Tidak ada item.");
             return;
         }
-        if (!long.TryParse(digits, out long rupiah) || rupiah <= 0)
+        // Cap so "rupiah * 100" cannot wrap into a bogus positive cash amount (#19).
+        if (!long.TryParse(digits, out long rupiah) || rupiah <= 0 || rupiah > long.MaxValue / 100)
         {
             FooterStatus.Show(StatusLabel, "Jumlah tunai tidak valid.");
             return;
@@ -522,6 +523,8 @@ public partial class SaleView : UserControl, INavigationAware
         r.Add(EscPosCommands.BoldOff);
         if (sale.CashAmount > 0) r.Add(EscPosCommands.Text($"TUNAI: {Formatting.FormatCurrency(sale.CashAmount),26}\n"));
         if (sale.NonCash > 0) r.Add(EscPosCommands.Text($"KARTU: {Formatting.FormatCurrency(sale.NonCash),26}\n"));
+        // Without this line a voucher-paid receipt did not add up to TOTAL (#19).
+        if (sale.VoucherAmount > 0) r.Add(EscPosCommands.Text($"VOUCHER: {Formatting.FormatCurrency(sale.VoucherAmount),24}\n"));
         if (sale.ChangeAmount > 0) r.Add(EscPosCommands.Text($"KEMBALI: {Formatting.FormatCurrency(sale.ChangeAmount),24}\n"));
         r.Add(EscPosCommands.Text("================================\n"));
         r.Add(EscPosCommands.CenterAlign);
