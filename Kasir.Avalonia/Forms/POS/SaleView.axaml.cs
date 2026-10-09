@@ -47,6 +47,8 @@ public partial class SaleView : UserControl, INavigationAware
     private enum InputMode { Normal, AwaitingMiscPrice }
     private InputMode _inputMode = InputMode.Normal;
     private int _pendingMiscQty = 1;
+    // Category quick key (AL/AT/PR/PL/MY/LL) the pending price belongs to (PR-K4).
+    private string? _pendingCategory;
     private bool _printerHealthChecked;
     private string _printerStatusText = "";
     private bool _printerStatusOk;
@@ -96,7 +98,7 @@ public partial class SaleView : UserControl, INavigationAware
         UpdateTotals();
         UpdateFooter();
 
-        FooterStatus.RegisterDefault(StatusLabel, "F1=Kode  F2=Nama  F3=Qty  F5=Bayar  F8=Void  F9=Kalkulator  F10=Batal  F11=Laci  +=Pas  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "F1=Kode  F2=Nama  F3=Qty  F4=Kategori  F5=Bayar  F8=Void  F9=Kalkulator  F10=Batal  F11=Laci  +=Pas  Esc=Keluar");
 
         _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _clockTimer.Tick += (_, _) => UpdateFooter();
@@ -165,7 +167,7 @@ public partial class SaleView : UserControl, INavigationAware
             e.Handled = true;
             TxtBarcode.Text = "";
             ExitPricePromptMode();
-            FooterStatus.Show(StatusLabel, "Input Barang Tanpa Kode dibatalkan.");
+            FooterStatus.Show(StatusLabel, "Input barang tanpa kode dibatalkan.");
             return;
         }
 
@@ -216,11 +218,12 @@ public partial class SaleView : UserControl, INavigationAware
             code = raw;
         }
 
-        if (code == SalesService.MiscProductCode)
+        // Barang tanpa kode: code "1" goes straight to the price as it always did; a typed
+        // category code (AL, AT, PR, PL, MY, LL) does too, under that category (PR-K4).
+        string? category = SalesService.ResolveCategoryKey(code);
+        if (code == SalesService.MiscProductCode || category != null)
         {
-            // Barang Tanpa Kode needs an open shift just like a coded item.
-            if (_currentShift == null) OpenShiftThenEnterPrice(qty);
-            else EnterPricePromptMode(qty);
+            BeginMiscEntry(qty, category);
             return;
         }
 
@@ -279,12 +282,25 @@ public partial class SaleView : UserControl, INavigationAware
             ex => ShowSaleErrorAsync("Gagal membuka shift", ex));
     }
 
-    private async void OpenShiftThenEnterPrice(int qty)
+    // Barang tanpa kode needs an open shift just like a coded item, then the price.
+    // category null = plain code "1"; askCategory (F4) shows the category picker first.
+    private async void BeginMiscEntry(int qty, string? category, bool askCategory = false)
     {
-        await UiGuard.RunAsync("Sale.OpenShift", async () =>
+        await UiGuard.RunAsync("Sale.MiscEntry", async () =>
         {
-            if (await PromptOpenShiftAsync()) EnterPricePromptMode(qty);
-        }, ex => ShowSaleErrorAsync("Gagal membuka shift", ex));
+            if (_currentShift == null && !await PromptOpenShiftAsync()) return;
+            if (askCategory)
+            {
+                category = await CategoryPickerOverlay.Show(NavigationService.Owner);
+                TxtBarcode.Focus();
+                if (category == null)
+                {
+                    FooterStatus.Show(StatusLabel, "Input barang tanpa kode dibatalkan.");
+                    return;
+                }
+            }
+            EnterPricePromptMode(qty, category);
+        }, ex => ShowSaleErrorAsync("Gagal input barang tanpa kode", ex));
     }
 
     // Opens the shift right here (opening-cash dialog), staying on Penjualan. True when a
@@ -316,21 +332,41 @@ public partial class SaleView : UserControl, INavigationAware
         }
     }
 
-    private void EnterPricePromptMode(int qty)
+    private void EnterPricePromptMode(int qty, string? category)
     {
+        // The price starts from an empty box: nothing typed before (or leaked from the
+        // picker key) may prefix it.
+        TxtBarcode.Text = "";
         _pendingMiscQty = qty;
+        _pendingCategory = category;
         _inputMode = InputMode.AwaitingMiscPrice;
-        FooterStatus.Show(StatusLabel, $"Barang Tanpa Kode (qty={qty}) — ketik harga (Rp), Enter utk simpan, Esc utk batal.");
+        FooterStatus.Show(StatusLabel, $"{CategoryName(category)} (qty={qty}) — ketik harga (Rp), Enter utk simpan, Esc utk batal.");
     }
+
+    private static string CategoryName(string? category) =>
+        category == null
+            ? SalesService.MiscProductName
+            : SalesService.CategoryKeys.FirstOrDefault(k => k.Code == category).Name ?? category;
 
     private void ExitPricePromptMode()
     {
         _inputMode = InputMode.Normal;
         _pendingMiscQty = 1;
+        _pendingCategory = null;
     }
+
+    // Rp 999.999.999 is far above any unlabelled item; more digits means a barcode was
+    // scanned into the price prompt (e.g. a scan while the category picker was open).
+    // Category path only: plain code "1" keeps its pre-K4 behaviour (owner 2026-10-09).
+    private const int MaxMiscPriceDigits = 9;
 
     private void HandleMiscPriceInput(string text)
     {
+        if (_pendingCategory != null && text.Length > MaxMiscPriceDigits)
+        {
+            FooterStatus.Show(StatusLabel, "Harga terlalu besar (barcode?). Ketik harga atau Esc utk batal.");
+            return;
+        }
         if (!long.TryParse(text, out long rupiah) || rupiah <= 0)
         {
             FooterStatus.Show(StatusLabel, "Harga tidak valid. Ketik angka > 0 atau Esc utk batal.");
@@ -339,10 +375,10 @@ public partial class SaleView : UserControl, INavigationAware
         try
         {
             long unitPriceCents = rupiah * 100;
-            var item = _salesService.AddMiscItem(_pendingMiscQty, unitPriceCents);
+            var item = _salesService.AddMiscItem(_pendingMiscQty, unitPriceCents, _pendingCategory);
             RefreshGrid();
             UpdateTotals();
-            FooterStatus.Show(StatusLabel, $"Ditambahkan: {SalesService.MiscProductName} — {_pendingMiscQty} x {Formatting.FormatCurrency(unitPriceCents)}");
+            FooterStatus.Show(StatusLabel, $"Ditambahkan: {item.ProductName} — {_pendingMiscQty} x {Formatting.FormatCurrency(unitPriceCents)}");
         }
         catch (Exception ex)
         {
@@ -657,7 +693,12 @@ public partial class SaleView : UserControl, INavigationAware
         if (DgvSearch.SelectedItem is SearchRow row)
         {
             HideSearch();
-            AddItemByCode(row.Tag.ProductCode);
+            // Code "1" and the category keys are sold by typed price, never as a Rp 0
+            // line from the product row (review M3).
+            if (SalesService.IsNonStockCode(row.Tag.ProductCode))
+                BeginMiscEntry(1, SalesService.ResolveCategoryKey(row.Tag.ProductCode));
+            else
+                AddItemByCode(row.Tag.ProductCode);
         }
     }
 
@@ -679,6 +720,7 @@ public partial class SaleView : UserControl, INavigationAware
         if (KeyboardRouter.IsF1(e)) { e.Handled = true; ShowSearch(true); }
         else if (KeyboardRouter.IsF2(e)) { e.Handled = true; ShowSearch(false); }
         else if (KeyboardRouter.IsF3(e)) { e.Handled = true; await ChangeQty(); }
+        else if (KeyboardRouter.IsF4(e)) { e.Handled = true; BeginMiscEntry(1, null, askCategory: true); }
         else if (KeyboardRouter.IsF5(e))
         {
             e.Handled = true;

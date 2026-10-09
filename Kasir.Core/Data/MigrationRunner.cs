@@ -21,15 +21,22 @@ namespace Kasir.Data
             new Migration_008(),
             new Migration_009(),
             new Migration_010(),
-            new Migration_011()
+            new Migration_011(),
+            new Migration_012(),
+            // Migration_012 is PR-K3 (inactive_sale_log): merge AND release K3 before K4.
+            // Migration_013 also creates 012's table (idempotent) in case a K4 build ships first.
+            new Migration_013()
             // Add new migrations here in order:
-            // new Migration_012(),
+            // new Migration_014(),
         };
 
         /// <summary>
         /// Highest migration version known to this build. Single source of truth
         /// for schema version — DatabaseValidator.ExpectedSchemaVersion derives from this.
         /// </summary>
+        /// <summary>Registered migration versions, in list order (a test asserts they are 2..N contiguous).</summary>
+        public static IReadOnlyList<int> Versions => Migrations.Select(m => m.Version).ToList();
+
         public static int LatestVersion =>
             Migrations.Count == 0 ? 1 : Migrations.Max(m => m.Version);
 
@@ -76,16 +83,25 @@ namespace Kasir.Data
             }
         }
 
-        private static void BackupDatabase(SqliteConnection db)
+        /// <summary>
+        /// Writes &lt;db&gt;.migration.bak with SQLite's online backup API, which includes
+        /// commits still sitting in the -wal file (a File.Copy of the main file misses them).
+        /// </summary>
+        public static void BackupDatabase(SqliteConnection db)
         {
             try
             {
                 string dbPath = new SqliteConnectionStringBuilder(db.ConnectionString).DataSource;
-                if (string.IsNullOrEmpty(dbPath) || !File.Exists(dbPath))
+                if (string.IsNullOrEmpty(dbPath) || dbPath == ":memory:" || !File.Exists(dbPath))
                     return;
 
                 string backupPath = dbPath + ".migration.bak";
-                File.Copy(dbPath, backupPath, true);
+                if (File.Exists(backupPath)) File.Delete(backupPath);
+                using (var dest = new SqliteConnection("Data Source=" + backupPath + ";Pooling=False"))
+                {
+                    dest.Open();
+                    db.BackupDatabase(dest);
+                }
             }
             catch
             {
