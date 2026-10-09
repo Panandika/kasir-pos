@@ -15,6 +15,7 @@ namespace Kasir.Services
         private readonly ConfigRepository _configRepo;
         private readonly InventoryService _inventoryService;
         private readonly ProductRepository _productRepo;
+        private readonly StockMovementRepository _movementRepo;
         private readonly IClock _clock;
 
         public StockOpnameService(SqliteConnection db, IClock clock)
@@ -25,9 +26,12 @@ namespace Kasir.Services
             _configRepo = new ConfigRepository(db);
             _inventoryService = new InventoryService(db);
             _productRepo = new ProductRepository(db);
+            _movementRepo = new StockMovementRepository(db);
             _clock = clock;
         }
 
+        // Lines start uncounted: the system qty is taken per line when it is counted
+        // (RecordCount), not for the whole sheet up front (PR-K6).
         public List<OpnameLine> GetOpnameSheet(int productLimit)
         {
             var products = _productRepo.GetAll(productLimit, 0);
@@ -41,12 +45,20 @@ namespace Kasir.Services
                 {
                     ProductCode = p.ProductCode,
                     ProductName = p.Name,
-                    SystemQty = _inventoryService.GetStockOnHand(p.ProductCode),
+                    SystemQty = 0,
                     PhysicalQty = 0
                 });
             }
 
             return lines;
+        }
+
+        // The shelf was counted now: stamp the time and take the system qty at this moment.
+        public void RecordCount(OpnameLine line, int physicalQty)
+        {
+            line.PhysicalQty = physicalQty;
+            line.CountTime = _clock.Now;
+            line.SystemQty = _inventoryService.GetStockOnHand(line.ProductCode);
         }
 
         public string CreateStockOut(string docType, string locationCode,
@@ -117,7 +129,15 @@ namespace Kasir.Services
                 {
                     foreach (var line in lines)
                     {
-                        int variance = line.PhysicalQty - line.SystemQty;
+                        // Belum dihitung: an uncounted product keeps its stock as it is.
+                        if (!line.IsCounted) continue;
+
+                        // Sales/receipts since the count happened after the shelf was seen:
+                        // compare the count with the on-hand AT count time, not now.
+                        var since = _movementRepo.GetMovementsSince(line.ProductCode, line.CountTime.Value);
+                        line.SystemQty = _inventoryService.GetStockOnHand(line.ProductCode)
+                            - (since.QtyIn - since.QtyOut);
+                        int variance = line.Variance;
                         if (variance == 0) continue;
 
                         long avgCost = _inventoryService.CalculateAverageCost(line.ProductCode);
@@ -176,6 +196,9 @@ namespace Kasir.Services
         public string ProductName { get; set; }
         public int SystemQty { get; set; }
         public int PhysicalQty { get; set; }
+        // When the shelf was counted (PR-K6); null = belum dihitung, never adjusted.
+        public DateTime? CountTime { get; set; }
+        public bool IsCounted { get { return CountTime.HasValue; } }
         public int Variance { get { return PhysicalQty - SystemQty; } }
     }
 }

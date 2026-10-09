@@ -69,7 +69,7 @@ declare -a TABLES=(
     discounts discount_partners accounts locations credit_cards
     sales sale_items purchases cash_transactions memorial_journals
     orders stock_transfers stock_adjustments stock_movements
-    purchase_items shifts
+    purchase_items shifts inactive_sale_log
 )
 declare -i DRIFT=0
 
@@ -105,6 +105,7 @@ EXCLUDED_PER_TABLE_discount_partners=""
 # Legacy per-line fields the POS never writes (SkipList.ExcludedColumns).
 EXCLUDED_PER_TABLE_purchase_items="account_code sub_code group_code customer_code qty1 qty2 roll"
 EXCLUDED_PER_TABLE_shifts=""
+EXCLUDED_PER_TABLE_inactive_sale_log="id"
 
 # Cloud-only columns allowed in the Postgres DDL (not in SQLite).
 # purchase_items.legacy_source is set by the legacy DBF sync.

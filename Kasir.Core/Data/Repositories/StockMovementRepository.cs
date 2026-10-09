@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.Data.Sqlite;
 using Kasir.Models;
 
@@ -55,6 +57,27 @@ namespace Kasir.Data.Repositories
                   WHERE product_code = @code AND location_code = @loc",
                 SqlHelper.Param("@code", productCode),
                 SqlHelper.Param("@loc", locationCode));
+        }
+
+        // Stock moved after a point in time (PR-K6 opname): compares changed_at, the local
+        // 'yyyy-MM-dd HH:mm:ss' the row was written. A movement in the same second as
+        // `since` counts as before it.
+        public (int QtyOut, int QtyIn) GetMovementsSince(string productCode, DateTime since)
+        {
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText =
+                    @"SELECT COALESCE(SUM(qty_out), 0), COALESCE(SUM(qty_in), 0)
+                      FROM stock_movements
+                      WHERE product_code = @code AND changed_at > @since";
+                cmd.Parameters.Add(SqlHelper.Param("@code", productCode));
+                cmd.Parameters.Add(SqlHelper.Param("@since", since.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)));
+                using (var reader = cmd.ExecuteReader())
+                {
+                    reader.Read();
+                    return (reader.GetInt32(0), reader.GetInt32(1));
+                }
+            }
         }
 
         public List<StockMovement> GetPurchaseMovements(string productCode)
