@@ -26,6 +26,9 @@ namespace Kasir.Tests.Services
             var configRepo = new ConfigRepository(_db);
             configRepo.Set("register_id", "01");
             configRepo.Set("costing_method", "AVG");
+            // Post-cutover mode: the POS cost engine maintains products.cost_price.
+            // Flag-OFF (pre-cutover default) behaviour is covered by the *_FlagOff_* tests.
+            configRepo.Set(InventoryService.CostEngineOwnsCostPriceKey, "true");
         }
 
         [TearDown]
@@ -87,9 +90,26 @@ namespace Kasir.Tests.Services
             m[0].LocationCode.Should().Be("T");
         }
 
+        // ---- Stock integrity PR-K2: perpetual moving-average cost on products.cost_price ----
+
+        private void SeedProduct(string code, long costPrice = 0)
+        {
+            new ProductRepository(_db).Insert(new Kasir.Models.Product
+            {
+                ProductCode = code, Name = "TEST " + code, Price = 500000, CostPrice = costPrice,
+                Status = "A", OpenPrice = "N", VatFlag = "N", LuxuryTaxFlag = "N", IsConsignment = "N"
+            });
+        }
+
+        private long CostPriceOf(string code)
+        {
+            return new ProductRepository(_db).GetByCode(code).CostPrice;
+        }
+
         [Test]
         public void CalculateAverageCost_SingleLot()
         {
+            SeedProduct("P001");
             _service.RecordStockIn("P001", 10, 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
 
             _service.CalculateAverageCost("P001").Should().Be(100000);
@@ -98,19 +118,253 @@ namespace Kasir.Tests.Services
         [Test]
         public void CalculateAverageCost_MultipleLots()
         {
-            // 10 units at 100,000 + 5 units at 120,000 = 1,600,000 / 15 = 106,666
+            SeedProduct("P001");
             _service.RecordStockIn("P001", 10, 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
             _service.RecordStockIn("P001", 5, 120000, "PURCHASE", "BPB-01-2604-0002", "2026-04-05", 1);
 
-            long avg = _service.CalculateAverageCost("P001");
-            // (10*100000 + 5*120000) / 15 = 1600000 / 15 = 106666
-            avg.Should().Be(106666);
+            // (10*100000 + 5*120000) / 15 = 106666.67 -> rounded to 106667
+            _service.CalculateAverageCost("P001").Should().Be(106667);
         }
 
         [Test]
         public void CalculateAverageCost_NoStock_ReturnsZero()
         {
-            _service.CalculateAverageCost("P001").Should().Be(0);
+            _service.CalculateAverageCost("P001").Should().Be(0, "unknown product, no purchases");
+        }
+
+        [Test]
+        public void CalculateAverageCost_ReturnsProductCostPrice_WhenPositive()
+        {
+            SeedProduct("P001", costPrice: 4500);
+
+            _service.CalculateAverageCost("P001").Should().Be(4500);
+        }
+
+        // The legacy SUM(val_in)/SUM(qty_in) path is gone: movements no longer drive the
+        // average, products.cost_price does (it also mixed x100 legacy qty with POS units).
+        [Test]
+        public void CalculateAverageCost_IgnoresPurchaseMovementHistory()
+        {
+            SeedProduct("P001", costPrice: 4500);
+            _movementRepo.Insert(new Kasir.Models.StockMovement
+            {
+                ProductCode = "P001", JournalNo = "LEGACY-1", MovementType = "PURCHASE",
+                DocDate = "2020-01-01", PeriodCode = "202001",
+                QtyIn = 1000, ValIn = 10000, CostPrice = 1000
+            });
+
+            _service.CalculateAverageCost("P001").Should().Be(4500);
+        }
+
+        [Test]
+        public void CalculateAverageCost_NoPurchases_FallbackChain()
+        {
+            SeedProduct("P001", costPrice: 0);
+
+            _service.CalculateAverageCost("P001").Should().Be(0, "cost_price 0 and no purchase history -> 0");
+        }
+
+        [Test]
+        public void RecordStockIn_UpdatesCostPrice_PerpetualAvg()
+        {
+            SeedProduct("P001");
+
+            _service.RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-1", "2026-04-01", 1);
+            CostPriceOf("P001").Should().Be(1000, "first purchase from on-hand 0 sets the cost");
+
+            _service.RecordStockOut("P001", 5, 1000, "SALE", "KLR-1", "2026-04-02", 1);
+            CostPriceOf("P001").Should().Be(1000, "a sale does not change the average");
+
+            _service.RecordStockIn("P001", 5, 2000, "PURCHASE", "BPB-2", "2026-04-03", 1);
+            // perpetual: (5 on hand * 1000 + 5 * 2000) / 10 = 1500
+            // (the deleted SUM/SUM formula would have given 20000/15 = 1333)
+            CostPriceOf("P001").Should().Be(1500);
+        }
+
+        [Test]
+        public void RecordStockIn_NegativeOnHand_ResetsAvg()
+        {
+            SeedProduct("P001", costPrice: 1000);
+            _service.RecordStockOut("P001", 3, 1000, "SALE", "KLR-1", "2026-04-01", 1);
+            _service.GetStockOnHand("P001").Should().Be(-3);
+
+            _service.RecordStockIn("P001", 10, 1500, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1500, "on-hand <= 0 before the purchase resets the average");
+        }
+
+        [Test]
+        public void RecordStockIn_ZeroOnHand_ResetsAvg()
+        {
+            SeedProduct("P001", costPrice: 1000);
+            _service.RecordStockIn("P001", 4, 1000, "PURCHASE", "BPB-1", "2026-04-01", 1);
+            _service.RecordStockOut("P001", 4, 1000, "SALE", "KLR-1", "2026-04-01", 1);
+
+            _service.RecordStockIn("P001", 2, 3000, "PURCHASE", "BPB-2", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(3000);
+        }
+
+        // On-hand > 0 but no cost basis yet (cost_price 0, e.g. legacy stock without AVGCOST):
+        // averaging against 0 would dilute the cost, so the purchase cost is taken as is.
+        [Test]
+        public void RecordStockIn_NoCostBasis_UsesPurchaseCost()
+        {
+            SeedProduct("P001", costPrice: 0);
+            _movementRepo.Insert(new Kasir.Models.StockMovement
+            {
+                ProductCode = "P001", JournalNo = "OPN-0", MovementType = "OPNAME",
+                DocDate = "2026-04-01", PeriodCode = "202604", QtyIn = 10
+            });
+
+            _service.RecordStockIn("P001", 10, 2000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(2000);
+        }
+
+        // A zero-cost stock-in (e.g. voiding a sale whose COGS was 0) must not wipe the cost.
+        [Test]
+        public void RecordStockIn_ZeroUnitCost_DoesNotChangeCostPrice()
+        {
+            SeedProduct("P001", costPrice: 1000);
+
+            _service.RecordStockIn("P001", 2, 0, "RETURN_IN", "KLR-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1000);
+        }
+
+        [Test]
+        public void RecordStockOut_DoesNotChangeCostPrice()
+        {
+            SeedProduct("P001", costPrice: 1000);
+
+            _service.RecordStockOut("P001", 2, 5000, "RETURN_OUT", "RMS-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1000);
+        }
+
+        // Review MEDIUM-1: with on-hand <= 0, only a PURCHASE resets the average. A RETURN_IN
+        // (sale void) carries the stale sale-time cost and must not overwrite a newer cost.
+        [Test]
+        public void RecordStockIn_ReturnIn_NegativeOnHand_KeepsExistingCost()
+        {
+            SeedProduct("P001", costPrice: 2000);
+            _service.RecordStockOut("P001", 5, 1000, "SALE", "KLR-1", "2026-04-01", 1);
+
+            _service.RecordStockIn("P001", 2, 1000, "RETURN_IN", "KLR-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(2000);
+        }
+
+        [Test]
+        public void RecordStockIn_Opname_ZeroOnHand_KeepsExistingCost()
+        {
+            SeedProduct("P001", costPrice: 2000);
+
+            _service.RecordStockIn("P001", 3, 1500, "OPNAME", "OPN-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(2000);
+        }
+
+        [Test]
+        public void RecordStockIn_ReturnIn_NoCostBasis_UsesUnitCost()
+        {
+            SeedProduct("P001", costPrice: 0);
+
+            _service.RecordStockIn("P001", 2, 1000, "RETURN_IN", "KLR-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1000, "no known cost: any cost basis beats 0");
+        }
+
+        [Test]
+        public void RecordStockIn_ReturnIn_PositiveOnHand_StillAverages()
+        {
+            SeedProduct("P001");
+            _service.RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-1", "2026-04-01", 1);
+
+            _service.RecordStockIn("P001", 10, 2000, "RETURN_IN", "KLR-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1500);
+        }
+
+        // Review MEDIUM-3: pre-cutover FoxPro AVGCOST owns cost_price. With the flag OFF
+        // (the default) the POS writes the movement but never touches products.cost_price,
+        // so nothing reaches sync_queue / Supabase.
+        private long ProductSyncRows(string code)
+        {
+            return SqlHelper.ExecuteScalar<long>(_db,
+                "SELECT COUNT(*) FROM sync_queue WHERE table_name = 'products' AND record_key = @k",
+                SqlHelper.Param("@k", code));
+        }
+
+        [Test]
+        public void RecordStockIn_FlagOff_DoesNotUpdateCostPrice()
+        {
+            new ConfigRepository(_db).Set(InventoryService.CostEngineOwnsCostPriceKey, "false");
+            SeedProduct("P001", costPrice: 1000);
+            long syncBefore = ProductSyncRows("P001");
+
+            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1000);
+            ProductSyncRows("P001").Should().Be(syncBefore, "no products 'U' row may be queued");
+            var m = _movementRepo.GetByJournal("BPB-1");
+            m.Should().ContainSingle();
+            m[0].ValIn.Should().Be(30000);
+            m[0].CostPrice.Should().Be(3000);
+        }
+
+        [Test]
+        public void RecordStockIn_FlagAbsent_DefaultsOff()
+        {
+            SqlHelper.ExecuteNonQuery(_db, "DELETE FROM config WHERE key = @k",
+                SqlHelper.Param("@k", InventoryService.CostEngineOwnsCostPriceKey));
+            SeedProduct("P001", costPrice: 1000);
+
+            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1000);
+        }
+
+        [Test]
+        public void RecordStockIn_FlagOn_UpdatesCostPriceAndQueuesSync()
+        {
+            SeedProduct("P001", costPrice: 1000);
+            long syncBefore = ProductSyncRows("P001");
+
+            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(3000);
+            ProductSyncRows("P001").Should().BeGreaterThan(syncBefore);
+        }
+
+        // Flag OFF: COGS still comes from the fallback chain (cost_price, else last purchase).
+        [Test]
+        public void CalculateAverageCost_FlagOff_UsesExistingCostPrice()
+        {
+            new ConfigRepository(_db).Set(InventoryService.CostEngineOwnsCostPriceKey, "false");
+            SeedProduct("P001", costPrice: 1000);
+            _service.RecordStockIn("P001", 10, 3000, "PURCHASE", "BPB-1", "2026-04-02", 1);
+
+            _service.CalculateAverageCost("P001").Should().Be(1000);
+            _service.GetCostPrice("P001", 2).Should().Be(2000);
+        }
+
+        // EC8: on-hand and the purchase qty are in the same unit (the local ledger's), so the
+        // average is a pure ratio; scaling both by 100 (legacy x100 qty) gives the same cost.
+        [Test]
+        public void StockMovement_QtyScale_AverageIsScaleInvariant()
+        {
+            SeedProduct("P001");
+            SeedProduct("P100");
+
+            _service.RecordStockIn("P001", 10, 1000, "PURCHASE", "BPB-1", "2026-04-01", 1);
+            _service.RecordStockIn("P001", 5, 2000, "PURCHASE", "BPB-2", "2026-04-02", 1);
+            _service.RecordStockIn("P100", 1000, 1000, "PURCHASE", "BPB-3", "2026-04-01", 1);
+            _service.RecordStockIn("P100", 500, 2000, "PURCHASE", "BPB-4", "2026-04-02", 1);
+
+            CostPriceOf("P001").Should().Be(1333);
+            CostPriceOf("P100").Should().Be(CostPriceOf("P001"));
         }
 
         [Test]

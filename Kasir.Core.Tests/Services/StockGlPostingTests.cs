@@ -47,6 +47,8 @@ namespace Kasir.Tests.Services
             _configRepo.Set("ACCOUNT_PRICE_VARIANCE", "5910");
             _configRepo.Set("ACCOUNT_PURCHASE_DISCOUNT", "4910");
             _configRepo.Set("ACCOUNT_VAT_IN", "1410");
+            // Post-cutover mode: receipts set products.cost_price, which stock-out/opname cost at.
+            _configRepo.Set(InventoryService.CostEngineOwnsCostPriceKey, "true");
 
             var accounts = new AccountRepository(_db);
             accounts.Insert(new Account { AccountCode = "1300", AccountName = "Persediaan", AccountGroup = 1, NormalBalance = "D", IsDetail = 1 });
