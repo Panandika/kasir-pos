@@ -38,6 +38,15 @@ namespace Kasir.Tests.Data
         }
 
         [Test]
+        public void NextValue_ReturnsTheRawSequence_PerPrefixAndRegister()
+        {
+            _repo.NextValue("QPC", "01").Should().Be(1);
+            _repo.NextValue("QPC", "01").Should().Be(2);
+            _repo.NextValue("QPC", "02").Should().Be(1);
+            _repo.GetNext("QPC", "01").Should().EndWith("0003", "GetNext shares the same counter");
+        }
+
+        [Test]
         public void GetNext_SecondCall_Returns2()
         {
             _repo.GetNext("KLR", "01");

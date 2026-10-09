@@ -21,6 +21,30 @@ namespace Kasir.Data.Repositories
 
         public string GetNext(string prefix, string registerId)
         {
+            int nextValue = NextValue(prefix, registerId, out string format);
+
+            // Format the number
+            if (!string.IsNullOrEmpty(format))
+            {
+                return FormatNumber(format, prefix, registerId, nextValue);
+            }
+
+            // Default format: PREFIX-REG-YYMM-SEQ
+            return string.Format("{0}-{1}-{2}-{3}",
+                prefix,
+                registerId,
+                _clock.Now.ToString("yyMM"),
+                nextValue.ToString("D4"));
+        }
+
+        /// <summary>Increments the (prefix, register) counter and returns the raw new value.</summary>
+        public int NextValue(string prefix, string registerId)
+        {
+            return NextValue(prefix, registerId, out _);
+        }
+
+        private int NextValue(string prefix, string registerId, out string format)
+        {
             // Microsoft.Data.Sqlite doesn't support nested transactions; join the existing
             // transaction if one is already active on the connection.
             bool joinExisting = false;
@@ -39,7 +63,7 @@ namespace Kasir.Data.Repositories
 
                 // Try to get existing counter
                 int currentValue = 0;
-                string format = null;
+                format = null;
 
                 using (var cmd = _db.CreateCommand())
                 {
@@ -79,18 +103,7 @@ namespace Kasir.Data.Repositories
                     txn.Commit();
                 }
 
-                // Format the number
-                if (!string.IsNullOrEmpty(format))
-                {
-                    return FormatNumber(format, prefix, registerId, nextValue);
-                }
-
-                // Default format: PREFIX-REG-YYMM-SEQ
-                return string.Format("{0}-{1}-{2}-{3}",
-                    prefix,
-                    registerId,
-                    _clock.Now.ToString("yyMM"),
-                    nextValue.ToString("D4"));
+                return nextValue;
             }
             catch
             {
