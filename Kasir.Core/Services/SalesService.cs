@@ -135,13 +135,6 @@ namespace Kasir.Services
             ("PL", "PLASTIK"), ("MY", "MAINAN"), ("LL", "LAIN-LAIN"),
         };
 
-        // Margin assumed when a category row has no margin_pct: 25.00% (x100 scale).
-        public const int DefaultCategoryMarginPct = 2500;
-
-        // sale_items.remark on category-key lines: their COGS is an estimate from the
-        // category margin, so reports can separate estimated from actual COGS (review M8).
-        public const string EstimatedCogsRemark = "EST";
-
         // The category code a cashier typed ("al", " LL "), or null when it is not one.
         public static string ResolveCategoryKey(string typed)
         {
@@ -154,8 +147,9 @@ namespace Kasir.Services
             return AddMiscItem(qty, unitPrice, null);
         }
 
-        // categoryCode null = plain code "1" (COGS 0). A category line carries an estimated
-        // COGS = price x (1 - margin), margin from the category's products.margin_pct.
+        // categoryCode null = plain code "1". Category lines only change the code (and so the
+        // department for sales-by-category); both carry COGS 0 = unknown cost (owner
+        // decision 2026-10-09: no estimated cost).
         public SaleItem AddMiscItem(int qty, long unitPrice, string categoryCode)
         {
             if (qty <= 0) throw new ArgumentException("Qty harus > 0", nameof(qty));
@@ -163,16 +157,11 @@ namespace Kasir.Services
 
             string code = MiscProductCode;
             string name = MiscProductName;
-            long cogs = 0;
             if (categoryCode != null)
             {
                 code = ResolveCategoryKey(categoryCode)
                     ?? throw new ArgumentException("Kategori tidak dikenal: " + categoryCode, nameof(categoryCode));
-                var category = _productRepo.GetByCode(code);
-                int marginPct = category != null && category.MarginPct > 0 ? category.MarginPct : DefaultCategoryMarginPct;
-                marginPct = Math.Clamp(marginPct, 0, 10000); // > 100% would give a negative COGS
-                name = category?.Name ?? code;
-                cogs = unitPrice * (10000 - marginPct) / 10000 * qty;
+                name = _productRepo.GetByCode(code)?.Name ?? code;
             }
 
             var item = new SaleItem
@@ -182,12 +171,11 @@ namespace Kasir.Services
                 Quantity = qty,
                 UnitPrice = unitPrice,
                 Value = unitPrice * qty,
-                Cogs = cogs,
+                Cogs = 0,
                 DiscPct = 0,
                 DiscValue = 0,
                 PointValue = 0,
                 IsPriceOverridden = true,
-                Remark = categoryCode != null ? EstimatedCogsRemark : null,
             };
             AddAndPersist(item);
             return item;
@@ -263,18 +251,16 @@ namespace Kasir.Services
             if (index < 0 || index >= _currentItems.Count) return;
 
             var item = _currentItems[index];
-            int oldQty = item.Quantity;
             item.Quantity = newQty;
 
-            // Non-stock lines (code "1", category keys) keep their typed price and scale
-            // their COGS estimate; the product row has no real price or cost to re-resolve.
+            // Non-stock lines (code "1", category keys) keep their typed price and COGS 0;
+            // the product row has no real price or cost to re-resolve.
             if (IsNonStockCode(item.ProductCode))
             {
-                long unitCogs = oldQty != 0 ? item.Cogs / oldQty : 0;
                 item.DiscPct = 0;
                 item.DiscValue = 0;
                 item.Value = item.UnitPrice * newQty;
-                item.Cogs = unitCogs * newQty;
+                item.Cogs = 0;
                 PersistCart();
                 return;
             }
@@ -438,12 +424,10 @@ namespace Kasir.Services
                     var unitCosts = new List<long>(_currentItems.Count);
                     foreach (var item in _currentItems)
                     {
-                        // Non-stock lines keep the COGS set when they were added (0 or an
-                        // estimate); they have no stock ledger to average.
+                        // Non-stock lines keep COGS 0 (unknown cost); they have no stock
+                        // ledger to average.
                         if (IsNonStockCode(item.ProductCode))
                         {
-                            // Derived from the code: pending_sales does not keep the remark.
-                            if (CategoryKeyCodes.Contains(item.ProductCode)) item.Remark = EstimatedCogsRemark;
                             unitCosts.Add(0);
                             continue;
                         }

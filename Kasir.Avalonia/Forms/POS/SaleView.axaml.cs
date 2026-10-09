@@ -218,8 +218,8 @@ public partial class SaleView : UserControl, INavigationAware
             code = raw;
         }
 
-        // Barang tanpa kode: code "1" asks for the category, a typed category code
-        // (AL, AT, PR, PL, MY, LL) goes straight to the price (PR-K4).
+        // Barang tanpa kode: code "1" goes straight to the price as it always did; a typed
+        // category code (AL, AT, PR, PL, MY, LL) does too, under that category (PR-K4).
         string? category = SalesService.ResolveCategoryKey(code);
         if (code == SalesService.MiscProductCode || category != null)
         {
@@ -282,14 +282,14 @@ public partial class SaleView : UserControl, INavigationAware
             ex => ShowSaleErrorAsync("Gagal membuka shift", ex));
     }
 
-    // Barang tanpa kode needs an open shift just like a coded item, then a category
-    // (unless one was typed), then the price.
-    private async void BeginMiscEntry(int qty, string? category)
+    // Barang tanpa kode needs an open shift just like a coded item, then the price.
+    // category null = plain code "1"; askCategory (F4) shows the category picker first.
+    private async void BeginMiscEntry(int qty, string? category, bool askCategory = false)
     {
         await UiGuard.RunAsync("Sale.MiscEntry", async () =>
         {
             if (_currentShift == null && !await PromptOpenShiftAsync()) return;
-            if (category == null)
+            if (askCategory)
             {
                 category = await CategoryPickerOverlay.Show(NavigationService.Owner);
                 TxtBarcode.Focus();
@@ -332,7 +332,7 @@ public partial class SaleView : UserControl, INavigationAware
         }
     }
 
-    private void EnterPricePromptMode(int qty, string category)
+    private void EnterPricePromptMode(int qty, string? category)
     {
         // The price starts from an empty box: nothing typed before (or leaked from the
         // picker key) may prefix it.
@@ -343,8 +343,10 @@ public partial class SaleView : UserControl, INavigationAware
         FooterStatus.Show(StatusLabel, $"{CategoryName(category)} (qty={qty}) — ketik harga (Rp), Enter utk simpan, Esc utk batal.");
     }
 
-    private static string CategoryName(string category) =>
-        SalesService.CategoryKeys.FirstOrDefault(k => k.Code == category).Name ?? category;
+    private static string CategoryName(string? category) =>
+        category == null
+            ? SalesService.MiscProductName
+            : SalesService.CategoryKeys.FirstOrDefault(k => k.Code == category).Name ?? category;
 
     private void ExitPricePromptMode()
     {
@@ -354,12 +356,13 @@ public partial class SaleView : UserControl, INavigationAware
     }
 
     // Rp 999.999.999 is far above any unlabelled item; more digits means a barcode was
-    // scanned into the price prompt.
+    // scanned into the price prompt (e.g. a scan while the category picker was open).
+    // Category path only: plain code "1" keeps its pre-K4 behaviour (owner 2026-10-09).
     private const int MaxMiscPriceDigits = 9;
 
     private void HandleMiscPriceInput(string text)
     {
-        if (text.Length > MaxMiscPriceDigits)
+        if (_pendingCategory != null && text.Length > MaxMiscPriceDigits)
         {
             FooterStatus.Show(StatusLabel, "Harga terlalu besar (barcode?). Ketik harga atau Esc utk batal.");
             return;
@@ -717,7 +720,7 @@ public partial class SaleView : UserControl, INavigationAware
         if (KeyboardRouter.IsF1(e)) { e.Handled = true; ShowSearch(true); }
         else if (KeyboardRouter.IsF2(e)) { e.Handled = true; ShowSearch(false); }
         else if (KeyboardRouter.IsF3(e)) { e.Handled = true; await ChangeQty(); }
-        else if (KeyboardRouter.IsF4(e)) { e.Handled = true; BeginMiscEntry(1, null); }
+        else if (KeyboardRouter.IsF4(e)) { e.Handled = true; BeginMiscEntry(1, null, askCategory: true); }
         else if (KeyboardRouter.IsF5(e))
         {
             e.Handled = true;

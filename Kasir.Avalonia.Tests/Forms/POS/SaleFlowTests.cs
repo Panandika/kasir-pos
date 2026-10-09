@@ -142,11 +142,10 @@ public class SaleFlowTests
         Barcode.Text = "";
     }
 
-    // Code "1" -> category picker (6 = LAIN-LAIN) -> price (PR-K4).
+    // Code "1" -> price, no category picker (owner decision 2026-10-09).
     private void AddMiscItem(string price)
     {
         Scan("1");
-        PressChar(Key.D6, PhysicalKey.Digit6, "6");
         Scan(price);
     }
 
@@ -159,11 +158,38 @@ public class SaleFlowTests
     }
 
     [AvaloniaTest]
-    public void Code1_AsksCategoryFirst_NumberKeyPicks_ThenPriceTypesStraightIntoCodeBox()
+    public void Code1_GoesStraightToThePriceBox_NoCategoryPicker()
     {
+        // Owner decision 2026-10-09: "1" Enter -> price -> line, exactly as before K4.
         OpenSaleScreen(withShift: true);
         Scan("1");
-        Assert.That(OverlayHost.Content, Is.InstanceOf<CategoryPickerOverlay>(), "code 1 asks for the category");
+        Assert.That(OverlayHost.IsVisible, Is.False, "code 1 shows no category picker");
+        Assert.That(Barcode.IsFocused, Is.True, "price is typed into the code box straight away");
+
+        Scan("10000");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("1"));
+        Assert.That(line.UnitPrice, Is.EqualTo(10000L * 100));
+        Assert.That(line.Cogs, Is.EqualTo(0L), "code 1 has no cost");
+        AssertBarcodeReady("after a code 1 line");
+    }
+
+    [AvaloniaTest]
+    public void Code1_LongPrice_IsNotCapped_LikeBeforeK4()
+    {
+        // The 9-digit sanity cap is for the category path only; code 1 gets no new friction.
+        OpenSaleScreen(withShift: true);
+        Scan("1");
+        Scan("1000000000");
+        Assert.That(OnlyCartLine().UnitPrice, Is.EqualTo(1000000000L * 100));
+    }
+
+    [AvaloniaTest]
+    public void F4_Picker_NumberKeyPicks_ThenPrice_CategoryLineHasZeroCogs()
+    {
+        OpenSaleScreen(withShift: true);
+        Press(Key.F4);
+        Assert.That(OverlayHost.Content, Is.InstanceOf<CategoryPickerOverlay>(), "F4 asks for the category");
 
         PressChar(Key.D1, PhysicalKey.Digit1, "1"); // ALAT LISTRIK, no click needed
         Assert.That(OverlayHost.IsVisible, Is.False, "picker closes on the number key");
@@ -173,7 +199,7 @@ public class SaleFlowTests
         var line = OnlyCartLine();
         Assert.That(line.ProductCode, Is.EqualTo("AL"));
         Assert.That(line.UnitPrice, Is.EqualTo(10000L * 100));
-        Assert.That(line.Cogs, Is.EqualTo(7500L * 100), "estimated COGS at the default 25% margin");
+        Assert.That(line.Cogs, Is.EqualTo(0L), "category keys carry no estimated cost");
         AssertBarcodeReady("after a category line");
     }
 
@@ -211,7 +237,7 @@ public class SaleFlowTests
         // H1: KeyDown picks, the digit's TextInput arrives after it. It must not land in
         // the price box ("1" + "10000" = Rp 110.000).
         OpenSaleScreen(withShift: true);
-        Scan("1");
+        Press(Key.F4);
         _window.KeyPress(Key.D1, RawInputModifiers.None, PhysicalKey.Digit1, "1");
         _window.KeyTextInput("1");
         Pump();
@@ -240,11 +266,11 @@ public class SaleFlowTests
     }
 
     [AvaloniaTest]
-    public void MiscPrice_MoreThanNineDigits_IsRejected_PromptStays()
+    public void CategoryPrice_MoreThanNineDigits_IsRejected_PromptStays()
     {
-        // A barcode scanned into the price prompt must not become a huge price.
+        // A barcode scanned into the category price prompt must not become a huge price.
         OpenSaleScreen(withShift: true);
-        Scan("1");
+        Press(Key.F4);
         PressChar(Key.D6, PhysicalKey.Digit6, "6");
         Scan("8991234567890");
         Assert.That(ItemCount, Is.EqualTo(0), "13 digits is a barcode, not a price");
