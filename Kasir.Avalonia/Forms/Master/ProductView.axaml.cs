@@ -89,7 +89,7 @@ public partial class ProductView : UserControl
         string q = TxtSearch.Text?.Trim() ?? "";
         if (string.IsNullOrEmpty(q)) { LoadGrid(); return; }
         _rows.Clear();
-        foreach (var p in _productRepo.SearchByText(q, 100))
+        foreach (var p in _productRepo.SearchByText(q, 100, includeInactive: true))
             _rows.Add(MakeRow(p));
         SetStatus($"Found {_rows.Count} products");
     }
