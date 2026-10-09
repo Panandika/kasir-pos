@@ -104,6 +104,16 @@ public class SaleFlowTests
         Pump();
     }
 
+    // A real key press: KeyDown, then the TextInput the OS sends for it (WM_CHAR), then
+    // KeyUp. Press() above sends KeyDown only, which hides the TextInput leak (H1).
+    private void PressChar(Key key, PhysicalKey physical, string ch)
+    {
+        _window.KeyPress(key, RawInputModifiers.None, physical, ch);
+        _window.KeyTextInput(ch);
+        _window.KeyRelease(key, RawInputModifiers.None, physical, ch);
+        Pump();
+    }
+
     private void Type(string text)
     {
         _window.KeyTextInput(text);
@@ -132,10 +142,160 @@ public class SaleFlowTests
         Barcode.Text = "";
     }
 
+    // Code "1" -> price, no category picker (owner decision 2026-10-09).
     private void AddMiscItem(string price)
     {
         Scan("1");
         Scan(price);
+    }
+
+    private SaleItem OnlyCartLine()
+    {
+        var sales = (Kasir.Services.SalesService)typeof(SaleView)
+            .GetField("_salesService", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(_view)!;
+        Assert.That(sales.CurrentItems, Has.Count.EqualTo(1));
+        return sales.CurrentItems[0];
+    }
+
+    [AvaloniaTest]
+    public void Code1_GoesStraightToThePriceBox_NoCategoryPicker()
+    {
+        // Owner decision 2026-10-09: "1" Enter -> price -> line, exactly as before K4.
+        OpenSaleScreen(withShift: true);
+        Scan("1");
+        Assert.That(OverlayHost.IsVisible, Is.False, "code 1 shows no category picker");
+        Assert.That(Barcode.IsFocused, Is.True, "price is typed into the code box straight away");
+
+        Scan("10000");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("1"));
+        Assert.That(line.UnitPrice, Is.EqualTo(10000L * 100));
+        Assert.That(line.Cogs, Is.EqualTo(0L), "code 1 has no cost");
+        AssertBarcodeReady("after a code 1 line");
+    }
+
+    [AvaloniaTest]
+    public void Code1_LongPrice_IsNotCapped_LikeBeforeK4()
+    {
+        // The 9-digit sanity cap is for the category path only; code 1 gets no new friction.
+        OpenSaleScreen(withShift: true);
+        Scan("1");
+        Scan("1000000000");
+        Assert.That(OnlyCartLine().UnitPrice, Is.EqualTo(1000000000L * 100));
+    }
+
+    [AvaloniaTest]
+    public void F4_Picker_NumberKeyPicks_ThenPrice_CategoryLineHasZeroCogs()
+    {
+        OpenSaleScreen(withShift: true);
+        Press(Key.F4);
+        Assert.That(OverlayHost.Content, Is.InstanceOf<CategoryPickerOverlay>(), "F4 asks for the category");
+
+        PressChar(Key.D1, PhysicalKey.Digit1, "1"); // ALAT LISTRIK, no click needed
+        Assert.That(OverlayHost.IsVisible, Is.False, "picker closes on the number key");
+        Assert.That(Barcode.IsFocused, Is.True, "price is typed into the code box straight away");
+
+        Scan("10000");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("AL"));
+        Assert.That(line.UnitPrice, Is.EqualTo(10000L * 100));
+        Assert.That(line.Cogs, Is.EqualTo(0L), "category keys carry no estimated cost");
+        AssertBarcodeReady("after a category line");
+    }
+
+    [AvaloniaTest]
+    public void TypedCategoryCode_GoesStraightToPrice()
+    {
+        OpenSaleScreen(withShift: true);
+        Scan("pl");
+        Assert.That(OverlayHost.IsVisible, Is.False, "a typed category code needs no picker");
+        Scan("5000");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("PL"));
+        Assert.That(line.ProductName, Is.EqualTo("PLASTIK"));
+    }
+
+    [AvaloniaTest]
+    public void F4_OpensCategoryPicker_NumpadPicks_EscCancels()
+    {
+        OpenSaleScreen(withShift: true);
+        Press(Key.F4);
+        Assert.That(OverlayHost.Content, Is.InstanceOf<CategoryPickerOverlay>());
+        Press(Key.Escape);
+        Assert.That(ItemCount, Is.EqualTo(0));
+        AssertBarcodeReady("after cancelling the category picker");
+
+        Press(Key.F4);
+        PressChar(Key.NumPad5, PhysicalKey.NumPad5, "5"); // MAINAN
+        Scan("2000");
+        Assert.That(OnlyCartLine().ProductCode, Is.EqualTo("MY"));
+    }
+
+    [AvaloniaTest]
+    public void CategoryPick_DigitTextInput_DoesNotLeakIntoThePrice()
+    {
+        // H1: KeyDown picks, the digit's TextInput arrives after it. It must not land in
+        // the price box ("1" + "10000" = Rp 110.000).
+        OpenSaleScreen(withShift: true);
+        Press(Key.F4);
+        _window.KeyPress(Key.D1, RawInputModifiers.None, PhysicalKey.Digit1, "1");
+        _window.KeyTextInput("1");
+        Pump();
+        Assert.That(OverlayHost.IsVisible, Is.False, "picker closed");
+        Assert.That(Barcode.Text ?? "", Is.EqualTo(""), "the picking digit is swallowed");
+        _window.KeyRelease(Key.D1, RawInputModifiers.None, PhysicalKey.Digit1, "1");
+        Pump();
+        Assert.That(Barcode.Text ?? "", Is.EqualTo(""));
+
+        Scan("10000");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("AL"));
+        Assert.That(line.UnitPrice, Is.EqualTo(10000L * 100));
+    }
+
+    [AvaloniaTest]
+    public void EnteringPriceMode_ClearsStaleTextInTheCodeBox()
+    {
+        OpenSaleScreen(withShift: true);
+        Type("abc");
+        Press(Key.F4);
+        PressChar(Key.D2, PhysicalKey.Digit2, "2"); // ALAT TULIS
+        Assert.That(Barcode.Text ?? "", Is.EqualTo(""));
+        Scan("3000");
+        Assert.That(OnlyCartLine().UnitPrice, Is.EqualTo(3000L * 100));
+    }
+
+    [AvaloniaTest]
+    public void CategoryPrice_MoreThanNineDigits_IsRejected_PromptStays()
+    {
+        // A barcode scanned into the category price prompt must not become a huge price.
+        OpenSaleScreen(withShift: true);
+        Press(Key.F4);
+        PressChar(Key.D6, PhysicalKey.Digit6, "6");
+        Scan("8991234567890");
+        Assert.That(ItemCount, Is.EqualTo(0), "13 digits is a barcode, not a price");
+        Scan("5000");
+        Assert.That(OnlyCartLine().UnitPrice, Is.EqualTo(5000L * 100), "still waiting for the price");
+    }
+
+    [AvaloniaTest]
+    public void F2Search_PickingACategoryRow_AsksForThePrice_NotARp0Line()
+    {
+        // M3: a category (or code "1") picked from name search goes to price entry.
+        OpenSaleScreen(withShift: true);
+        Press(Key.F2);
+        typeof(SaleView).GetMethod("LoadSearchResults", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(_view, new object[] { "PLASTIK" });
+        var grid = _view!.FindControl<DataGrid>("DgvSearch")!;
+        grid.SelectedItem = ((System.Collections.IEnumerable)grid.ItemsSource!).Cast<object>()
+            .First(r => (string)r.GetType().GetProperty("Code")!.GetValue(r)! == "PL");
+        Press(Key.Enter);
+
+        Assert.That(ItemCount, Is.EqualTo(0), "no Rp 0 line");
+        Scan("5000");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("PL"));
+        Assert.That(line.UnitPrice, Is.EqualTo(5000L * 100));
     }
 
     [AvaloniaTest]

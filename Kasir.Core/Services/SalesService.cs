@@ -129,15 +129,47 @@ namespace Kasir.Services
             return productCode == MiscProductCode || CategoryKeyCodes.Contains(productCode ?? "");
         }
 
+        // Category quick keys in picker order (number 1-6 on the sale screen). Seeded as
+        // open-price products by Migration_013.
+        public static readonly IReadOnlyList<(string Code, string Name)> CategoryKeys = new[]
+        {
+            ("AL", "ALAT LISTRIK"), ("AT", "ALAT TULIS"), ("PR", "PERABOT"),
+            ("PL", "PLASTIK"), ("MY", "MAINAN"), ("LL", "LAIN-LAIN"),
+        };
+
+        // The category code a cashier typed ("al", " LL "), or null when it is not one.
+        public static string ResolveCategoryKey(string typed)
+        {
+            string code = (typed ?? "").Trim().ToUpperInvariant();
+            return CategoryKeyCodes.Contains(code) ? code : null;
+        }
+
         public SaleItem AddMiscItem(int qty, long unitPrice)
+        {
+            return AddMiscItem(qty, unitPrice, null);
+        }
+
+        // categoryCode null = plain code "1". Category lines only change the code (and so the
+        // department for sales-by-category); both carry COGS 0 = unknown cost (owner
+        // decision 2026-10-09: no estimated cost).
+        public SaleItem AddMiscItem(int qty, long unitPrice, string categoryCode)
         {
             if (qty <= 0) throw new ArgumentException("Qty harus > 0", nameof(qty));
             if (unitPrice <= 0) throw new ArgumentException("Harga harus > 0", nameof(unitPrice));
 
+            string code = MiscProductCode;
+            string name = MiscProductName;
+            if (categoryCode != null)
+            {
+                code = ResolveCategoryKey(categoryCode)
+                    ?? throw new ArgumentException("Kategori tidak dikenal: " + categoryCode, nameof(categoryCode));
+                name = _productRepo.GetByCode(code)?.Name ?? code;
+            }
+
             var item = new SaleItem
             {
-                ProductCode = MiscProductCode,
-                ProductName = MiscProductName,
+                ProductCode = code,
+                ProductName = name,
                 Quantity = qty,
                 UnitPrice = unitPrice,
                 Value = unitPrice * qty,
@@ -244,6 +276,18 @@ namespace Kasir.Services
 
             var item = _currentItems[index];
             item.Quantity = newQty;
+
+            // Non-stock lines (code "1", category keys) keep their typed price and COGS 0;
+            // the product row has no real price or cost to re-resolve.
+            if (IsNonStockCode(item.ProductCode))
+            {
+                item.DiscPct = 0;
+                item.DiscValue = 0;
+                item.Value = item.UnitPrice * newQty;
+                item.Cogs = 0;
+                PersistCart();
+                return;
+            }
 
             var product = _productRepo.GetByCode(item.ProductCode);
             if (product != null)
@@ -404,8 +448,8 @@ namespace Kasir.Services
                     var unitCosts = new List<long>(_currentItems.Count);
                     foreach (var item in _currentItems)
                     {
-                        // Non-stock lines keep the COGS set when they were added (0 or an
-                        // estimate); they have no stock ledger to average.
+                        // Non-stock lines keep COGS 0 (unknown cost); they have no stock
+                        // ledger to average.
                         if (IsNonStockCode(item.ProductCode))
                         {
                             unitCosts.Add(0);
