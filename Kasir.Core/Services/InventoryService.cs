@@ -22,10 +22,6 @@ namespace Kasir.Services
         // POS-side write would be pushed to Supabase via trg_products_sync_u / CloudSync.
         public const string CostEngineOwnsCostPriceKey = "cost_engine_owns_cost_price";
 
-        // Single-store default location ('T' = Toko). Schema default is '' which made
-        // per-location on-hand queries miss POS movements.
-        public const string DefaultLocationCode = "T";
-
         public InventoryService(SqliteConnection db)
         {
             _db = db;
