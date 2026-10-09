@@ -12,9 +12,9 @@ using Kasir.Tests.TestHelpers.Fakes;
 
 namespace Kasir.Tests.Services
 {
-    // PR-K4: six category quick keys replace code "1" for unlabelled goods. Open price,
-    // non-stock, and an estimated COGS = price x (1 - margin) so the margin report is
-    // no longer inflated by zero-COGS manual entries.
+    // PR-K4: six category quick keys for unlabelled goods, alongside plain code "1". Open
+    // price, non-stock, COGS 0 = unknown cost like code "1" (owner decision 2026-10-09),
+    // with their own departments so sales-by-category works.
     [TestFixture]
     public class CategoryKeyTests
     {
@@ -62,19 +62,20 @@ namespace Kasir.Tests.Services
                 p.DeptCode.Should().Be(e.Dept);
                 p.OpenPrice.Should().Be("Y");
                 p.Status.Should().Be("A");
-                p.MarginPct.Should().Be(2500, "default margin 25.00% (x100 like products.margin_pct)");
+                p.CostPrice.Should().Be(0, "category keys carry no cost");
+                p.MarginPct.Should().Be(0, "no margin estimate is seeded");
             }
             SalesService.CategoryKeys.Select(k => k.Code).Should().Equal("AL", "AT", "PR", "PL", "MY", "LL");
             SalesService.CategoryKeys.Select(k => k.Code).Should().BeEquivalentTo(SalesService.CategoryKeyCodes);
         }
 
         [Test]
-        public void Migration_IsIdempotent_AndKeepsAConfiguredMargin()
+        public void Migration_IsIdempotent_AndKeepsAnExistingRow()
         {
-            Exec("UPDATE products SET margin_pct = 4000 WHERE product_code = 'MY'");
+            Exec("UPDATE products SET name = 'MAINAN ANAK' WHERE product_code = 'MY'");
             new Migration_013().Up(_db);
             Scalar("SELECT COUNT(*) FROM products WHERE product_code IN ('AL','AT','PR','PL','MY','LL')").Should().Be(6);
-            Scalar("SELECT margin_pct FROM products WHERE product_code = 'MY'").Should().Be(4000);
+            Text("SELECT name FROM products WHERE product_code = 'MY'").Should().Be("MAINAN ANAK");
         }
 
         private void Exec(string sql)
@@ -85,7 +86,7 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
-        public void AddMiscItem_WithCategory_EstimatesCogs()
+        public void AddMiscItem_WithCategory_HasZeroCogs_UnknownCost()
         {
             var item = _service.AddMiscItem(2, 1000000, "AL"); // 2 x Rp 10.000
 
@@ -93,22 +94,16 @@ namespace Kasir.Tests.Services
             item.ProductName.Should().Be("ALAT LISTRIK");
             item.UnitPrice.Should().Be(1000000);
             item.Value.Should().Be(2000000);
-            item.Cogs.Should().Be(1500000, "COGS = price x 75% x qty at the default 25% margin");
+            item.Cogs.Should().Be(0, "COGS 0 = unknown cost, like code 1");
+            item.Remark.Should().BeNullOrEmpty("no estimate to tag");
         }
 
         [Test]
-        public void AddMiscItem_WithCategory_UsesTheCategoryMargin()
+        public void AddMiscItem_WithCategory_IgnoresMarginAndCostOnTheRow()
         {
-            Exec("UPDATE products SET margin_pct = 4000 WHERE product_code = 'MY'");
-            var item = _service.AddMiscItem(1, 1000000, "MY");
-            item.Cogs.Should().Be(600000, "40% margin -> COGS 60% of price");
-        }
-
-        [Test]
-        public void AddMiscItem_WithCategory_ZeroMargin_FallsBackToDefault()
-        {
-            Exec("UPDATE products SET margin_pct = 0 WHERE product_code = 'PL'");
-            _service.AddMiscItem(1, 1000000, "PL").Cogs.Should().Be(750000);
+            // Even if someone edits the category row, no cost is estimated from it.
+            Exec("UPDATE products SET margin_pct = 4000, cost_price = 500000 WHERE product_code = 'MY'");
+            _service.AddMiscItem(1, 1000000, "MY").Cogs.Should().Be(0);
         }
 
         [Test]
@@ -127,7 +122,7 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
-        public void UpdateItemQty_CategoryLine_ScalesEstimatedCogs_KeepsPrice()
+        public void UpdateItemQty_CategoryLine_KeepsPrice_ZeroCogs()
         {
             _service.AddMiscItem(1, 1000000, "AT");
             _service.UpdateItemQty(0, 3);
@@ -135,65 +130,31 @@ namespace Kasir.Tests.Services
             var item = _service.CurrentItems[0];
             item.UnitPrice.Should().Be(1000000, "the typed open price is kept");
             item.Value.Should().Be(3000000);
-            item.Cogs.Should().Be(2250000);
+            item.Cogs.Should().Be(0);
         }
 
         [Test]
-        public void CompleteSale_CategoryKey_NoStockMovement_HasCogs()
+        public void CompleteSale_CategoryKey_NoStockMovement_ZeroCogs()
         {
             _service.AddMiscItem(2, 1000000, "LL");
             var sale = _service.CompleteSale(2000000, 0, 0, "", "", "");
 
             Scalar("SELECT COUNT(*) FROM stock_movements").Should().Be(0, "category keys are non-stock");
             Scalar($"SELECT cogs FROM sale_items WHERE journal_no = '{sale.JournalNo}' AND product_code = 'LL'")
-                .Should().Be(1500000);
+                .Should().Be(0);
+            Text($"SELECT remark FROM sale_items WHERE journal_no = '{sale.JournalNo}' AND product_code = 'LL'")
+                .Should().BeEmpty("no estimated-COGS tag");
         }
 
         [Test]
-        public void CategoryLine_SurvivesCrashRecovery_WithItsCogs()
+        public void CategoryLine_SurvivesCrashRecovery()
         {
             _service.AddMiscItem(1, 1000000, "PR");
             var recovered = new SalesService(_db, new FakeClock(new DateTime(2026, 4, 4, 15, 0, 0)));
             recovered.RecoverPendingSale().Should().Be(1);
             recovered.CurrentItems[0].ProductCode.Should().Be("PR");
             recovered.CurrentItems[0].ProductName.Should().Be("PERABOT");
-            recovered.CurrentItems[0].Cogs.Should().Be(750000);
-        }
-
-        [Test]
-        public void AddMiscItem_WithCategory_MarginAbove100Pct_IsClamped_NoNegativeCogs()
-        {
-            // L2: a mistyped margin_pct > 10000 must not produce a negative COGS.
-            Exec("UPDATE products SET margin_pct = 15000 WHERE product_code = 'AL'");
-            _service.AddMiscItem(1, 1000000, "AL").Cogs.Should().Be(0);
-        }
-
-        [Test]
-        public void CompleteSale_CategoryLine_IsTaggedEstimatedCogs()
-        {
-            // M8: estimated COGS lines are tagged so reports can split estimated vs actual.
-            _service.AddMiscItem(1, 1000000, "PL");
-            _service.AddMiscItem(1, 500000); // plain code "1": no estimate
-            var sale = _service.CompleteSale(1500000, 0, 0, "", "", "");
-
-            Text($"SELECT remark FROM sale_items WHERE journal_no = '{sale.JournalNo}' AND product_code = 'PL'")
-                .Should().Be(SalesService.EstimatedCogsRemark);
-            Text($"SELECT remark FROM sale_items WHERE journal_no = '{sale.JournalNo}' AND product_code = '1'")
-                .Should().BeEmpty();
-        }
-
-        [Test]
-        public void CompleteSale_RecoveredCategoryLine_IsStillTaggedEstimated()
-        {
-            // pending_sales does not keep the remark; the tag is derived from the code.
-            _service.AddMiscItem(1, 1000000, "MY");
-            var recovered = new SalesService(_db, new FakeClock(new DateTime(2026, 4, 4, 15, 0, 0)));
-            recovered.SetCashier("ADM", 1);
-            recovered.RecoverPendingSale();
-            var sale = recovered.CompleteSale(1000000, 0, 0, "", "", "");
-
-            Text($"SELECT remark FROM sale_items WHERE journal_no = '{sale.JournalNo}'")
-                .Should().Be(SalesService.EstimatedCogsRemark);
+            recovered.CurrentItems[0].Cogs.Should().Be(0);
         }
 
         [Test]

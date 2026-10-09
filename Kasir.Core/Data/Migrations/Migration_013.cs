@@ -4,9 +4,10 @@ namespace Kasir.Data.Migrations
 {
     /// <summary>
     /// PR-K4 category quick keys: six open-price, non-stock marker products the cashier
-    /// sells by typed price instead of code "1". margin_pct (x100, default 25.00%) drives
-    /// the estimated COGS and is the per-category setting. INSERT OR IGNORE: an existing
-    /// row (and any margin configured on it) is never changed.
+    /// sells by typed price, alongside code "1". Like code "1" they carry no cost (COGS 0 =
+    /// unknown cost, owner decision 2026-10-09); the row exists for the name and the
+    /// department, so sales-by-category works. INSERT OR IGNORE: an existing row is never
+    /// changed.
     /// Also creates inactive_sale_log (Migration_012's table) if missing; see the SQL.
     /// Departments follow the store's chart: 42 ALAT LISTRIK, 10 ALAT TULIS, 22 PLASTIK,
     /// 44 MAINAN; PERABOT has no department of its own and goes to 100 DLL with LAIN-LAIN.
@@ -23,14 +24,14 @@ namespace Kasir.Data.Migrations
                 cmd.CommandText = @"
                     INSERT OR IGNORE INTO products
                       (product_code, dept_code, name, status, unit, price, buying_price, cost_price,
-                       open_price, margin_pct)
+                       open_price)
                     VALUES
-                      ('AL', '42',  'ALAT LISTRIK', 'A', 'PCS', 0, 0, 0, 'Y', 2500),
-                      ('AT', '10',  'ALAT TULIS',   'A', 'PCS', 0, 0, 0, 'Y', 2500),
-                      ('PR', '100', 'PERABOT',      'A', 'PCS', 0, 0, 0, 'Y', 2500),
-                      ('PL', '22',  'PLASTIK',      'A', 'PCS', 0, 0, 0, 'Y', 2500),
-                      ('MY', '44',  'MAINAN',       'A', 'PCS', 0, 0, 0, 'Y', 2500),
-                      ('LL', '100', 'LAIN-LAIN',    'A', 'PCS', 0, 0, 0, 'Y', 2500);
+                      ('AL', '42',  'ALAT LISTRIK', 'A', 'PCS', 0, 0, 0, 'Y'),
+                      ('AT', '10',  'ALAT TULIS',   'A', 'PCS', 0, 0, 0, 'Y'),
+                      ('PR', '100', 'PERABOT',      'A', 'PCS', 0, 0, 0, 'Y'),
+                      ('PL', '22',  'PLASTIK',      'A', 'PCS', 0, 0, 0, 'Y'),
+                      ('MY', '44',  'MAINAN',       'A', 'PCS', 0, 0, 0, 'Y'),
+                      ('LL', '100', 'LAIN-LAIN',    'A', 'PCS', 0, 0, 0, 'Y');
 
                     -- Migration_012's effect (PR-K3), idempotent: a register that reaches
                     -- schema 13 from a build without 012 would otherwise never get it,
