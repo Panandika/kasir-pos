@@ -113,6 +113,20 @@ namespace Kasir.Services
         public const string MiscProductCode = "1";
         public const string MiscProductName = "Barang Tanpa Kode";
 
+        // Category quick-key codes (ALAT LISTRIK, ALAT TULIS, PERABOT, PLASTIK, MAINAN,
+        // LAIN-LAIN). Like code "1" they are non-stock: sold by price, never tracked in
+        // stock_movements.
+        public static readonly IReadOnlySet<string> CategoryKeyCodes =
+            new HashSet<string>(StringComparer.Ordinal) { "AL", "AT", "PR", "PL", "MY", "LL" };
+
+        // Non-stock lines are derived from the product code, not a cart flag, because
+        // pending_sales only persists product_code: a crash-recovered cart must still be
+        // recognised as non-stock.
+        public static bool IsNonStockCode(string productCode)
+        {
+            return productCode == MiscProductCode || CategoryKeyCodes.Contains(productCode ?? "");
+        }
+
         public SaleItem AddMiscItem(int qty, long unitPrice)
         {
             if (qty <= 0) throw new ArgumentException("Qty harus > 0", nameof(qty));
@@ -366,6 +380,13 @@ namespace Kasir.Services
                     var unitCosts = new List<long>(_currentItems.Count);
                     foreach (var item in _currentItems)
                     {
+                        // Non-stock lines keep the COGS set when they were added (0 or an
+                        // estimate); they have no stock ledger to average.
+                        if (IsNonStockCode(item.ProductCode))
+                        {
+                            unitCosts.Add(0);
+                            continue;
+                        }
                         long avgCost = _inventoryService.CalculateAverageCost(item.ProductCode);
                         unitCosts.Add(avgCost);
                         item.Cogs = avgCost * item.Quantity;
@@ -377,6 +398,7 @@ namespace Kasir.Services
                     for (int i = 0; i < _currentItems.Count; i++)
                     {
                         var item = _currentItems[i];
+                        if (IsNonStockCode(item.ProductCode)) continue;
                         _inventoryService.RecordStockOut(
                             item.ProductCode,
                             item.Quantity,
@@ -436,6 +458,7 @@ namespace Kasir.Services
                     // stock permanently understated (F35).
                     foreach (var item in items)
                     {
+                        if (IsNonStockCode(item.ProductCode)) continue; // never stocked out
                         // item.Cogs is the line total (unit cost × qty); the movement needs the unit cost.
                         long unitCost = item.Quantity != 0 ? item.Cogs / item.Quantity : 0;
                         _inventoryService.RecordStockIn(

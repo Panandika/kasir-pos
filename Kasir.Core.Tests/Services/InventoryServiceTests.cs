@@ -67,6 +67,27 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
+        public void RecordStockIn_DefaultsLocationToT()
+        {
+            _service.RecordStockIn("P001", 10, 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);
+
+            var m = _movementRepo.GetByJournal("BPB-01-2604-0001");
+            m.Should().ContainSingle();
+            m[0].LocationCode.Should().Be("T");
+            _service.GetStockOnHandByLocation("P001", "T").Should().Be(10);
+        }
+
+        [Test]
+        public void RecordStockOut_DefaultsLocationToT()
+        {
+            _service.RecordStockOut("P001", 3, 100000, "SALE", "KLR-01-2604-0001", "2026-04-04", 1);
+
+            var m = _movementRepo.GetByJournal("KLR-01-2604-0001");
+            m.Should().ContainSingle();
+            m[0].LocationCode.Should().Be("T");
+        }
+
+        [Test]
         public void CalculateAverageCost_SingleLot()
         {
             _service.RecordStockIn("P001", 10, 100000, "PURCHASE", "BPB-01-2604-0001", "2026-04-04", 1);

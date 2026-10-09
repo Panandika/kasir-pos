@@ -12,6 +12,10 @@ namespace Kasir.Services
         private readonly StockMovementRepository _movementRepo;
         private readonly ConfigRepository _configRepo;
 
+        // Single-store default location ('T' = Toko). Schema default is '' which made
+        // per-location on-hand queries miss POS movements.
+        public const string DefaultLocationCode = "T";
+
         public InventoryService(SqliteConnection db)
         {
             _db = db;
@@ -108,6 +112,7 @@ namespace Kasir.Services
                 MovementType = movementType,
                 DocDate = docDate,
                 PeriodCode = docDate.Length >= 7 ? docDate.Substring(0, 4) + docDate.Substring(5, 2) : "",
+                LocationCode = DefaultLocationCode,
                 QtyIn = qty,
                 QtyOut = 0,
                 ValIn = unitCost * qty,
@@ -129,6 +134,7 @@ namespace Kasir.Services
                 MovementType = movementType,
                 DocDate = docDate,
                 PeriodCode = docDate.Length >= 7 ? docDate.Substring(0, 4) + docDate.Substring(5, 2) : "",
+                LocationCode = DefaultLocationCode,
                 QtyIn = 0,
                 QtyOut = qty,
                 ValIn = 0,
