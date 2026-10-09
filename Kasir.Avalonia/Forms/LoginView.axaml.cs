@@ -22,6 +22,15 @@ public partial class LoginView : UserControl
         _auth = new AuthService(DbConnection.GetConnection());
         LblVersion.Text = "v" + AppVersion.Current;
         BtnLogin.Click += (_, _) => AttemptLogin();
+        // FoxPro habit: Enter moves to the next field. Tab does the same.
+        TxtUsername.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Return || (e.Key == Key.Tab && e.KeyModifiers == KeyModifiers.None))
+            {
+                e.Handled = true;
+                TxtPassword.Focus();
+            }
+        };
         TxtPassword.KeyDown += (_, e) =>
         {
             if (e.Key == Key.Return)
