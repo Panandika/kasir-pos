@@ -1810,3 +1810,22 @@ CREATE INDEX IF NOT EXISTS idx_help_tickets_pending
 
 CREATE INDEX IF NOT EXISTS idx_help_tickets_dead
     ON help_tickets(status, sync_attempts) WHERE status='queued' AND sync_attempts >= 5;
+
+-- ============================================================
+-- Section 11: Inactive-scan log (added in Migration_012, PR-K3)
+-- ============================================================
+-- An inactive product (status 'I') scanned at the till still sells; the scan is
+-- logged once per product per day so the owner can see which "inactive" items are
+-- still on the shelf. Local only for now: no sync_queue trigger (cloud delivery is
+-- deferred). A later mirror loads it by the natural key (register_id, product_code,
+-- sale_date); id is a per-register rowid and is never mirrored.
+
+CREATE TABLE IF NOT EXISTS inactive_sale_log (
+    id              INTEGER PRIMARY KEY,
+    register_id     TEXT    NOT NULL DEFAULT '',
+    product_code    TEXT    NOT NULL,
+    sale_date       TEXT    NOT NULL,  -- YYYY-MM-DD (local)
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(product_code, sale_date)
+);
+

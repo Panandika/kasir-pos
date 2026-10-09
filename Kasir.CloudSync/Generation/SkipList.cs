@@ -43,6 +43,7 @@ namespace Kasir.CloudSync.Generation
                 { "accounts.id",      "Local rowid; cloud keys on account_code." },
                 { "credit_cards.id",  "Local rowid; cloud keys on card_code." },
                 { "departments.id",   "Local rowid; cloud keys on dept_code." },
+                { "inactive_sale_log.id", "Local rowid; cloud keys on (register_id, product_code, sale_date)." },
                 { "locations.id",     "Local rowid; cloud keys on location_code." },
                 { "members.id",       "Local rowid; cloud keys on member_code." },
                 { "products.id",      "Local rowid; cloud keys on product_code." },

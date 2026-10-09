@@ -43,7 +43,7 @@
                             IsReadOnly="True" />
         <DataGridTextColumn Header="Fisik"
                             Binding="{Binding Physical}"
-                            Width="*"
+                            Width="1.3*"
                             CanUserSort="False"
                             IsReadOnly="True">
           <DataGridTextColumn.CellTheme>
@@ -55,6 +55,11 @@
         <DataGridTextColumn Header="Selisih"
                             Binding="{Binding Variance}"
                             Width="0.8*"
+                            CanUserSort="False"
+                            IsReadOnly="True" />
+        <DataGridTextColumn Header="Jam Hitung"
+                            Binding="{Binding CountedAt}"
+                            Width="0.9*"
                             CanUserSort="False"
                             IsReadOnly="True" />
       </DataGrid.Columns>

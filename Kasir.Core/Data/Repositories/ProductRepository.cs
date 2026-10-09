@@ -86,7 +86,7 @@ namespace Kasir.Data.Repositories
                 var ftsResults = SqlHelper.Query(_db,
                     @"SELECT p.* FROM products_fts f
                       JOIN products p ON p.id = f.rowid
-                      WHERE products_fts MATCH @q
+                      WHERE products_fts MATCH @q AND p.status = 'A'
                       LIMIT @limit",
                     MapProduct,
                     SqlHelper.Param("@q", ftsQuery),
@@ -114,7 +114,9 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@limit", limit));
         }
 
-        public List<Product> SearchByText(string query, int limit)
+        // includeInactive: Master > Barang passes true so the owner can still find an
+        // inactive product by name to fix or re-activate it; POS searches keep the default.
+        public List<Product> SearchByText(string query, int limit, bool includeInactive = false)
         {
             if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             {
@@ -135,10 +137,11 @@ namespace Kasir.Data.Repositories
                 var ftsResults = SqlHelper.Query(_db,
                     @"SELECT p.* FROM products_fts f
                       JOIN products p ON p.id = f.rowid
-                      WHERE products_fts MATCH @q
+                      WHERE products_fts MATCH @q AND (@all = 1 OR p.status = 'A')
                       LIMIT @limit",
                     MapProduct,
                     SqlHelper.Param("@q", ftsQuery),
+                    SqlHelper.Param("@all", includeInactive ? 1 : 0),
                     SqlHelper.Param("@limit", limit));
 
                 if (ftsResults.Count > 0)
@@ -156,11 +159,12 @@ namespace Kasir.Data.Repositories
             return SqlHelper.Query(_db,
                 @"SELECT * FROM products
                   WHERE (product_code LIKE @q OR name LIKE @q)
-                  AND status = 'A'
+                  AND (@all = 1 OR status = 'A')
                   ORDER BY name
                   LIMIT @limit",
                 MapProduct,
                 SqlHelper.Param("@q", likeQuery),
+                SqlHelper.Param("@all", includeInactive ? 1 : 0),
                 SqlHelper.Param("@limit", limit));
         }
 
@@ -209,14 +213,17 @@ namespace Kasir.Data.Repositories
             return (int)SqlHelper.LastInsertRowId(_db);
         }
 
-        public void Update(Product product)
+        // writeCostPrice: false keeps the stored cost_price (the perpetual average may have
+        // moved since the caller loaded the product - e.g. a form held open across a purchase).
+        public void Update(Product product, bool writeCostPrice = true)
         {
             SqlHelper.ExecuteNonQuery(_db,
                 @"UPDATE products SET name = @name, dept_code = @dept,
                   price = @price, price1 = @price1, price2 = @price2, price3 = @price3, price4 = @price4,
                   buying_price = @buying, vendor_code = @vendor, qty_break2 = @break2, qty_break3 = @break3,
                   qty_min = @qmin, qty_max = @qmax, qty_order = @qorder,
-                  open_price = @open, disc_pct = @disc, margin_pct = @margin, cost_price = @cost, status = @status,
+                  open_price = @open, disc_pct = @disc, margin_pct = @margin,
+                  cost_price = CASE WHEN @writeCost = 1 THEN @cost ELSE cost_price END, status = @status,
                   changed_by = @changedBy, changed_at = datetime('now','localtime')
                   WHERE id = @id",
                 SqlHelper.Param("@name", product.Name),
@@ -237,9 +244,19 @@ namespace Kasir.Data.Repositories
                 SqlHelper.Param("@disc", product.DiscPct),
                 SqlHelper.Param("@margin", product.MarginPct),
                 SqlHelper.Param("@cost", product.CostPrice),
+                SqlHelper.Param("@writeCost", writeCostPrice ? 1 : 0),
                 SqlHelper.Param("@status", product.Status),
                 SqlHelper.Param("@changedBy", product.ChangedBy),
                 SqlHelper.Param("@id", product.Id));
+        }
+
+        public void UpdateCostPrice(string productCode, long costPrice)
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"UPDATE products SET cost_price = @cost, changed_at = datetime('now','localtime')
+                  WHERE product_code = @code",
+                SqlHelper.Param("@cost", costPrice),
+                SqlHelper.Param("@code", productCode));
         }
 
         public void Deactivate(int id, int changedBy)

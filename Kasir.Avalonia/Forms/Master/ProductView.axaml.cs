@@ -27,6 +27,7 @@ public partial class ProductView : UserControl
     private DepartmentRepository _deptRepo;
     private InventoryService _inventoryService;
     private Product? _currentProduct;
+    private long _loadedCostPrice; // as loaded; Save writes cost_price only if edited
     private bool _isEditing;
     private int _userId;
 
@@ -88,7 +89,7 @@ public partial class ProductView : UserControl
         string q = TxtSearch.Text?.Trim() ?? "";
         if (string.IsNullOrEmpty(q)) { LoadGrid(); return; }
         _rows.Clear();
-        foreach (var p in _productRepo.SearchByText(q, 100))
+        foreach (var p in _productRepo.SearchByText(q, 100, includeInactive: true))
             _rows.Add(MakeRow(p));
         SetStatus($"Found {_rows.Count} products");
     }
@@ -130,6 +131,7 @@ public partial class ProductView : UserControl
         TxtVendorCode.Text = p.VendorCode ?? "";
         TxtBuyingPrice.Text = FormatMoney(p.BuyingPrice);
         TxtCostPrice.Text = FormatMoney(p.CostPrice);
+        _loadedCostPrice = p.CostPrice;
         TxtSellingPrice.Text = FormatMoney(p.Price);
         TxtDiscMax.Text = (p.DiscPct / 100.0).ToString("F2", CultureInfo.InvariantCulture);
         LblMargin.Text = (p.MarginPct / 100.0).ToString("F2", CultureInfo.InvariantCulture);
@@ -235,7 +237,9 @@ public partial class ProductView : UserControl
         try
         {
             if (p.Id == 0) _productRepo.Insert(p);
-            else _productRepo.Update(p);
+            // Only write cost_price when the user changed it: a stock-in since the form was
+            // loaded may have moved the perpetual average.
+            else _productRepo.Update(p, writeCostPrice: p.CostPrice != _loadedCostPrice);
             SetDetailEnabled(false);
             LoadGrid();
             SetStatus("Produk tersimpan: " + p.ProductCode);
@@ -256,7 +260,7 @@ public partial class ProductView : UserControl
             {
                 if (_currentProduct.Id != 0)
                 {
-                    _productRepo.Update(_currentProduct);
+                    _productRepo.Update(_currentProduct, writeCostPrice: false);
                     LoadGrid();
                 }
                 SetStatus("Harga grosir tersimpan");

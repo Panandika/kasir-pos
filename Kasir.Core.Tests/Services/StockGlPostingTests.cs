@@ -20,6 +20,10 @@ namespace Kasir.Tests.Services
     [TestFixture]
     public class StockGlPostingTests
     {
+        // Opname lines must be counted (PR-K6). Stamped after every movement the test
+        // writes (changed_at = now), so nothing counts as moved after the count.
+        private static DateTime Counted => DateTime.Now.AddHours(1);
+
         private const string Period = "202604";
         private SqliteConnection _db;
         private PostingService _posting;
@@ -47,6 +51,8 @@ namespace Kasir.Tests.Services
             _configRepo.Set("ACCOUNT_PRICE_VARIANCE", "5910");
             _configRepo.Set("ACCOUNT_PURCHASE_DISCOUNT", "4910");
             _configRepo.Set("ACCOUNT_VAT_IN", "1410");
+            // Post-cutover mode: receipts set products.cost_price, which stock-out/opname cost at.
+            _configRepo.Set(InventoryService.CostEngineOwnsCostPriceKey, "true");
 
             var accounts = new AccountRepository(_db);
             accounts.Insert(new Account { AccountCode = "1300", AccountName = "Persediaan", AccountGroup = 1, NormalBalance = "D", IsDetail = 1 });
@@ -516,7 +522,7 @@ namespace Kasir.Tests.Services
             Receive(10, 300000);
             _opname.CreateOpnameAdjustment(new List<OpnameLine>
             {
-                new OpnameLine { ProductCode = "P001", SystemQty = 10, PhysicalQty = 7 } // shortage 3
+                new OpnameLine { ProductCode = "P001", PhysicalQty = 7, CountTime = Counted } // shortage 3
             }, 1);
 
             _posting.PostStockAdjustments(Period).ErrorCount.Should().Be(0);
@@ -524,7 +530,7 @@ namespace Kasir.Tests.Services
 
             _opname.CreateOpnameAdjustment(new List<OpnameLine>
             {
-                new OpnameLine { ProductCode = "P001", SystemQty = 7, PhysicalQty = 8 } // surplus 1
+                new OpnameLine { ProductCode = "P001", PhysicalQty = 8, CountTime = Counted } // surplus 1
             }, 1);
             _posting.PostStockAdjustments(Period).ErrorCount.Should().Be(0);
 
@@ -540,7 +546,7 @@ namespace Kasir.Tests.Services
             Receive(10, 300000);
             _opname.CreateOpnameAdjustment(new List<OpnameLine>
             {
-                new OpnameLine { ProductCode = "P001", SystemQty = 10, PhysicalQty = 9 }
+                new OpnameLine { ProductCode = "P001", PhysicalQty = 9, CountTime = Counted }
             }, 1);
             _opname.CreateStockOut("DAMAGE", "TOKO",
                 new List<StockAdjustmentItem> { new StockAdjustmentItem { ProductCode = "P001", Quantity = 1 } }, 1);

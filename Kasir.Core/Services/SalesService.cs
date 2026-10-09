@@ -24,6 +24,7 @@ namespace Kasir.Services
 
         private readonly List<SaleItem> _currentItems;
         private readonly PendingSaleRepository _pendingRepo;
+        private readonly InactiveSaleLogRepository _inactiveLogRepo;
         private readonly string _draftKey;
         private string _currentShift;
         private string _cashierAlias;
@@ -43,6 +44,7 @@ namespace Kasir.Services
             _paymentCalc = new PaymentCalculator();
             _inventoryService = new InventoryService(db);
             _pendingRepo = new PendingSaleRepository(db);
+            _inactiveLogRepo = new InactiveSaleLogRepository(db);
             _clock = clock;
             _currentItems = new List<SaleItem>();
             _currentShift = "1";
@@ -113,15 +115,61 @@ namespace Kasir.Services
         public const string MiscProductCode = "1";
         public const string MiscProductName = "Barang Tanpa Kode";
 
+        // Category quick-key codes (ALAT LISTRIK, ALAT TULIS, PERABOT, PLASTIK, MAINAN,
+        // LAIN-LAIN). Like code "1" they are non-stock: sold by price, never tracked in
+        // stock_movements.
+        public static readonly IReadOnlySet<string> CategoryKeyCodes =
+            new HashSet<string>(StringComparer.Ordinal) { "AL", "AT", "PR", "PL", "MY", "LL" };
+
+        // Non-stock lines are derived from the product code, not a cart flag, because
+        // pending_sales only persists product_code: a crash-recovered cart must still be
+        // recognised as non-stock.
+        public static bool IsNonStockCode(string productCode)
+        {
+            return productCode == MiscProductCode || CategoryKeyCodes.Contains(productCode ?? "");
+        }
+
+        // Category quick keys in picker order (number 1-6 on the sale screen). Seeded as
+        // open-price products by Migration_013.
+        public static readonly IReadOnlyList<(string Code, string Name)> CategoryKeys = new[]
+        {
+            ("AL", "ALAT LISTRIK"), ("AT", "ALAT TULIS"), ("PR", "PERABOT"),
+            ("PL", "PLASTIK"), ("MY", "MAINAN"), ("LL", "LAIN-LAIN"),
+        };
+
+        // The category code a cashier typed ("al", " LL "), or null when it is not one.
+        public static string ResolveCategoryKey(string typed)
+        {
+            string code = (typed ?? "").Trim().ToUpperInvariant();
+            return CategoryKeyCodes.Contains(code) ? code : null;
+        }
+
         public SaleItem AddMiscItem(int qty, long unitPrice)
+        {
+            return AddMiscItem(qty, unitPrice, null);
+        }
+
+        // categoryCode null = plain code "1". Category lines only change the code (and so the
+        // department for sales-by-category); both carry COGS 0 = unknown cost (owner
+        // decision 2026-10-09: no estimated cost).
+        public SaleItem AddMiscItem(int qty, long unitPrice, string categoryCode)
         {
             if (qty <= 0) throw new ArgumentException("Qty harus > 0", nameof(qty));
             if (unitPrice <= 0) throw new ArgumentException("Harga harus > 0", nameof(unitPrice));
 
+            string code = MiscProductCode;
+            string name = MiscProductName;
+            if (categoryCode != null)
+            {
+                code = ResolveCategoryKey(categoryCode)
+                    ?? throw new ArgumentException("Kategori tidak dikenal: " + categoryCode, nameof(categoryCode));
+                name = _productRepo.GetByCode(code)?.Name ?? code;
+            }
+
             var item = new SaleItem
             {
-                ProductCode = MiscProductCode,
-                ProductName = MiscProductName,
+                ProductCode = code,
+                ProductName = name,
                 Quantity = qty,
                 UnitPrice = unitPrice,
                 Value = unitPrice * qty,
@@ -143,6 +191,9 @@ namespace Kasir.Services
             {
                 return null; // Product not found
             }
+
+            // Selling never blocks: an inactive product still sells, the scan is only logged.
+            if (product.Status == "I") LogInactiveScan(product.ProductCode);
 
             int effectiveQty = qty;
 
@@ -191,6 +242,25 @@ namespace Kasir.Services
             return item;
         }
 
+        // PR-K3: once per product per day. A logging failure (locked DB, missing table on
+        // a half-migrated register) must never stop a sale; the first one per process goes
+        // to crash.log so a permanently missing table is visible.
+        private static int _inactiveLogFailureLogged;
+
+        private void LogInactiveScan(string productCode)
+        {
+            try
+            {
+                _inactiveLogRepo.LogOnce(productCode, _clock.Now.ToString("yyyy-MM-dd"),
+                    _configRepo.Get("register_id") ?? "01");
+            }
+            catch (SqliteException ex)
+            {
+                if (System.Threading.Interlocked.Exchange(ref _inactiveLogFailureLogged, 1) == 0)
+                    CrashLog.Write("SalesService.LogInactiveScan", ex);
+            }
+        }
+
         public void RemoveItem(int index)
         {
             if (index >= 0 && index < _currentItems.Count)
@@ -206,6 +276,18 @@ namespace Kasir.Services
 
             var item = _currentItems[index];
             item.Quantity = newQty;
+
+            // Non-stock lines (code "1", category keys) keep their typed price and COGS 0;
+            // the product row has no real price or cost to re-resolve.
+            if (IsNonStockCode(item.ProductCode))
+            {
+                item.DiscPct = 0;
+                item.DiscValue = 0;
+                item.Value = item.UnitPrice * newQty;
+                item.Cogs = 0;
+                PersistCart();
+                return;
+            }
 
             var product = _productRepo.GetByCode(item.ProductCode);
             if (product != null)
@@ -359,13 +441,20 @@ namespace Kasir.Services
                     journalNo = _counterRepo.GetNext("KLR", registerId);
                     sale.JournalNo = journalNo;
 
-                    // COGS must use the weighted-average cost that the stock ledger uses,
-                    // not the master CostPrice, so the GL COGS matches the inventory ledger
+                    // COGS uses the perpetual moving-average cost (products.cost_price, kept
+                    // current by every stock-in) so the GL COGS matches the inventory ledger
                     // (F20/F40). Capture the per-unit cost once and use it for BOTH the
                     // stored line COGS and the stock-out movement.
                     var unitCosts = new List<long>(_currentItems.Count);
                     foreach (var item in _currentItems)
                     {
+                        // Non-stock lines keep COGS 0 (unknown cost); they have no stock
+                        // ledger to average.
+                        if (IsNonStockCode(item.ProductCode))
+                        {
+                            unitCosts.Add(0);
+                            continue;
+                        }
                         long avgCost = _inventoryService.CalculateAverageCost(item.ProductCode);
                         unitCosts.Add(avgCost);
                         item.Cogs = avgCost * item.Quantity;
@@ -377,6 +466,7 @@ namespace Kasir.Services
                     for (int i = 0; i < _currentItems.Count; i++)
                     {
                         var item = _currentItems[i];
+                        if (IsNonStockCode(item.ProductCode)) continue;
                         _inventoryService.RecordStockOut(
                             item.ProductCode,
                             item.Quantity,
@@ -436,6 +526,7 @@ namespace Kasir.Services
                     // stock permanently understated (F35).
                     foreach (var item in items)
                     {
+                        if (IsNonStockCode(item.ProductCode)) continue; // never stocked out
                         // item.Cogs is the line total (unit cost × qty); the movement needs the unit cost.
                         long unitCost = item.Quantity != 0 ? item.Cogs / item.Quantity : 0;
                         _inventoryService.RecordStockIn(

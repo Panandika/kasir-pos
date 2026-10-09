@@ -106,6 +106,7 @@ public partial class MainMenuView : UserControl, INavigationAware
             new TileSpec { Label = "Credit Card",      UnderlineIndex = 0, Hotkey = Key.C, Activate = () => NavigationService.Navigate(new CreditCardView(_userId)) },
             new TileSpec { Label = "Ganti Harga Jual", UnderlineIndex = 0, Hotkey = Key.G, Activate = () => NavigationService.Navigate(new PriceChangeView(_userId)) },
             new TileSpec { Label = "Stok Opname",      UnderlineIndex = 5, Hotkey = Key.O, Activate = () => NavigationService.Navigate(new OpnameView(_userId)) },
+            new TileSpec { Label = "Barang Masuk Cepat", UnderlineIndex = 7, Hotkey = Key.M, Activate = () => NavigationService.Navigate(new QuickProductView(_userId)) },
         },
         "Transaksi" => new[]
         {

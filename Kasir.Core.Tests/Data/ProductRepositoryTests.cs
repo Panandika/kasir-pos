@@ -43,6 +43,40 @@ namespace Kasir.Tests.Data
             };
         }
 
+        // Review LOW-8: a form opened before a stock-in and saved after it must not write
+        // its stale cost_price over the newer perpetual average.
+        [Test]
+        public void Update_WithoutCostPrice_KeepsStoredCostPrice()
+        {
+            var product = CreateTestProduct("P001", "MINYAK GORENG 2L", 3200000);
+            product.CostPrice = 1000;
+            product.Id = _repo.Insert(product);
+            var loaded = _repo.GetByCode("P001");
+
+            _repo.UpdateCostPrice("P001", 1500); // e.g. a purchase while the form was open
+
+            loaded.Name = "MINYAK GORENG 2L BARU";
+            _repo.Update(loaded, writeCostPrice: false);
+
+            var after = _repo.GetByCode("P001");
+            after.Name.Should().Be("MINYAK GORENG 2L BARU");
+            after.CostPrice.Should().Be(1500);
+        }
+
+        [Test]
+        public void Update_WithCostPrice_WritesCostPrice()
+        {
+            var product = CreateTestProduct("P001", "MINYAK GORENG 2L", 3200000);
+            product.CostPrice = 1000;
+            product.Id = _repo.Insert(product);
+            var loaded = _repo.GetByCode("P001");
+
+            loaded.CostPrice = 2500;
+            _repo.Update(loaded);
+
+            _repo.GetByCode("P001").CostPrice.Should().Be(2500);
+        }
+
         [Test]
         public void Insert_ValidProduct_ReturnsId()
         {
