@@ -24,6 +24,7 @@ namespace Kasir.Services
 
         private readonly List<SaleItem> _currentItems;
         private readonly PendingSaleRepository _pendingRepo;
+        private readonly InactiveSaleLogRepository _inactiveLogRepo;
         private readonly string _draftKey;
         private string _currentShift;
         private string _cashierAlias;
@@ -43,6 +44,7 @@ namespace Kasir.Services
             _paymentCalc = new PaymentCalculator();
             _inventoryService = new InventoryService(db);
             _pendingRepo = new PendingSaleRepository(db);
+            _inactiveLogRepo = new InactiveSaleLogRepository(db);
             _clock = clock;
             _currentItems = new List<SaleItem>();
             _currentShift = "1";
@@ -190,6 +192,9 @@ namespace Kasir.Services
                 return null; // Product not found
             }
 
+            // Selling never blocks: an inactive product still sells, the scan is only logged.
+            if (product.Status == "I") LogInactiveScan(product.ProductCode);
+
             int effectiveQty = qty;
 
             // Resolve price
@@ -235,6 +240,25 @@ namespace Kasir.Services
 
             AddAndPersist(item);
             return item;
+        }
+
+        // PR-K3: once per product per day. A logging failure (locked DB, missing table on
+        // a half-migrated register) must never stop a sale; the first one per process goes
+        // to crash.log so a permanently missing table is visible.
+        private static int _inactiveLogFailureLogged;
+
+        private void LogInactiveScan(string productCode)
+        {
+            try
+            {
+                _inactiveLogRepo.LogOnce(productCode, _clock.Now.ToString("yyyy-MM-dd"),
+                    _configRepo.Get("register_id") ?? "01");
+            }
+            catch (SqliteException ex)
+            {
+                if (System.Threading.Interlocked.Exchange(ref _inactiveLogFailureLogged, 1) == 0)
+                    CrashLog.Write("SalesService.LogInactiveScan", ex);
+            }
         }
 
         public void RemoveItem(int index)
