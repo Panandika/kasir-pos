@@ -19,15 +19,21 @@ namespace Kasir.CloudSync.Pull
     //   PURCHASE     product_code; qty > 0 (x100, stock unit = pcs, already converted
     //                from dus); unit_cost (x100 money per stock unit) required;
     //                vendor_code; doc_no = receipt number (required, shared by the lines
-    //                of one receipt); payload.po_no (optional) -> purchase_items.order_ref.
+    //                of one receipt); payload.po_no or payload.po_doc_no (what dashboard
+    //                0059 validate_receipt writes; optional) -> purchase_items.order_ref.
     //   RETURN_OUT   product_code; qty > 0 (x100); unit_cost (x100, NULL = local
     //                average); vendor_code; doc_no = return number (required);
-    //                payload.ref_no (optional, the receipt returned against).
+    //                payload.ref_no or payload.original_doc_no (0059 validate_return;
+    //                optional, the receipt returned against).
     //   VENDOR_BILL  vendor_code (required); doc_no = bill number (required);
-    //                payload.amount (x100, required) total payable; payload.gross_amount,
+    //                payload.amount or payload.total (0059 post_vendor_bill writes total;
+    //                x100, required) total payable; payload.gross_amount,
     //                payload.disc_amount (x100, optional); payload.due_date and
     //                payload.bill_date ('YYYY-MM-DD', optional; bill_date defaults to the
     //                WIB date of happened_at); payload.vendor_invoice_no (optional).
+    //                payload.bill_type 'credit_note' (+ payload.reverses_doc_no, the bill
+    //                it reverses) lowers that bill's payables_register value by the total
+    //                instead of adding a payable; it waits until the bill is applied.
     //   PRODUCT_STATUS product_code; payload.status 'A' | 'I' | 'D' (default 'A').
     //   NEW_PRODUCT  product_code (dashboard 'NP' code, OB-10); payload.name (required);
     //                payload.dept_code, unit, price, buying_price, cost_price (x100),

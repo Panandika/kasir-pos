@@ -223,7 +223,9 @@ namespace Kasir.CloudSync.Pull
             var payload = Payload(r);
 
             EnsurePurchaseHeader(r, journalNo, "RECEIPT", docDate, null);
-            AddPurchaseLine(journalNo, product.ProductCode, qty, unitCost, Str(payload, "po_no"));
+            // Dashboard 0059 validate_receipt writes po_doc_no; po_no is the documented alias.
+            AddPurchaseLine(journalNo, product.ProductCode, qty, unitCost,
+                Str(payload, "po_no") ?? Str(payload, "po_doc_no"));
 
             // PR-K1 moving average runs inside RecordStockIn (when the cost engine owns cost_price).
             _inventory.RecordStockIn(product.ProductCode, qty, unitCost, "PURCHASE", journalNo, docDate,
@@ -242,8 +244,11 @@ namespace Kasir.CloudSync.Pull
             string docDate = DocDate(at);
             var payload = Payload(r);
 
-            EnsurePurchaseHeader(r, journalNo, "PURCHASE_RETURN", docDate, Str(payload, "ref_no"));
-            AddPurchaseLine(journalNo, product.ProductCode, qty, unitCost, Str(payload, "ref_no"));
+            // Dashboard 0059 validate_return writes original_doc_no (the receipt returned
+            // against); ref_no is the documented alias.
+            string refNo = Str(payload, "ref_no") ?? Str(payload, "original_doc_no");
+            EnsurePurchaseHeader(r, journalNo, "PURCHASE_RETURN", docDate, refNo);
+            AddPurchaseLine(journalNo, product.ProductCode, qty, unitCost, refNo);
 
             // A return never changes the average (RecordStockOut), as in PurchasingService.
             _inventory.RecordStockOut(product.ProductCode, qty, unitCost, "RETURN_OUT", journalNo, docDate,
@@ -328,7 +333,11 @@ namespace Kasir.CloudSync.Pull
             string vendor = (r.VendorCode ?? "").Trim();
             if (vendor.Length == 0) throw Invalid(r, "vendor_code is required");
             var payload = Payload(r);
-            long amount = Long(payload, "amount") ?? throw Invalid(r, "payload.amount (x100) is required");
+            if (string.Equals(Str(payload, "bill_type"), "credit_note", StringComparison.OrdinalIgnoreCase))
+                return ApplyCreditNote(r, journalNo, vendor, payload);
+            // Dashboard 0059 post_vendor_bill writes total; amount is the documented alias.
+            long amount = Long(payload, "amount") ?? Long(payload, "total")
+                ?? throw Invalid(r, "payload.amount (x100) is required");
             long gross = Long(payload, "gross_amount") ?? amount;
             long disc = Long(payload, "disc_amount") ?? 0;
             string billDate = Date(r, payload, "bill_date") ?? DocDate(Wib(r.HappenedAt));
@@ -360,6 +369,47 @@ namespace Kasir.CloudSync.Pull
                 SqlHelper.Param("@ref", Truncate(Str(payload, "vendor_invoice_no") ?? "", 15)),
                 SqlHelper.Param("@remark", "Tagihan dashboard"),
                 SqlHelper.Param("@disc", disc),
+                SqlHelper.Param("@id", id));
+            return journalNo;
+        }
+
+        // A posted dashboard credit note (bill_type 'credit_note', payload.total > 0)
+        // lowers what the hub owes on the bill it reverses (payload.reverses_doc_no),
+        // the way dashboard_payables books it as a negative amount. It never adds a
+        // payable of its own. The original bill must be applied first (it always is:
+        // a credit note is posted after its bill, and the pull runs in created_at
+        // order); until then the request waits.
+        private string ApplyCreditNote(PosStockRequest r, string journalNo, string vendor, JObject payload)
+        {
+            long credit = Long(payload, "amount") ?? Long(payload, "total")
+                ?? throw Invalid(r, "payload.total (x100) is required");
+            if (credit <= 0) throw Invalid(r, "credit note total must be > 0");
+            string reverses = Str(payload, "reverses_doc_no") ?? throw Invalid(r, "payload.reverses_doc_no is required");
+
+            long id = SqlHelper.ExecuteScalar<long>(_db,
+                "SELECT COALESCE(MAX(id), 0) FROM payables_register WHERE journal_no = @jnl AND sub_code = @sub",
+                SqlHelper.Param("@jnl", reverses), SqlHelper.Param("@sub", vendor));
+            if (id == 0)
+                throw new PosRequestApplyException(Describe(r) + ": bill " + reverses + " not in payables_register yet", deferred: true);
+
+            // Same credit note already booked (e.g. a restored DB whose applied_requests is older).
+            string marker = "NK " + journalNo;
+            string remark = SqlHelper.ExecuteScalar<string>(_db,
+                "SELECT COALESCE(remark, '') FROM payables_register WHERE id = @id", SqlHelper.Param("@id", id)) ?? "";
+            if (remark.Contains(marker)) return journalNo;
+
+            SqlHelper.ExecuteNonQuery(_db,
+                @"UPDATE payables_register
+                  SET value = value - @credit,
+                      gross_amount = MAX(COALESCE(gross_amount, 0) - @credit, 0),
+                      is_paid = CASE WHEN COALESCE(payment_amount, 0) >= value - @credit THEN 'Y' ELSE is_paid END,
+                      remark = @remark,
+                      changed_by = @by,
+                      changed_at = datetime('now','localtime')
+                  WHERE id = @id",
+                SqlHelper.Param("@credit", credit),
+                SqlHelper.Param("@remark", Truncate((remark.Length > 0 ? remark + "; " : "") + marker, 60)),
+                SqlHelper.Param("@by", PullUserId),
                 SqlHelper.Param("@id", id));
             return journalNo;
         }

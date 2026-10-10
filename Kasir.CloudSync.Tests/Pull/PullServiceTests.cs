@@ -323,6 +323,93 @@ namespace Kasir.CloudSync.Tests.Pull
             Scalar("SELECT COUNT(*) FROM applied_requests").Should().Be(0);
         }
 
+        // ---------- payloads exactly as dashboard 0059 writes them (WP-11b) ----------
+
+        private PosStockRequest DashboardBill(string id, string docNo, long total, string billType = "bill",
+            string reverses = null, int hour = 12) =>
+            _source.Add(new PosStockRequest
+            {
+                RequestKind = "VENDOR_BILL", IdempotencyKey = "VENDOR_BILL:" + id, VendorCode = "V001", DocNo = docNo,
+                // post_vendor_bill: bill_id, bill_type, vendor_invoice_no, faktur_pajak_no, bill_date,
+                // due_date, subtotal, tax_amount, total, reverses_doc_no (no "amount").
+                PayloadJson = "{\"bill_id\":\"" + id + "\",\"bill_type\":\"" + billType + "\",\"vendor_invoice_no\":\"INV-" + id + "\"," +
+                              "\"faktur_pajak_no\":null,\"bill_date\":\"2026-10-09\",\"due_date\":\"2026-11-08\"," +
+                              "\"subtotal\":" + total + ",\"tax_amount\":0,\"total\":" + total + "," +
+                              "\"reverses_doc_no\":" + (reverses == null ? "null" : "\"" + reverses + "\"") + "}",
+                HappenedAt = At(hour), CreatedAt = At(hour)
+            });
+
+        [Test]
+        public async Task dashboard_vendor_bill_payload_with_total_is_applied()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 3005000);
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            var ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(3005000);
+            ap.GrossAmount.Should().Be(3005000);
+            ap.DueDate.Should().Be("2026-11-08");
+            Text("SELECT ref FROM payables_register").Should().Be("INV-b1");
+        }
+
+        [Test]
+        public async Task dashboard_credit_note_lowers_the_bill_it_reverses_and_adds_no_payable()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 3005000);
+            var cn = DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            _source.RowOf(cn.Id).AppliedAt = null; // replay
+            await _pull.TickAsync(CancellationToken.None);
+
+            Scalar("SELECT COUNT(*) FROM payables_register").Should().Be(1, "a credit note is not a payable of its own");
+            new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001").Amount.Should().Be(2445000);
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(2445000);
+            Text("SELECT remark FROM payables_register").Should().Be("Tagihan dashboard; NK DCN-2610-0001");
+        }
+
+        [Test]
+        public async Task dashboard_credit_note_before_its_bill_waits()
+        {
+            var cn = DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0009");
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+
+            _pull.LastResult.Failed.Should().Equal(cn.Id);
+            _source.RowOf(cn.Id).AppliedAt.Should().BeNull();
+            Scalar("SELECT COUNT(*) FROM applied_requests").Should().Be(0);
+        }
+
+        [Test]
+        public async Task dashboard_receipt_and_return_payload_keys_fill_order_ref_and_ref_no()
+        {
+            SeedStock("P001", 1000);
+            _source.Add(new PosStockRequest
+            {
+                RequestKind = "PURCHASE", IdempotencyKey = "PURCHASE:rl-1", ProductCode = "P001", Qty = 600, UnitCost = 280000,
+                VendorCode = "V001", DocNo = "DRC-2610-0001",
+                PayloadJson = "{\"receipt_id\":\"r1\",\"receipt_line_id\":\"rl-1\",\"po_line_id\":\"pl-1\"," +
+                              "\"po_doc_no\":\"DPO-2610-0001\",\"delivery_note\":null}",
+                HappenedAt = At(10), CreatedAt = At(10)
+            });
+            _source.Add(new PosStockRequest
+            {
+                RequestKind = "RETURN_OUT", IdempotencyKey = "RETURN_OUT:rt-1", ProductCode = "P001", Qty = 200, UnitCost = 280000,
+                VendorCode = "V001", DocNo = "DRT-2610-0001",
+                PayloadJson = "{\"return_id\":\"t1\",\"return_line_id\":\"rt-1\",\"original_line\":\"rl-1\"," +
+                              "\"original_doc_no\":\"DRC-2610-0001\",\"to_refund\":true}",
+                HappenedAt = At(11), CreatedAt = At(11)
+            });
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+
+            Text("SELECT order_ref FROM purchase_items WHERE journal_no = 'DRC-2610-0001'").Should().Be("DPO-2610-0001");
+            Text("SELECT ref_no FROM purchases WHERE journal_no = 'DRT-2610-0001'").Should().Be("DRC-2610-0001");
+            Text("SELECT order_ref FROM purchase_items WHERE journal_no = 'DRT-2610-0001'").Should().Be("DRC-2610-0001");
+            OnHand("P001").Should().Be(1400);
+        }
+
         [Test]
         public async Task product_status_activates_an_inactive_product()
         {
