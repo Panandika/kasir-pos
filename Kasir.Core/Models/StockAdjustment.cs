@@ -29,6 +29,15 @@ namespace Kasir.Models
         public string ProductName { get; set; }
         public string DocDate { get; set; }
         public string DocType { get; set; }
+        public string LegacySource { get; set; }
+
+        // Quantity scale: opname lines keep the ledger qty (x100, StockQty), from the POS
+        // opname and the dashboard pull alike, and the FoxPro OTDTL import ('SM') is
+        // x100 too. POS stock-outs (usage/damage/loss) hold plain units.
+        public bool IsLedgerQty
+        {
+            get { return DocType == "OPNAME" || LegacySource == "SM"; }
+        }
     }
 
     public class OpnameReportRow

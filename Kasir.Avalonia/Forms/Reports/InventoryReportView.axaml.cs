@@ -179,7 +179,7 @@ public partial class InventoryReportView : UserControl
                 item.DocType,
                 item.ProductCode,
                 item.ProductName,
-                item.Quantity.ToString(),
+                item.IsLedgerQty ? StockQty.Format(item.Quantity) : item.Quantity.ToString(),
                 Formatting.FormatCurrencyShort(item.CostPrice),
                 Formatting.FormatCurrencyShort(item.Value),
                 item.Reason ?? ""));
