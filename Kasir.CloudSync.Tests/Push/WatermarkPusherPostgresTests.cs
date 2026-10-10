@@ -21,7 +21,7 @@ using NUnit.Framework;
 namespace Kasir.CloudSync.Tests.Push
 {
     // WP-02 acceptance against a real (LOCAL) Supabase Postgres: a POS sale ends up as
-    // a stock_movements row with x100 qty and the WIB instant; replay adds nothing;
+    // a stock_movements row with x100 qty and the store-time (WITA) instant; replay adds nothing;
     // the watermark advances; a colliding legacy id is not overwritten.
     //
     // [Explicit]: needs a LOCAL database, e.g. `supabase start` in sinar-makmur-dashboard:
@@ -130,7 +130,7 @@ namespace Kasir.CloudSync.Tests.Push
             new WatermarkPusher(_db, new GenericSink(_sinkConn), NullLogger<WatermarkPusher>.Instance);
 
         [Test]
-        public async Task PosSale_ReachesSupabase_WithWibTime_AndX100Qty()
+        public async Task PosSale_ReachesSupabase_WithStoreTime_AndX100Qty()
         {
             var sale = Sell(2);
 
@@ -142,10 +142,10 @@ namespace Kasir.CloudSync.Tests.Push
                 .Should().Be(200L);
             (await CloudScalar($"SELECT val_out FROM stock_movements WHERE journal_no = '{sale.JournalNo}'"))
                 .Should().Be(3600000L);
-            (await CloudScalar($"SELECT to_char(created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') FROM stock_movements WHERE journal_no = '{sale.JournalNo}'"))
-                .Should().Be("2026-10-09 15:00:00", "the WIB wall clock survives the round trip");
+            (await CloudScalar($"SELECT to_char(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD HH24:MI:SS') FROM stock_movements WHERE journal_no = '{sale.JournalNo}'"))
+                .Should().Be("2026-10-09 15:00:00", "the WITA wall clock survives the round trip");
             (await CloudScalar($"SELECT to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') FROM stock_movements WHERE journal_no = '{sale.JournalNo}'"))
-                .Should().Be("2026-10-09 08:00:00");
+                .Should().Be("2026-10-09 07:00:00");
         }
 
         [Test]

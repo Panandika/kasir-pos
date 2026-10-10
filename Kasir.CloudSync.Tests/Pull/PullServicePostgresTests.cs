@@ -129,7 +129,7 @@ namespace Kasir.CloudSync.Tests.Pull
         public async Task OpnameRequest_CreatesMovementAboveTheFloor_AndIsMarkedApplied()
         {
             await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, doc_no, happened_at)
-                       VALUES ('OPNAME', 'OPNAME:sess:P001', 'P001', 4800, NULL, 'OPN-DB-OKT26', '2026-10-09 09:00:00+07')");
+                       VALUES ('OPNAME', 'OPNAME:sess:P001', 'P001', 4800, NULL, 'OPN-DB-OKT26', '2026-10-09 09:00:00+08')");
 
             (await Pull().TickAsync(CancellationToken.None)).Should().Be(1);
 
@@ -168,9 +168,9 @@ namespace Kasir.CloudSync.Tests.Pull
         public async Task SqlOrder_PutsNewProductFirst_AndOtherRegistersAreSkipped()
         {
             await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, vendor_code, doc_no, created_at)
-                       VALUES ('PURCHASE', 'PURCHASE:np', 'NP0001', 500, 250000, 'V001', 'RCV-2', '2026-10-09 10:00:00+07');
+                       VALUES ('PURCHASE', 'PURCHASE:np', 'NP0001', 500, 250000, 'V001', 'RCV-2', '2026-10-09 10:00:00+08');
                        INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, payload, created_at)
-                       VALUES ('NEW_PRODUCT', 'NEW_PRODUCT:NP0001', 'NP0001', '{""name"":""Lampu""}', '2026-10-09 10:00:00+07');
+                       VALUES ('NEW_PRODUCT', 'NEW_PRODUCT:NP0001', 'NP0001', '{""name"":""Lampu""}', '2026-10-09 10:00:00+08');
                        INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, payload, target_register)
                        VALUES ('PRODUCT_STATUS', 'PRODUCT_STATUS:P001', 'P001', '{""status"":""I""}', 'KLR-02');");
 
@@ -201,7 +201,7 @@ namespace Kasir.CloudSync.Tests.Pull
             await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, vendor_code, doc_no, payload)
                        VALUES ('PURCHASE', 'PURCHASE:ns-1', 'AL', 100, 500000, 'V001', 'RCV-NS', '{""po_no"":""PO-9""}');
                        INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, doc_no, happened_at)
-                       VALUES ('OPNAME', 'OPNAME:sess:44', '44', 300, 'OPN-DB-OKT26', '2026-10-09 09:00:00+07');");
+                       VALUES ('OPNAME', 'OPNAME:sess:44', '44', 300, 'OPN-DB-OKT26', '2026-10-09 09:00:00+08');");
 
             var pull = Pull();
             (await pull.TickAsync(CancellationToken.None)).Should().Be(0);

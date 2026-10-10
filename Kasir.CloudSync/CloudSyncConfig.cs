@@ -46,6 +46,12 @@ namespace Kasir.CloudSync
         public bool PullEnabled { get; set; } = true;
         public int PullBatchSize { get; set; } = 200;
 
+        // Store time zone (D26): registers write store wall-clock text, so CloudSync
+        // reads and writes timestamps at this zone's offset. IANA id, default
+        // Asia/Makassar (WITA, UTC+08:00). Applied once at startup (StoreTimeZone).
+        // Keep in step with the dashboard's public.store_tz().
+        public string StoreTimeZone { get; set; } = Kasir.CloudSync.StoreTimeZone.DefaultId;
+
         // Parsed OutboxTables; null = no restriction ("*").
         public System.Collections.Generic.IReadOnlyCollection<string> OutboxTableList()
         {

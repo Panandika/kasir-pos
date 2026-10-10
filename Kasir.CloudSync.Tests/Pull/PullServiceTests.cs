@@ -26,7 +26,7 @@ namespace Kasir.CloudSync.Tests.Pull
     [TestFixture]
     public class PullServiceTests
     {
-        private static readonly TimeSpan Wib = TimeSpan.FromHours(7);
+        private static readonly TimeSpan Wita = TimeSpan.FromHours(8);
         private const long Floor = 5_000_000_000L;
 
         private SqliteConnection _db;
@@ -94,7 +94,7 @@ namespace Kasir.CloudSync.Tests.Pull
         private int OnHand(string code) => new InventoryService(_db).GetStockOnHand(code);
 
         private static DateTimeOffset At(int hour, int minute = 0) =>
-            new DateTimeOffset(2026, 10, 9, hour, minute, 0, Wib);
+            new DateTimeOffset(2026, 10, 9, hour, minute, 0, Wita);
 
         private PosStockRequest Opname(string code, int counted, DateTimeOffset countedAt, long? unitCost = null,
             DateTimeOffset? createdAt = null) =>

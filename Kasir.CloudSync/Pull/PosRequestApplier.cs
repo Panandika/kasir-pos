@@ -51,8 +51,8 @@ namespace Kasir.CloudSync.Pull
     // CalculateAverageCost for OPNAME cost (OB-14, StockOpnameService pattern).
     //
     // Every movement gets an id from the dashboard range (>= 5,000,000,000, OB-13;
-    // config pull_movement_id_seq) and is stamped at the request's happened_at (WIB
-    // wall clock), so later count-time comparisons and the cloud push filter
+    // config pull_movement_id_seq) and is stamped at the request's happened_at (store
+    // wall clock, WITA), so later count-time comparisons and the cloud push filter
     // (WatermarkPusher skips id >= floor, PV-3) both see it correctly.
     public sealed class PosRequestApplier
     {
@@ -155,7 +155,7 @@ namespace Kasir.CloudSync.Pull
             int counted = r.Qty ?? throw Invalid(r, "qty (counted qty x100) is required");
             if (counted < 0) throw Invalid(r, "counted qty must be >= 0");
 
-            DateTime countAt = Wib(r.HappenedAt);
+            DateTime countAt = StoreWallClock(r.HappenedAt);
             // PR-K6: the shelf was seen at countAt; movements written after it (sales,
             // receipts) happened on top of the counted qty.
             var since = _movements.GetMovementsSince(product.ProductCode, countAt);
@@ -233,7 +233,7 @@ namespace Kasir.CloudSync.Pull
             long unitCost = r.UnitCost ?? throw Invalid(r, "unit_cost (x100 per stock unit) is required");
             if (unitCost < 0) throw Invalid(r, "unit_cost must be >= 0");
             string journalNo = RequireDocNo(r);
-            DateTime at = Wib(r.HappenedAt);
+            DateTime at = StoreWallClock(r.HappenedAt);
             string docDate = DocDate(at);
             var payload = Payload(r);
 
@@ -255,7 +255,7 @@ namespace Kasir.CloudSync.Pull
             long unitCost = r.UnitCost ?? _inventory.CalculateAverageCost(product.ProductCode);
             if (unitCost < 0) throw Invalid(r, "unit_cost must be >= 0");
             string journalNo = RequireDocNo(r);
-            DateTime at = Wib(r.HappenedAt);
+            DateTime at = StoreWallClock(r.HappenedAt);
             string docDate = DocDate(at);
             var payload = Payload(r);
 
@@ -355,7 +355,7 @@ namespace Kasir.CloudSync.Pull
                 ?? throw Invalid(r, "payload.amount (x100) is required");
             long gross = Long(payload, "gross_amount") ?? amount;
             long disc = Long(payload, "disc_amount") ?? 0;
-            string billDate = Date(r, payload, "bill_date") ?? DocDate(Wib(r.HappenedAt));
+            string billDate = Date(r, payload, "bill_date") ?? DocDate(StoreWallClock(r.HappenedAt));
             string dueDate = Date(r, payload, "due_date");
 
             // payables_register has no unique key; the same bill already there (e.g. a
@@ -530,11 +530,11 @@ namespace Kasir.CloudSync.Pull
 
         private string RegisterId() => _config.Get("register_id") ?? "01";
 
-        // Register wall clock (WIB) of an instant; the POS writes local time everywhere.
-        internal static DateTime Wib(DateTimeOffset at) =>
-            DateTime.SpecifyKind(at.ToOffset(DateParser.Wib).DateTime, DateTimeKind.Unspecified);
+        // Register wall clock (store time, StoreTimeZone) of an instant; the POS writes
+        // local time everywhere.
+        internal static DateTime StoreWallClock(DateTimeOffset at) => StoreTimeZone.WallClock(at);
 
-        private static string DocDate(DateTime wib) => wib.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        private static string DocDate(DateTime wallClock) => wallClock.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         private static string Period(string docDate) => docDate.Substring(0, 4) + docDate.Substring(5, 2);
 

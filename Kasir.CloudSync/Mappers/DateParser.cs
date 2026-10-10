@@ -11,16 +11,14 @@ namespace Kasir.CloudSync.Mappers
     // prefer NULL to garbage.
     //
     // Time zone: the POS writes wall-clock text with datetime('now','localtime')
-    // on a register that runs in WIB (Asia/Jakarta, UTC+07:00, no DST). A value
-    // with no offset is therefore WIB, not UTC. Treating it as UTC (the old
-    // AssumeUniversal) put every mirrored timestamp 7 hours late, which breaks
-    // the dashboard's exact-time opname rule (D11). A value that carries its own
-    // offset ('Z' or '+07:00', e.g. from a snapshot round trip) keeps it.
+    // on registers that run on store time: WITA (Asia/Makassar, UTC+08:00, no DST,
+    // D26), set by StoreTimeZone. A value with no offset is therefore store time,
+    // not UTC. Treating it as UTC (the old AssumeUniversal) put every mirrored
+    // timestamp hours late, which breaks the dashboard's exact-time opname rule
+    // (D11). A value that carries its own offset ('Z' or '+08:00', e.g. from a
+    // snapshot round trip) keeps it.
     public static class DateParser
     {
-        // Fixed offset rather than a TimeZoneInfo lookup: Indonesia has no DST and
-        // the zone id differs between Windows ("SE Asia Standard Time") and Unix.
-        public static readonly TimeSpan Wib = TimeSpan.FromHours(7);
 
         private static readonly string[] AllowedFormats = new[]
         {
@@ -61,9 +59,8 @@ namespace Kasir.CloudSync.Mappers
 
             if (HasExplicitOffset(raw)) return parsed.ToUniversalTime();
 
-            // No offset in the text: the wall clock is WIB.
-            var wallClock = DateTime.SpecifyKind(parsed.DateTime, DateTimeKind.Unspecified);
-            return new DateTimeOffset(wallClock, Wib).ToUniversalTime();
+            // No offset in the text: the wall clock is store time.
+            return StoreTimeZone.FromWallClock(parsed.DateTime).ToUniversalTime();
         }
 
         internal static bool HasExplicitOffset(string raw)

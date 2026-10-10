@@ -55,7 +55,7 @@ namespace Kasir.CloudSync.Tests.E2E
     public class CrossRepoPostgresTests
     {
         private const long Floor = 5_000_000_000L;
-        private static readonly TimeSpan WibOffset = TimeSpan.FromHours(7);
+        private static readonly TimeSpan StoreOffset = TimeSpan.FromHours(8); // WITA (D26)
 
         private string _pg;
         private DashboardApi _api;
@@ -274,7 +274,7 @@ namespace Kasir.CloudSync.Tests.E2E
             await Task.Delay(1500);               // the sale is strictly later (seconds on the POS clock)
             var sale = Sell(b, 2);                 // 2 sold before "Terapkan"
 
-            // The push carries the sale to Supabase, x100 and at its WIB time.
+            // The push carries the sale to Supabase, x100 and at its store (WITA) time.
             (await _worker.TickAsync(CancellationToken.None)).Should().BeTrue();
             var cloudSale = await PgRow(@"SELECT id, qty_out, created_at FROM public.stock_movements
                                           WHERE product_code = @p AND journal_no = @j", ("@p", b), ("@j", sale.JournalNo));
@@ -494,22 +494,22 @@ namespace Kasir.CloudSync.Tests.E2E
 
         // ------------------------------------------------------------------ POS helpers
 
-        private sealed class WibClock : IClock
+        private sealed class StoreClock : IClock
         {
             public DateTime Now { get; set; }
-            public DateTime UtcNow => Now.AddHours(-7);
+            public DateTime UtcNow => Now - StoreOffset;
         }
 
-        // A sale at the register's wall clock (WIB) right now.
+        // A sale at the register's wall clock (WITA) right now.
         private Sale Sell(string product, int units)
         {
-            var now = DateTimeOffset.UtcNow.ToOffset(WibOffset).DateTime;
+            var now = DateTimeOffset.UtcNow.ToOffset(StoreOffset).DateTime;
             now = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second);
-            var sales = new SalesService(_db, new WibClock { Now = now });
+            var sales = new SalesService(_db, new StoreClock { Now = now });
             sales.SetCashier("ADM", 1);
             sales.AddItem(product, units);
             var sale = sales.CompleteSale(100000000, 0, 0, "", "", "");
-            // The movement row takes SQLite localtime by default; pin it to the WIB clock
+            // The movement row takes SQLite localtime by default; pin it to the WITA clock
             // so the test does not depend on the machine's time zone.
             string ts = now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
             Exec($"UPDATE stock_movements SET created_at = '{ts}', changed_at = '{ts}' WHERE journal_no = '{sale.JournalNo}'");

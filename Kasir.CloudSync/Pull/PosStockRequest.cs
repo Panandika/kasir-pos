@@ -30,7 +30,7 @@ namespace Kasir.CloudSync.Pull
     //                x100, required) total payable; payload.gross_amount,
     //                payload.disc_amount (x100, optional); payload.due_date and
     //                payload.bill_date ('YYYY-MM-DD', optional; bill_date defaults to the
-    //                WIB date of happened_at); payload.vendor_invoice_no (optional).
+    //                store-time (WITA) date of happened_at); payload.vendor_invoice_no (optional).
     //                payload.bill_type 'credit_note' (+ payload.reverses_doc_no, the bill
     //                it reverses) lowers that bill's payables_register value by the total
     //                instead of adding a payable; it waits until the bill is applied.

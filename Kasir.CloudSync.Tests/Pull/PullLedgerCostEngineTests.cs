@@ -22,7 +22,7 @@ namespace Kasir.CloudSync.Tests.Pull
     [TestFixture]
     public class PullLedgerCostEngineTests
     {
-        private static readonly TimeSpan Wib = TimeSpan.FromHours(7);
+        private static readonly TimeSpan Wita = TimeSpan.FromHours(8);
 
         private SqliteConnection _db;
         private PosRequestApplier _applier;
@@ -59,7 +59,7 @@ namespace Kasir.CloudSync.Tests.Pull
             _db.Dispose();
         }
 
-        private static DateTimeOffset At(int hour) => new DateTimeOffset(2026, 10, 9, hour, 0, 0, Wib);
+        private static DateTimeOffset At(int hour) => new DateTimeOffset(2026, 10, 9, hour, 0, 0, Wita);
 
         private long Cost() => _products.GetByCode("P001").CostPrice;
         private int OnHand() => new InventoryService(_db).GetStockOnHand("P001");

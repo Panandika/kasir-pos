@@ -22,7 +22,7 @@ namespace Kasir.CloudSync.Tests.Pull
     [TestFixture]
     public class PullNonStockTests
     {
-        private static readonly TimeSpan Wib = TimeSpan.FromHours(7);
+        private static readonly TimeSpan Wita = TimeSpan.FromHours(8);
 
         private SqliteConnection _db;
         private InMemoryPosRequestSource _source;
@@ -63,7 +63,7 @@ namespace Kasir.CloudSync.Tests.Pull
 
         private long Scalar(string sql) => SqlHelper.ExecuteScalar<long>(_db, sql);
 
-        private static DateTimeOffset At(int hour) => new DateTimeOffset(2026, 10, 10, hour, 0, 0, Wib);
+        private static DateTimeOffset At(int hour) => new DateTimeOffset(2026, 10, 10, hour, 0, 0, Wita);
 
         private PosStockRequest Add(string kind, string key, string code, int qty, long? unitCost = 500000,
             string doc = "RCV-NS-1", int hour = 9) =>
