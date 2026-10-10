@@ -31,11 +31,35 @@ namespace Kasir.CloudSync.Sinks
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync(ct).ConfigureAwait(false);
 
+            // One statement may not touch the same product_code twice: Postgres
+            // rejects it with 21000 ("ON CONFLICT DO UPDATE command cannot affect
+            // row a second time"). A product inserted then edited before the
+            // cloud tick has two queue rows, so collapse to one row per key.
+            var rows = DedupeByProductCode(products);
+
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = BuildUpsertSql(products.Count);
-            BindParameters(cmd, products);
+            cmd.CommandText = BuildUpsertSql(rows.Count);
+            BindParameters(cmd, rows);
 
             return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        // Keeps the LAST row per product_code (the newest queue entry wins) and
+        // preserves the order keys first appeared in. Internal for tests.
+        internal static IReadOnlyCollection<Product> DedupeByProductCode(IReadOnlyCollection<Product> products)
+        {
+            var order = new List<string>();
+            var latest = new Dictionary<string, Product>(System.StringComparer.Ordinal);
+            foreach (var p in products)
+            {
+                if (!latest.ContainsKey(p.ProductCode)) order.Add(p.ProductCode);
+                latest[p.ProductCode] = p;
+            }
+            if (order.Count == products.Count) return products;
+
+            var result = new List<Product>(order.Count);
+            foreach (var key in order) result.Add(latest[key]);
+            return result;
         }
 
         // Internal so tests can assert the generated SQL without requiring a
@@ -70,10 +94,15 @@ namespace Kasir.CloudSync.Sinks
             }
 
             sb.Append(" ON CONFLICT (product_code) DO UPDATE SET ");
+            // product_code is column 0 and is skipped, so the separator must key
+            // off "already wrote an assignment", not the column index — otherwise
+            // the SET list starts with ", name = ..." and Postgres rejects it (42601).
+            bool firstAssignment = true;
             for (int c = 0; c < columns.Length; c++)
             {
                 if (columns[c] == "product_code") continue;
-                if (c > 0) sb.Append(", ");
+                if (!firstAssignment) sb.Append(", ");
+                firstAssignment = false;
                 sb.Append(columns[c]).Append(" = EXCLUDED.").Append(columns[c]);
             }
             sb.Append(';');

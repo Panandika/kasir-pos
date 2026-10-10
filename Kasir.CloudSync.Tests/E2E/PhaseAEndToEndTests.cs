@@ -57,7 +57,15 @@ namespace Kasir.CloudSync.Tests.E2E
             {
                 await conn.OpenAsync();
                 await using var cmd = conn.CreateCommand();
-                cmd.CommandText = "TRUNCATE products; " + ddl;
+                // The target may be the full dashboard schema (local Supabase),
+                // where product_barcodes, sale_items, planogram_slot and
+                // dashboard_new_products all hold FKs to products, so a plain
+                // TRUNCATE is rejected (0A000). CASCADE clears the dependents
+                // too. Guarded by to_regclass so a bare Postgres container
+                // (products not yet created) still works before the DDL runs.
+                cmd.CommandText =
+                    "DO $$ BEGIN IF to_regclass('public.products') IS NOT NULL THEN " +
+                    "EXECUTE 'TRUNCATE public.products CASCADE'; END IF; END $$; " + ddl;
                 await cmd.ExecuteNonQueryAsync();
             }
         }
@@ -73,8 +81,10 @@ namespace Kasir.CloudSync.Tests.E2E
         public async Task Insert_In_SQLite_Appears_In_Postgres_Within_60s()
         {
             Exec("INSERT INTO departments (dept_code, name) VALUES ('D1','Dept 1');");
-            Exec(@"INSERT INTO products (product_code, name, barcode, dept_code, unit, price, buying_price)
-                   VALUES ('E2E-001','E2E Test Product','8901234','D1','pcs',150000,100000);");
+            // products.barcode was dropped from the source schema (barcodes live
+            // in product_barcodes, which is not cloud-synced; see 913d2ec).
+            Exec(@"INSERT INTO products (product_code, name, dept_code, unit, price, buying_price)
+                   VALUES ('E2E-001','E2E Test Product','D1','pcs',150000,100000);");
             // The Schema.sql trigger enqueues the row with status='pending'.
             // The cloud worker requires status='synced', so mark it synced
             // (simulating LAN push completion).
