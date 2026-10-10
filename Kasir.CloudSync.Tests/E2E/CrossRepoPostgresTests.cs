@@ -427,6 +427,14 @@ namespace Kasir.CloudSync.Tests.E2E
                 "the credit note reduces the payable (dashboard_payables: bill + negative credit note)");
             (await Pg("SELECT sum(amount) FROM public.dashboard_payables WHERE vendor_code = @v", ("@v", _vendor)))
                 .Should().Be(billTotal - cnTotal);
+            // D27 (dashboard 0076): the credit note lowers the hutang of the bill it
+            // reverses on both sides, and the two agree.
+            var billPay = await PgRow("SELECT credited_amount, outstanding, status FROM public.dashboard_payables WHERE bill_id = @b", ("@b", bill));
+            ((long)billPay["credited_amount"]).Should().Be(cnTotal);
+            ((long)billPay["outstanding"]).Should().Be(billTotal - cnTotal);
+            ((string)billPay["status"]).Should().Be("partial");
+            new PayablesRepository(_db).GetByJournalNo(billNo).Amount.Should().Be((long)billPay["outstanding"],
+                "hub payables_register.value = dashboard outstanding of the same bill");
 
             // Replay: every request of this test is applied and marked; another tick adds nothing.
             long movements = Scalar("SELECT COUNT(*) FROM stock_movements");

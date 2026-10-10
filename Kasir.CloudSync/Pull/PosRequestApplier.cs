@@ -404,6 +404,14 @@ namespace Kasir.CloudSync.Pull
         // payable of its own. The original bill must be applied first (it always is:
         // a credit note is posted after its bill, and the pull runs in created_at
         // order); until then the request waits.
+        //
+        // D27: the bill's value never goes below zero (the dashboard caps credit
+        // notes at the bill total, but the hub row may already be lower), and a
+        // bill whose payments cover what is left becomes paid. The "NK <doc>"
+        // markers in remark are the replay guard for a restored DB, so the list
+        // is never cut at the legacy 60 chars: with three partial credit notes the
+        // third marker would be cut off and a replay would credit it twice.
+        // Nothing reads payables_register.remark back with a width.
         private string ApplyCreditNote(PosStockRequest r, string journalNo, string vendor, JObject payload)
         {
             long credit = Long(payload, "amount") ?? Long(payload, "total")
@@ -425,15 +433,15 @@ namespace Kasir.CloudSync.Pull
 
             SqlHelper.ExecuteNonQuery(_db,
                 @"UPDATE payables_register
-                  SET value = value - @credit,
+                  SET value = MAX(value - @credit, 0),
                       gross_amount = MAX(COALESCE(gross_amount, 0) - @credit, 0),
-                      is_paid = CASE WHEN COALESCE(payment_amount, 0) >= value - @credit THEN 'Y' ELSE is_paid END,
+                      is_paid = CASE WHEN COALESCE(payment_amount, 0) >= MAX(value - @credit, 0) THEN 'Y' ELSE is_paid END,
                       remark = @remark,
                       changed_by = @by,
                       changed_at = datetime('now','localtime')
                   WHERE id = @id",
                 SqlHelper.Param("@credit", credit),
-                SqlHelper.Param("@remark", Truncate((remark.Length > 0 ? remark + "; " : "") + marker, 60)),
+                SqlHelper.Param("@remark", (remark.Length > 0 ? remark + "; " : "") + marker),
                 SqlHelper.Param("@by", PullUserId),
                 SqlHelper.Param("@id", id));
             return journalNo;

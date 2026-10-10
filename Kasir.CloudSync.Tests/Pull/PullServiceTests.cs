@@ -369,6 +369,85 @@ namespace Kasir.CloudSync.Tests.Pull
             Text("SELECT remark FROM payables_register").Should().Be("Tagihan dashboard; NK DCN-2610-0001");
         }
 
+        // D27 partial return math: dashboard 0076 credits 10 pcs @ Rp 2.800 as
+        // 2 + 3 + 5 pcs with cumulative rounding (5.600 + 8.400,01 + 13.999,99).
+        [Test]
+        public async Task dashboard_partial_credit_notes_add_up_and_settle_the_bill()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 2800000);
+            DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            var ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(2240000, "28.000 - 5.600: the bill it reverses is lowered");
+            ap.IsPaid.Should().Be("N");
+
+            DashboardBill("c2", "DCN-2610-0002", 840001, "credit_note", "DVB-2610-0001", hour: 14);
+            DashboardBill("c3", "DCN-2610-0003", 1399999, "credit_note", "DVB-2610-0001", hour: 15);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+
+            ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(0, "2 + 3 + 5 pcs credited = the whole bill, to the cent");
+            ap.GrossAmount.Should().Be(0);
+            ap.IsPaid.Should().Be("Y", "nothing left to pay");
+            Scalar("SELECT COUNT(*) FROM payables_register").Should().Be(1);
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(0);
+            Text("SELECT remark FROM payables_register").Should()
+                .Be("Tagihan dashboard; NK DCN-2610-0001; NK DCN-2610-0002; NK DCN-2610-0003");
+        }
+
+        [Test]
+        public async Task dashboard_credit_note_replay_on_a_restored_db_is_not_applied_twice()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 2800000);
+            var c1 = DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+            var c2 = DashboardBill("c2", "DCN-2610-0002", 840001, "credit_note", "DVB-2610-0001", hour: 14);
+            var c3 = DashboardBill("c3", "DCN-2610-0003", 700000, "credit_note", "DVB-2610-0001", hour: 15);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(4);
+
+            // Restored DB: applied_requests lost, the Supabase marks cleared.
+            Exec("DELETE FROM applied_requests");
+            foreach (var r in new[] { c1, c2, c3 }) _source.RowOf(r.Id).AppliedAt = null;
+            await _pull.TickAsync(CancellationToken.None);
+
+            new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001").Amount.Should().Be(2800000 - 560000 - 840001 - 700000,
+                "every credit note, including the third (past the legacy 60-char remark), is booked once");
+        }
+
+        [Test]
+        public async Task dashboard_credit_note_never_takes_the_bill_below_zero()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 2800000);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+            // the hub row is already lower than the dashboard bill (edited on the hub)
+            Exec("UPDATE payables_register SET value = 300000, gross_amount = 300000 WHERE journal_no = 'DVB-2610-0001'");
+
+            DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            var ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(0, "never below zero");
+            ap.GrossAmount.Should().Be(0);
+            ap.IsPaid.Should().Be("Y");
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(0);
+        }
+
+        [Test]
+        public async Task dashboard_credit_note_on_a_partly_paid_bill_marks_it_paid_when_covered()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 2800000);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+            Exec("UPDATE payables_register SET payment_amount = 2240000 WHERE journal_no = 'DVB-2610-0001'");
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(560000);
+
+            DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            var ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(2240000);
+            ap.IsPaid.Should().Be("Y", "paid 22.400 + credited 5.600 covers the 28.000 bill");
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(0);
+        }
+
         [Test]
         public async Task dashboard_credit_note_before_its_bill_waits()
         {
