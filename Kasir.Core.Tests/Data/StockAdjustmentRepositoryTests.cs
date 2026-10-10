@@ -179,7 +179,8 @@ namespace Kasir.Tests.Data
             var rows = _repo.GetOpnameByDateRange("2026-04-01", "2026-04-30");
 
             rows[0].Variance.Should().Be(-500);
-            rows[0].VarianceValue.Should().Be(-500L * 1500000);
+            // 100 -> 95 pcs (x100 ledger), 5 pcs short at Rp 15.000 = Rp 75.000 (x100).
+            rows[0].VarianceValue.Should().Be(-7500000L);
         }
     }
 }
