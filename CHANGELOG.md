@@ -1,5 +1,62 @@
 # Changelog
 
+## [2.13.0](https://github.com/Panandika/kasir-pos/compare/v2.12.0...v2.13.0) (2026-10-10)
+
+
+### Features
+
+* **cloudsync:** add WatermarkPusher for stock_movements and shifts ([2b53c51](https://github.com/Panandika/kasir-pos/commit/2b53c515e31d7bc80ed2812cc4f83850bfcb79fd))
+* **cloudsync:** pull worker applies dashboard pos_stock_requests on the hub ([adcc939](https://github.com/Panandika/kasir-pos/commit/adcc939379eb581b684e4c7bba3f7f5e9135ac14))
+* **cloudsync:** pull worker applies dashboard pos_stock_requests on the hub (WP-04) ([195bb4d](https://github.com/Panandika/kasir-pos/commit/195bb4df1966e4b5f16c703104d1193a5c2fa4f4))
+* **cloudsync:** push stock_movements, shifts and sync_queue to Supabase (WP-02) ([2f0c4c0](https://github.com/Panandika/kasir-pos/commit/2f0c4c0eed2a30c033d86180bb77bb0bbe2d17b0))
+* **cloudsync:** wire OutboxRouter and WatermarkPusher into the worker ([8b98ece](https://github.com/Panandika/kasir-pos/commit/8b98ecead4467c53f2b30f86c8080178b61060b9))
+* **data:** migration 014 seeds push watermarks and the x100 cutover id ([6aaab40](https://github.com/Panandika/kasir-pos/commit/6aaab405835d56f5ed68a94fb6753295488cdb4d))
+* **data:** migration 015 adds applied_requests and the pull movement id sequence ([fbecb97](https://github.com/Panandika/kasir-pos/commit/fbecb974b6af73f13e25f1145c47720998947208))
+* **master:** Barang Masuk Cepat quick intake for marketplace stock (PR-K5) ([#106](https://github.com/Panandika/kasir-pos/issues/106)) ([b025ac8](https://github.com/Panandika/kasir-pos/commit/b025ac85e34d5c5bb8a0db6c542dae8cd5491d39))
+* **pos:** category quick keys replace code "1" for unlabelled goods (PR-K4) ([#104](https://github.com/Panandika/kasir-pos/issues/104)) ([e5bcbd2](https://github.com/Panandika/kasir-pos/commit/e5bcbd2eeaa1c23b30d4de78795c8432293d8e17))
+* **pull:** apply dashboard pack sizes to the hub products (D22) ([544f867](https://github.com/Panandika/kasir-pos/commit/544f867e16b8a71973c68405805957684facede5))
+* **pull:** apply dashboard-made products before the stock that needs them (D21) ([fe74878](https://github.com/Panandika/kasir-pos/commit/fe748780173d818ccc3961d2bbe413eb27334d1e))
+* **pull:** owner follow-ups D21-D28 and review-gate fixes ([03618b0](https://github.com/Panandika/kasir-pos/commit/03618b0f5f5577041c02bb86cd22ffb791be27d2))
+* **purchasing:** lock banner on the four POS purchasing screens ([e67cc2c](https://github.com/Panandika/kasir-pos/commit/e67cc2cab31eedc452f9ad51573ae60930ca09cc))
+* **purchasing:** lock POS purchasing by default with an owner emergency unlock ([d7d90b6](https://github.com/Panandika/kasir-pos/commit/d7d90b65df8bdc5fde81901616d5361e0e46c376))
+* **purchasing:** lock POS purchasing by default with owner emergency unlock (WP-05) ([10a43d1](https://github.com/Panandika/kasir-pos/commit/10a43d10d791f55f3f6968e0dccf213582ac8223))
+* **stock:** log inactive-product scans once per day (PR-K3) ([#103](https://github.com/Panandika/kasir-pos/issues/103)) ([61be77e](https://github.com/Panandika/kasir-pos/commit/61be77e08c28e3a86b9607a021135d748bb78753))
+* **stock:** opname lines carry their count time (PR-K6) ([#105](https://github.com/Panandika/kasir-pos/issues/105)) ([130bfe0](https://github.com/Panandika/kasir-pos/commit/130bfe0ef1dfb6da3ac79568113be70a3e8e7eee))
+* **stock:** perpetual moving-average cost engine (PR-K2, stacked on [#101](https://github.com/Panandika/kasir-pos/issues/101)) ([#102](https://github.com/Panandika/kasir-pos/issues/102)) ([dcec2f9](https://github.com/Panandika/kasir-pos/commit/dcec2f9708e8a49a32bed5890f0436ae80f78662))
+* **stock:** skip stock movements for non-stock codes, default location to 'T' ([#101](https://github.com/Panandika/kasir-pos/issues/101)) ([c602f73](https://github.com/Panandika/kasir-pos/commit/c602f731ad10c9f444d1a1ba729c190fb11ce577))
+* **ui:** input dialog can hide a field as a password box ([32c6a1a](https://github.com/Panandika/kasir-pos/commit/32c6a1a07675db898a7af2089d9a74143713b31c))
+
+
+### Bug Fixes
+
+* **cloudsync:** apply dashboard 0059 payload keys + cross-repo e2e tests (WP-11b) ([92be429](https://github.com/Panandika/kasir-pos/commit/92be429bebe8aecd30c61b6b32fa6a1b4e1d5d02))
+* **cloudsync:** apply the request payloads dashboard 0059 actually writes ([0cdae6f](https://github.com/Panandika/kasir-pos/commit/0cdae6f268a6e0065c87530f6e051ebb89e9a63c))
+* **cloudsync:** collapse outbox batches to one row per primary key ([4daf5df](https://github.com/Panandika/kasir-pos/commit/4daf5df97ccc125f2c4b903a5171a59f9a7f8bb1))
+* **cloudsync:** make PostgresSink upserts valid and PhaseA E2E runnable on local Supabase ([85ed85c](https://github.com/Panandika/kasir-pos/commit/85ed85ceffbabaa4d404e92e44d059543880c502))
+* **cloudsync:** parse offset-less POS timestamps as WIB ([cc902c1](https://github.com/Panandika/kasir-pos/commit/cc902c1ac91879e6cf747441f789e9205ba15489))
+* **cloudsync:** read and write register times in the store time zone WITA (D26) ([e34c2b7](https://github.com/Panandika/kasir-pos/commit/e34c2b72e61054424c36616257fc8e37cb100731))
+* **inventory:** keep POS stock_movements ids below the dashboard range ([a0faa42](https://github.com/Panandika/kasir-pos/commit/a0faa42254650a88ca72b82057dfc79417f3dc58))
+* **inventory:** make stock transfer document and movements atomic ([7b0e718](https://github.com/Panandika/kasir-pos/commit/7b0e71827689dfb6967fdafdd227ad37be1ff52b))
+* **inventory:** read dashboard RECEIPT lines in the no-average cost fallback ([78acd59](https://github.com/Panandika/kasir-pos/commit/78acd593293fea727ff376f13290f6d9bd495175))
+* **inventory:** read stock_movements ids as 64-bit ([6778d9e](https://github.com/Panandika/kasir-pos/commit/6778d9e0f9e61bdeb9905d6646bf1d8826185379))
+* **inventory:** return the stock movement id as long from Insert ([e2ee4f3](https://github.com/Panandika/kasir-pos/commit/e2ee4f3144fc64c1fbd7efb0520ddbf4db7ff8b5))
+* **inventory:** value the no-average fallback at the D28 line cost ([32c4209](https://github.com/Panandika/kasir-pos/commit/32c4209c452cf7273d97061f0ee19727ec3b5151))
+* **inventory:** write stock_movements qty at the x100 ledger scale ([def2fe1](https://github.com/Panandika/kasir-pos/commit/def2fe1b79df4414ee1b94813201eac03e64fa55))
+* **login:** Enter on Username moves to Password ([#110](https://github.com/Panandika/kasir-pos/issues/110)) ([a2ba585](https://github.com/Panandika/kasir-pos/commit/a2ba585dde0ac581d6677cbbcf6ec504656894de))
+* **pull:** credit notes never take the bill below zero and replay once (D27) ([32a16b7](https://github.com/Panandika/kasir-pos/commit/32a16b77891f3bd8910a53172346f8e3a91ed1ce))
+* **pull:** log that an invalid request retries instead of calling it rejected ([0bfe4ad](https://github.com/Panandika/kasir-pos/commit/0bfe4ad9f26e2dd2e1b1c9004be4e0d8e816b83d))
+* **pull:** read pos_stock_requests.qty as BIGINT and reject a qty the ledger cannot hold ([f6297cd](https://github.com/Panandika/kasir-pos/commit/f6297cd3d8a7ce0394e3e762b1c13f9801235b5c))
+* **pull:** reject dashboard stock requests on non-stock codes (K1/K4) ([7037462](https://github.com/Panandika/kasir-pos/commit/703746289d9519d45f464a033d652e4017ee36fb))
+* **reports:** divide the ledger qty scale out of the opname variance value ([2ec0670](https://github.com/Panandika/kasir-pos/commit/2ec0670a2317cd169f9f47efcb2039d930e1628d))
+* **reports:** show opname adjustment qty at the x100 ledger scale ([37880c7](https://github.com/Panandika/kasir-pos/commit/37880c799cbffe681b1af81ad6e1ced61509282e))
+* **reports:** show stock opname quantities in units, not raw x100 ledger qty ([4bb9cbe](https://github.com/Panandika/kasir-pos/commit/4bb9cbeef1cca9c456df041e10b1ff76ed744a3a))
+* **smoke:** seed opening stock val_in with the x100 qty scale divided out ([28fb41d](https://github.com/Panandika/kasir-pos/commit/28fb41d11770f3151ae35ed13b26f5afc08f1cc1))
+
+
+### Refactoring
+
+* **cloudsync:** single DashboardIdFloor source and fix stale migration refs ([3e5d182](https://github.com/Panandika/kasir-pos/commit/3e5d1823f0bbcd0852d29c1ed9c351a7e765d6e5))
+
 ## [2.12.0](https://github.com/Panandika/kasir-pos/compare/v2.11.0...v2.12.0) (2026-10-08)
 
 

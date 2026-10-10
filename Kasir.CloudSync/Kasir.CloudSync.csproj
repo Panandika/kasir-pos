@@ -9,7 +9,7 @@
     <AssemblyName>Kasir.CloudSync</AssemblyName>
     <RootNamespace>Kasir.CloudSync</RootNamespace>
     <RuntimeIdentifiers>win-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
-    <Version>2.12.0</Version> <!-- x-release-please-version -->
+    <Version>2.13.0</Version> <!-- x-release-please-version -->
   </PropertyGroup>
 
   <ItemGroup>
