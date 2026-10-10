@@ -55,42 +55,54 @@ namespace Kasir.Services
                 item.Value = avgCost * item.Quantity;
             }
 
-            _transferRepo.Insert(header, items);
-
-            // Create paired stock movements
-            foreach (var item in items)
+            // Atomic: the transfer document and its paired TRANSFER_OUT / TRANSFER_IN
+            // movements must all land or none, otherwise a failure between the two
+            // movements removes stock at the source without adding it at the destination.
+            using (var txn = _db.BeginTransaction())
             {
-                // OUT from source
-                var outMovement = new StockMovement
+                try
                 {
-                    ProductCode = item.ProductCode,
-                    LocationCode = fromLocation,
-                    JournalNo = journalNo,
-                    MovementType = "TRANSFER_OUT",
-                    DocDate = today,
-                    PeriodCode = period,
-                    QtyOut = StockQty.ToLedger(item.Quantity), // ledger is x100; document is plain units
-                    ValOut = item.Value,
-                    CostPrice = item.CostPrice,
-                    ChangedBy = userId
-                };
-                new StockMovementRepository(_db).Insert(outMovement);
+                    _transferRepo.InsertWithoutTransaction(header, items);
 
-                // IN to destination
-                var inMovement = new StockMovement
-                {
-                    ProductCode = item.ProductCode,
-                    LocationCode = toLocation,
-                    JournalNo = journalNo,
-                    MovementType = "TRANSFER_IN",
-                    DocDate = today,
-                    PeriodCode = period,
-                    QtyIn = StockQty.ToLedger(item.Quantity), // ledger is x100; document is plain units
-                    ValIn = item.Value,
-                    CostPrice = item.CostPrice,
-                    ChangedBy = userId
-                };
-                new StockMovementRepository(_db).Insert(inMovement);
+                    // Create paired stock movements
+                    foreach (var item in items)
+                    {
+                        // OUT from source
+                        var outMovement = new StockMovement
+                        {
+                            ProductCode = item.ProductCode,
+                            LocationCode = fromLocation,
+                            JournalNo = journalNo,
+                            MovementType = "TRANSFER_OUT",
+                            DocDate = today,
+                            PeriodCode = period,
+                            QtyOut = StockQty.ToLedger(item.Quantity), // ledger is x100; document is plain units
+                            ValOut = item.Value,
+                            CostPrice = item.CostPrice,
+                            ChangedBy = userId
+                        };
+                        new StockMovementRepository(_db).Insert(outMovement);
+
+                        // IN to destination
+                        var inMovement = new StockMovement
+                        {
+                            ProductCode = item.ProductCode,
+                            LocationCode = toLocation,
+                            JournalNo = journalNo,
+                            MovementType = "TRANSFER_IN",
+                            DocDate = today,
+                            PeriodCode = period,
+                            QtyIn = StockQty.ToLedger(item.Quantity), // ledger is x100; document is plain units
+                            ValIn = item.Value,
+                            CostPrice = item.CostPrice,
+                            ChangedBy = userId
+                        };
+                        new StockMovementRepository(_db).Insert(inMovement);
+                    }
+
+                    txn.Commit();
+                }
+                catch { txn.Rollback(); throw; }
             }
 
             return journalNo;
