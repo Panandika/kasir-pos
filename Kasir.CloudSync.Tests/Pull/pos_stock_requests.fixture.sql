@@ -23,7 +23,11 @@ CREATE TABLE IF NOT EXISTS pos_stock_requests (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   applied_at      TIMESTAMPTZ,
   applied_by_register TEXT,
+  -- dashboard 0072: set by the hub when it rejects a request for good
+  failed_at       TIMESTAMPTZ,
+  failed_reason   TEXT,
+  failed_by_register TEXT,
   UNIQUE (request_kind, idempotency_key)
 );
 CREATE INDEX IF NOT EXISTS idx_psr_pending
-  ON pos_stock_requests(applied_at, target_register) WHERE applied_at IS NULL;
+  ON pos_stock_requests(applied_at, target_register) WHERE applied_at IS NULL AND failed_at IS NULL;

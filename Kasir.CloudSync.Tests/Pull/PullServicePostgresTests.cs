@@ -192,5 +192,48 @@ namespace Kasir.CloudSync.Tests.Pull
                 DateTimeOffset.UtcNow, CancellationToken.None)).Should().BeFalse();
             (await Pg("SELECT applied_by_register FROM pos_stock_requests")).Should().Be("KLR-03");
         }
+
+        // Follow-up item 7 (K1/K4): a stock request on a non-stock code is marked failed
+        // with its reason (dashboard 0072 columns) and is no longer fetched.
+        [Test]
+        public async Task NonStockRequest_IsMarkedFailedWithReason_AndNotFetchedAgain()
+        {
+            await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, vendor_code, doc_no, payload)
+                       VALUES ('PURCHASE', 'PURCHASE:ns-1', 'AL', 100, 500000, 'V001', 'RCV-NS', '{""po_no"":""PO-9""}');
+                       INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, doc_no, happened_at)
+                       VALUES ('OPNAME', 'OPNAME:sess:44', '44', 300, 'OPN-DB-OKT26', '2026-10-09 09:00:00+07');");
+
+            var pull = Pull();
+            (await pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            pull.LastResult.Rejected.Should().HaveCount(2);
+
+            (await Pg("SELECT count(*) FROM pos_stock_requests WHERE failed_at IS NOT NULL AND applied_at IS NULL")).Should().Be(2L);
+            (await Pg("SELECT failed_reason FROM pos_stock_requests WHERE idempotency_key = 'PURCHASE:ns-1'")).Should()
+                .Be("PURCHASE PURCHASE:ns-1: AL is not a stock item (manual price code / category key); the POS never counts, buys or returns it");
+            (await Pg("SELECT failed_by_register FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:sess:44'")).Should().Be("01");
+            SqlHelper.ExecuteScalar<long>(_db, "SELECT COUNT(*) FROM stock_movements WHERE id >= 5000000000").Should().Be(0);
+            SqlHelper.ExecuteScalar<long>(_db, "SELECT COUNT(*) FROM purchases").Should().Be(0);
+
+            (await new PostgresPosRequestSource(_conn).FetchPendingAsync(200, CancellationToken.None)).Should().BeEmpty();
+            (await pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            pull.LastResult.Fetched.Should().Be(0);
+        }
+
+        [Test]
+        public async Task MarkFailed_DoesNotTouchAnAppliedOrFailedRow()
+        {
+            await Pg(@"INSERT INTO pos_stock_requests (id, request_kind, idempotency_key, applied_at, applied_by_register)
+                       VALUES ('00000000-0000-0000-0000-000000000002', 'BARCODE_LINK', 'BARCODE_LINK:y', '2026-10-01 00:00:00+00', 'KLR-03');
+                       INSERT INTO pos_stock_requests (id, request_kind, idempotency_key, failed_at, failed_reason)
+                       VALUES ('00000000-0000-0000-0000-000000000003', 'OPNAME', 'OPNAME:z', '2026-10-01 00:00:00+00', 'first');");
+            var source = new PostgresPosRequestSource(_conn);
+
+            (await source.MarkFailedAsync(Guid.Parse("00000000-0000-0000-0000-000000000002"), "01", DateTimeOffset.UtcNow,
+                "x", CancellationToken.None)).Should().BeFalse();
+            (await source.MarkFailedAsync(Guid.Parse("00000000-0000-0000-0000-000000000003"), "01", DateTimeOffset.UtcNow,
+                "second", CancellationToken.None)).Should().BeFalse();
+            (await Pg("SELECT failed_at IS NULL FROM pos_stock_requests WHERE idempotency_key = 'BARCODE_LINK:y'")).Should().Be(true);
+            (await Pg("SELECT failed_reason FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:z'")).Should().Be("first");
+        }
     }
 }

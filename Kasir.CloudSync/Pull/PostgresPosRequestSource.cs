@@ -14,7 +14,7 @@ namespace Kasir.CloudSync.Pull
             @"SELECT id, request_kind, idempotency_key, product_code, qty, unit_cost,
                      vendor_code, doc_no, target_register, payload::text, happened_at, created_at
               FROM pos_stock_requests
-              WHERE applied_at IS NULL AND target_register IN ('hub', 'ALL')
+              WHERE applied_at IS NULL AND failed_at IS NULL AND target_register IN ('hub', 'ALL')
               ORDER BY created_at ASC,
                        CASE request_kind
                          WHEN 'NEW_PRODUCT' THEN 0 WHEN 'PRODUCT_STATUS' THEN 1
@@ -28,6 +28,15 @@ namespace Kasir.CloudSync.Pull
             @"UPDATE pos_stock_requests
               SET applied_at = @at, applied_by_register = @reg
               WHERE id = @id AND applied_at IS NULL";
+
+        // failed_reason is plain text for the dashboard; capped so a long message
+        // never fails the mark.
+        internal const int MaxFailedReasonLength = 500;
+
+        internal const string MarkFailedSql =
+            @"UPDATE pos_stock_requests
+              SET failed_at = @at, failed_reason = @reason, failed_by_register = @reg
+              WHERE id = @id AND applied_at IS NULL AND failed_at IS NULL";
 
         private readonly string _connectionString;
 
@@ -73,6 +82,21 @@ namespace Kasir.CloudSync.Pull
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = MarkSql;
             cmd.Parameters.Add(new NpgsqlParameter("@at", NpgsqlDbType.TimestampTz) { Value = appliedAt.ToUniversalTime() });
+            cmd.Parameters.AddWithValue("@reg", registerId ?? "");
+            cmd.Parameters.AddWithValue("@id", id);
+            return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) == 1;
+        }
+
+        public async Task<bool> MarkFailedAsync(Guid id, string registerId, DateTimeOffset failedAt, string reason, CancellationToken ct)
+        {
+            string why = reason ?? "";
+            if (why.Length > MaxFailedReasonLength) why = why.Substring(0, MaxFailedReasonLength);
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await conn.OpenAsync(ct).ConfigureAwait(false);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = MarkFailedSql;
+            cmd.Parameters.Add(new NpgsqlParameter("@at", NpgsqlDbType.TimestampTz) { Value = failedAt.ToUniversalTime() });
+            cmd.Parameters.AddWithValue("@reason", why);
             cmd.Parameters.AddWithValue("@reg", registerId ?? "");
             cmd.Parameters.AddWithValue("@id", id);
             return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) == 1;

@@ -21,13 +21,22 @@ namespace Kasir.CloudSync.Pull
     // The request cannot be applied (yet). Nothing was written. Deferred = a
     // prerequisite is missing locally (e.g. the product of a NEW_PRODUCT not applied
     // yet) and a later tick may succeed; otherwise the request data is invalid.
+    // Rejected = it can never be applied (e.g. a stock request on a non-stock code,
+    // K1/K4): PullService marks it failed in Supabase (failed_at / failed_reason,
+    // dashboard 0072) instead of retrying it every tick.
     public sealed class PosRequestApplyException : Exception
     {
         public bool Deferred { get; }
+        public bool Rejected { get; }
 
-        public PosRequestApplyException(string message, bool deferred) : base(message)
+        public PosRequestApplyException(string message, bool deferred) : this(message, deferred, rejected: false)
         {
-            Deferred = deferred;
+        }
+
+        public PosRequestApplyException(string message, bool deferred, bool rejected) : base(message)
+        {
+            Deferred = deferred && !rejected;
+            Rejected = rejected;
         }
     }
 
@@ -117,6 +126,14 @@ namespace Kasir.CloudSync.Pull
         // Returns the local document written (journal_no), or null.
         private string Dispatch(PosStockRequest r)
         {
+            // K1/K4: code 1/2/44/99 and the category keys carry no stock. Checked before
+            // the product lookup, so a code the hub has no row for is rejected too (not
+            // deferred for ever).
+            if (PosRequestKinds.MovesStock(r.RequestKind) && SalesService.IsNonStockItem(r.ProductCode))
+                throw Rejected(r, (r.ProductCode ?? "").Trim()
+                    + " is not a stock item (manual price code / category key); "
+                    + "the POS never counts, buys or returns it");
+
             switch (r.RequestKind)
             {
                 case PosRequestKinds.Opname: return ApplyOpname(r);
@@ -137,8 +154,6 @@ namespace Kasir.CloudSync.Pull
             var product = RequireProduct(r);
             int counted = r.Qty ?? throw Invalid(r, "qty (counted qty x100) is required");
             if (counted < 0) throw Invalid(r, "counted qty must be >= 0");
-            // Code "1" and the category keys carry no stock (PR-K4, review L3).
-            if (SalesService.IsNonStockCode(product.ProductCode)) return null;
 
             DateTime countAt = Wib(r.HappenedAt);
             // PR-K6: the shelf was seen at countAt; movements written after it (sales,
@@ -569,5 +584,8 @@ namespace Kasir.CloudSync.Pull
 
         private static PosRequestApplyException Invalid(PosStockRequest r, string why) =>
             new PosRequestApplyException(Describe(r) + ": " + why, deferred: false);
+
+        private static PosRequestApplyException Rejected(PosStockRequest r, string why) =>
+            new PosRequestApplyException(Describe(r) + ": " + why, deferred: false, rejected: true);
     }
 }

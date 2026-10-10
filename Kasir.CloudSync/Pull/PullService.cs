@@ -25,6 +25,12 @@ namespace Kasir.CloudSync.Pull
     // missing an earlier failed PURCHASE. NEW_PRODUCT / PRODUCT_STATUS still run (a
     // NEW_PRODUCT is what a deferred PURCHASE is waiting for). Other products carry on.
     //
+    // A request the applier REJECTS for good (PosRequestApplyException.Rejected: an
+    // OPNAME / PURCHASE / RETURN_OUT on a non-stock code, K1/K4) is marked failed in
+    // Supabase with its reason (failed_at, dashboard 0072) and is not fetched again.
+    // It wrote nothing, so later requests for the product are not held back. A failed
+    // failed-mark is logged and retried next tick (the reject repeats; nothing to undo).
+    //
     // A failed fetch or mark throws, so the worker counts the tick as failed and
     // backs off; a request with bad data does not (it would stall the whole pull).
     public sealed class PullService : IPullService
@@ -80,6 +86,11 @@ namespace Kasir.CloudSync.Pull
                 {
                     outcome = _applier.Apply(r);
                 }
+                catch (PosRequestApplyException rex) when (rex.Rejected)
+                {
+                    await MarkRejectedAsync(r, rex.Message, registerId, result, ct).ConfigureAwait(false);
+                    continue;
+                }
                 catch (Exception ex) when (!(ex is OperationCanceledException))
                 {
                     result.Failed.Add(r.Id);
@@ -112,11 +123,35 @@ namespace Kasir.CloudSync.Pull
                 }
             }
 
-            if (result.Applied.Count > 0 || result.Failed.Count > 0)
+            if (result.Applied.Count > 0 || result.Failed.Count > 0 || result.Rejected.Count > 0)
                 _logger?.LogInformation(
-                    "Pull: {Applied} applied, {Remarked} re-marked, {Failed} failed, {Held} held back of {Fetched}",
-                    result.Applied.Count, result.Remarked.Count, result.Failed.Count, result.HeldBack.Count, result.Fetched);
+                    "Pull: {Applied} applied, {Remarked} re-marked, {Failed} failed, {Rejected} rejected, {Held} held back of {Fetched}",
+                    result.Applied.Count, result.Remarked.Count, result.Failed.Count, result.Rejected.Count,
+                    result.HeldBack.Count, result.Fetched);
             return result.Applied.Count;
+        }
+
+        private async Task MarkRejectedAsync(PosStockRequest r, string reason, string registerId, PullTickResult result,
+            CancellationToken ct)
+        {
+            _logger?.LogWarning("Pull: {Kind} {Key} ({Id}) rejected for good: {Reason}",
+                r.RequestKind, r.IdempotencyKey, r.Id, reason);
+            try
+            {
+                await _source.MarkFailedAsync(r.Id, registerId, _utcNow(), reason, ct).ConfigureAwait(false);
+                result.Rejected.Add(r.Id);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Nothing was written locally; the request is fetched and rejected again next tick.
+                result.Failed.Add(r.Id);
+                _logger?.LogError(ex, "Pull: could not mark {Kind} {Key} failed in Supabase; stays pending",
+                    r.RequestKind, r.IdempotencyKey);
+            }
         }
     }
 
@@ -127,6 +162,8 @@ namespace Kasir.CloudSync.Pull
         // Already applied locally by an earlier tick; only the Supabase mark was redone.
         public List<Guid> Remarked { get; } = new List<Guid>();
         public List<Guid> Failed { get; } = new List<Guid>();
+        // Rejected for good and marked failed in Supabase (failed_at, dashboard 0072).
+        public List<Guid> Rejected { get; } = new List<Guid>();
         public List<Guid> HeldBack { get; } = new List<Guid>();
         public bool MarkFailed { get; set; }
     }

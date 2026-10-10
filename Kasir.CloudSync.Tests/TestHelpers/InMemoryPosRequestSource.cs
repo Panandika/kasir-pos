@@ -17,12 +17,16 @@ namespace Kasir.CloudSync.Tests.TestHelpers
             public DateTimeOffset? AppliedAt;
             public string AppliedBy;
             public int MarkCalls;
+            public DateTimeOffset? FailedAt;
+            public string FailedReason;
+            public string FailedBy;
         }
 
         public List<Row> Rows { get; } = new List<Row>();
         public bool FailFetch { get; set; }
         public int FailMarks { get; set; }
         public int FetchCalls { get; private set; }
+        public int FailFailedMarks { get; set; }
 
         public PosStockRequest Add(PosStockRequest r)
         {
@@ -41,7 +45,8 @@ namespace Kasir.CloudSync.Tests.TestHelpers
             FetchCalls++;
             if (FailFetch) throw new TimeoutException("connection to Supabase lost");
             IReadOnlyList<PosStockRequest> list = Rows
-                .Where(x => x.AppliedAt == null && (x.Request.TargetRegister == "hub" || x.Request.TargetRegister == "ALL"))
+                .Where(x => x.AppliedAt == null && x.FailedAt == null
+                            && (x.Request.TargetRegister == "hub" || x.Request.TargetRegister == "ALL"))
                 .Select(x => x.Request)
                 .OrderBy(x => x, PosRequestKinds.ApplyOrder)
                 .Take(limit)
@@ -62,6 +67,21 @@ namespace Kasir.CloudSync.Tests.TestHelpers
             if (row.AppliedAt != null) return Task.FromResult(false);
             row.AppliedAt = appliedAt;
             row.AppliedBy = registerId;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> MarkFailedAsync(Guid id, string registerId, DateTimeOffset failedAt, string reason, CancellationToken ct)
+        {
+            if (FailFailedMarks > 0)
+            {
+                FailFailedMarks--;
+                throw new TimeoutException("connection to Supabase lost");
+            }
+            var row = Rows.SingleOrDefault(x => x.Request.Id == id);
+            if (row == null || row.AppliedAt != null || row.FailedAt != null) return Task.FromResult(false);
+            row.FailedAt = failedAt;
+            row.FailedReason = reason;
+            row.FailedBy = registerId;
             return Task.FromResult(true);
         }
     }

@@ -40,6 +40,11 @@ namespace Kasir.CloudSync.Pull
     //                vendor_code, status (optional). An existing code is left unchanged.
     //   BARCODE_LINK no-op on the POS (barcodes were dropped, Migration_005); marked applied.
     //
+    // OPNAME / PURCHASE / RETURN_OUT on a non-stock code (SalesService.IsNonStockItem:
+    // 1/2/44/99, AL/AT/PR/PL/MY/LL; K1/K4) are rejected: nothing is written and the row
+    // gets failed_at / failed_reason / failed_by_register (dashboard 0072), which takes it
+    // out of the pending fetch. The dashboard never queues them (0072); older rows may exist.
+    //
     // (request_kind, idempotency_key) is UNIQUE in Supabase and in local applied_requests.
     public sealed class PosStockRequest
     {

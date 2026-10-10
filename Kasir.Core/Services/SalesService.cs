@@ -129,6 +129,21 @@ namespace Kasir.Services
             return productCode == MiscProductCode || CategoryKeyCodes.Contains(productCode ?? "");
         }
 
+        // Manual price-entry codes the catalogue cleanup keeps (D3 KEEP_MANUAL): code
+        // "1" plus the legacy manual codes "2", "44" and "99".
+        public static readonly IReadOnlySet<string> ManualPriceCodes =
+            new HashSet<string>(StringComparer.Ordinal) { MiscProductCode, "2", "44", "99" };
+
+        // Not a stock item (PR-K1/K4, owner decision 2026-10-09): the manual price-entry
+        // codes 1/2/44/99 and the category keys. Never counted, never bought, cost never
+        // estimated. Used by stock keeping (opname sheet, dashboard pull); the sale path
+        // keeps IsNonStockCode. Mirrors dashboard public.is_non_stock_code() (0072).
+        public static bool IsNonStockItem(string productCode)
+        {
+            string code = (productCode ?? "").Trim();
+            return ManualPriceCodes.Contains(code) || CategoryKeyCodes.Contains(code);
+        }
+
         // Category quick keys in picker order (number 1-6 on the sale screen). Seeded as
         // open-price products by Migration_013.
         public static readonly IReadOnlyList<(string Code, string Name)> CategoryKeys = new[]
