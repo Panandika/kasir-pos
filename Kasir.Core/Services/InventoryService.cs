@@ -98,8 +98,11 @@ namespace Kasir.Services
         // Unit cost (x100 money) for COGS and stock valuation: the perpetual moving average
         // kept in products.cost_price (FoxPro AVGCOST via the snapshot; maintained by
         // RecordStockIn once CostEngineOwnsCostPriceKey is on). Fallback when it is 0: the
-        // last PURCHASE line's cost under the D28 rule (LegacyCost: cogs, else
-        // unit_price - disc_value), then 0.
+        // last PURCHASE or RECEIPT line's cost under the D28 rule (LegacyCost: cogs, else
+        // unit_price - disc_value), then 0. RECEIPT is included because dashboard purchases
+        // reach the POS as RECEIPT documents (PosRequestApplier.ApplyPurchase); with the
+        // cost engine flag off they never update cost_price, so without them an opname of a
+        // dashboard-only product would be valued at 0.
         public long CalculateAverageCost(string productCode)
         {
             var product = _productRepo.GetByCode(productCode);
@@ -112,7 +115,7 @@ namespace Kasir.Services
                   FROM purchase_items pi
                   JOIN purchases p ON p.journal_no = pi.journal_no
                   WHERE pi.product_code = @code
-                    AND p.doc_type = 'PURCHASE'
+                    AND p.doc_type IN ('PURCHASE', 'RECEIPT')
                     AND p.control != 3
                     AND {unitCost} > 0
                   ORDER BY p.doc_date DESC, p.id DESC, pi.id DESC

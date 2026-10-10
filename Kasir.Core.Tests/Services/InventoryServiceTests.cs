@@ -206,6 +206,34 @@ namespace Kasir.Tests.Services
             _service.CalculateAverageCost("P001").Should().Be(700000);
         }
 
+        // Dashboard purchases reach the POS as RECEIPT documents (PosRequestApplier),
+        // so the fallback must read them too, not only legacy PURCHASE invoices.
+        [Test]
+        public void CalculateAverageCost_Fallback_ReadsDashboardReceiptLine()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, control, legacy_source)
+                  VALUES ('RECEIPT', 'RCV-DB-1', '2026-10-01', 'V001', 0, '202610', 1, 'DASHBOARD');
+                  INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, value)
+                  VALUES ('RCV-DB-1', 'P001', 10, 280000, 2800000);");
+
+            _service.CalculateAverageCost("P001").Should().Be(280000);
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_IgnoresOtherDocTypes()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, control)
+                  VALUES ('PURCHASE_RETURN', 'RTN-1', '2026-10-01', 'V001', 0, '202610', 1);
+                  INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, value)
+                  VALUES ('RTN-1', 'P001', 1, 990000, 990000);");
+
+            _service.CalculateAverageCost("P001").Should().Be(0, "a return is not a cost source");
+        }
+
         // Legacy hash ids reach ~4.29B (below the dashboard floor): Insert must return the
         // real id, not an int-truncated negative one.
         [Test]

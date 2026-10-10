@@ -242,5 +242,25 @@ namespace Kasir.CloudSync.Tests.Pull
             opn.QtyIn.Should().Be(200);
             opn.CostPrice.Should().Be(300000);
         }
+
+        // A dashboard-only product (create_dashboard_product, cost_price 0) whose stock
+        // arrived as a dashboard receipt: with the flag off the pull never sets cost_price,
+        // so the opname must value the variance at the RECEIPT line's cost, not at 0.
+        [Test]
+        public void FlagOff_PullOpname_ZeroCostPrice_ValuesAtTheDashboardReceiptCost()
+        {
+            _config.Set(InventoryService.CostEngineOwnsCostPriceKey, "false");
+            SqlHelper.ExecuteNonQuery(_db, "UPDATE products SET cost_price = 0 WHERE product_code = 'P001'");
+
+            PullPurchase("l1", 1000, 280000, 10); // 10 pcs @ Rp 2.800
+            Cost().Should().Be(0, "flag off: the receipt does not write cost_price");
+
+            PullOpname(700, 12);                  // counted 7 vs 10
+
+            var opn = new StockMovementRepository(_db).GetByJournal("OPN-DB-OKT26").Single();
+            opn.QtyOut.Should().Be(300);
+            opn.CostPrice.Should().Be(280000, "the dashboard RECEIPT line is the last known cost");
+            opn.ValOut.Should().Be(840000, "3 pcs x Rp 2.800, not Rp 0");
+        }
     }
 }
