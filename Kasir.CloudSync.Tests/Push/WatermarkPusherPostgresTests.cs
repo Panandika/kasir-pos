@@ -234,5 +234,32 @@ namespace Kasir.CloudSync.Tests.Push
             (await CloudScalar($"SELECT count(*) FROM sales WHERE journal_no = '{sale.JournalNo}'")).Should().Be(1L);
             (await CloudScalar($"SELECT qty_out FROM stock_movements WHERE journal_no = '{sale.JournalNo}'")).Should().Be(200L);
         }
+
+        [Test]
+        public async Task Outbox_SaleVoidedInSameTick_UpsertsOnce_AndDoesNotStall()
+        {
+            var sale = Sell(1);
+            var sales = new SalesService(_db, new FixedClock());
+            sales.SetCashier("ADM", 1);
+            sales.VoidSale(sale.JournalNo);
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "UPDATE sync_queue SET status = 'synced'";
+                cmd.ExecuteNonQuery();
+            }
+            var queue = new SyncQueueRepository(_db);
+            queue.GetPendingCloud(100, new[] { "sales" }).Count(e => e.RecordKey == sale.JournalNo)
+                .Should().BeGreaterThan(1, "insert + void queue the same sale twice");
+            var router = new OutboxRouter(_db, queue, new GenericSink(_sinkConn),
+                NullLogger<OutboxRouter>.Instance, new[] { "sales" });
+
+            int shipped = await router.TickAsync(100, CancellationToken.None);
+
+            shipped.Should().BeGreaterThan(1, "Postgres accepted the batch (no 21000)");
+            queue.GetPendingCloud(100, new[] { "sales" }).Should().BeEmpty();
+            (await CloudScalar($"SELECT count(*) FROM sales WHERE journal_no = '{sale.JournalNo}'")).Should().Be(1L);
+            Convert.ToInt32(await CloudScalar($"SELECT control FROM sales WHERE journal_no = '{sale.JournalNo}'"))
+                .Should().Be(3, "the voided state reaches Supabase");
+        }
     }
 }
