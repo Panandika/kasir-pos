@@ -145,6 +145,27 @@ namespace Kasir.CloudSync.Tests.Pull
                 .Should().Be("01");
         }
 
+        // qty is BIGINT in Supabase: a value above int range is read (no OverflowException
+        // on every tick) and the request is marked failed with a reason.
+        [Test]
+        public async Task OpnameRequest_WithQtyAboveIntRange_IsReadAndMarkedFailed()
+        {
+            await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, doc_no, happened_at)
+                       VALUES ('OPNAME', 'OPNAME:big:P001', 'P001', 2400000000, 'OPN-DB-OKT26', '2026-10-09 09:00:00+08')");
+
+            var fetched = await new PostgresPosRequestSource(_conn).FetchPendingAsync(10, CancellationToken.None);
+            fetched.Single().Qty.Should().Be(2_400_000_000L);
+
+            var pull = Pull();
+            (await pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            pull.LastResult.Rejected.Should().HaveCount(1);
+            (await Pg("SELECT failed_at IS NOT NULL FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:big:P001'"))
+                .Should().Be(true);
+            ((string)await Pg("SELECT failed_reason FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:big:P001'"))
+                .Should().Contain("out of range");
+            new InventoryService(_db).GetStockOnHand("P001").Should().Be(5000);
+        }
+
         [Test]
         public async Task PurchaseRequest_CreatesMovementAndPurchase_AndRepollingAddsNothing()
         {

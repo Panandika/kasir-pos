@@ -68,7 +68,9 @@ namespace Kasir.CloudSync.Pull
         public string RequestKind { get; set; }
         public string IdempotencyKey { get; set; }
         public string ProductCode { get; set; }
-        public int? Qty { get; set; }
+        // BIGINT in Supabase (pos_stock_requests.qty); the applier narrows it to the
+        // int ledger qty and rejects a value that does not fit.
+        public long? Qty { get; set; }
         public long? UnitCost { get; set; }
         public string VendorCode { get; set; }
         public string DocNo { get; set; }

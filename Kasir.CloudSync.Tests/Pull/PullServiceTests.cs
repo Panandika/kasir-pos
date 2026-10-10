@@ -158,6 +158,42 @@ namespace Kasir.CloudSync.Tests.Pull
             row.AppliedBy.Should().Be("01");
         }
 
+        // pos_stock_requests.qty is BIGINT: a qty the int ledger cannot hold is rejected
+        // (failed_at set) once, not retried every tick.
+        [Test]
+        public async Task opname_qty_above_int_range_is_rejected_not_retried()
+        {
+            SeedStock("P001", 5000);
+            var req = _source.Add(new PosStockRequest
+            {
+                RequestKind = "OPNAME", IdempotencyKey = "OPNAME:sess-big:P001", ProductCode = "P001",
+                Qty = 2_400_000_000L, DocNo = "OPN-DB-OKT26", HappenedAt = At(9), CreatedAt = At(16)
+            });
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Rejected.Should().Equal(req.Id);
+            _pull.LastResult.Failed.Should().BeEmpty();
+            _source.RowOf(req.Id).FailedReason.Should()
+                .Be("OPNAME OPNAME:sess-big:P001: qty 2400000000 is out of range for the register ledger (max 2147483647)");
+            OnHand("P001").Should().Be(5000);
+            Scalar("SELECT COUNT(*) FROM stock_movements WHERE movement_type = 'OPNAME'").Should().Be(0);
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Fetched.Should().Be(0, "a rejected request leaves the pending fetch");
+        }
+
+        [Test]
+        public async Task purchase_qty_above_int_range_is_rejected()
+        {
+            var req = Purchase("big-1", "P001", 100, 100000);
+            req.Qty = (long)int.MaxValue + 1;
+
+            await _pull.TickAsync(CancellationToken.None);
+
+            _pull.LastResult.Rejected.Should().Equal(req.Id);
+            Scalar("SELECT COUNT(*) FROM stock_movements").Should().Be(0);
+        }
+
         [Test]
         public async Task exact_time_count0900_48_sale1500_2_onhand46()
         {

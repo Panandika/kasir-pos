@@ -162,7 +162,7 @@ namespace Kasir.CloudSync.Pull
         private string ApplyOpname(PosStockRequest r)
         {
             var product = RequireProduct(r);
-            int counted = r.Qty ?? throw Invalid(r, "qty (counted qty x100) is required");
+            int counted = LedgerQty(r) ?? throw Invalid(r, "qty (counted qty x100) is required");
             if (counted < 0) throw Invalid(r, "counted qty must be >= 0");
 
             DateTime countAt = StoreWallClock(r.HappenedAt);
@@ -630,9 +630,22 @@ namespace Kasir.CloudSync.Pull
 
         private static int RequirePositiveQty(PosStockRequest r)
         {
-            int qty = r.Qty ?? throw Invalid(r, "qty (x100) is required");
+            int qty = LedgerQty(r) ?? throw Invalid(r, "qty (x100) is required");
             if (qty <= 0) throw Invalid(r, "qty must be > 0");
             return qty;
+        }
+
+        // pos_stock_requests.qty is BIGINT; the register ledger keeps int qty (x100).
+        // A value that does not fit can never apply, so it is rejected (marked failed)
+        // instead of retrying every tick.
+        private static int? LedgerQty(PosStockRequest r)
+        {
+            if (r.Qty == null) return null;
+            long q = r.Qty.Value;
+            if (q > int.MaxValue || q < int.MinValue)
+                throw Rejected(r, "qty " + q.ToString(CultureInfo.InvariantCulture)
+                    + " is out of range for the register ledger (max " + int.MaxValue.ToString(CultureInfo.InvariantCulture) + ")");
+            return (int)q;
         }
 
         private static string RequireDocNo(PosStockRequest r)

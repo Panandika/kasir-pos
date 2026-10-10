@@ -65,7 +65,7 @@ namespace Kasir.CloudSync.Pull
                     RequestKind = r.GetString(1),
                     IdempotencyKey = r.GetString(2),
                     ProductCode = r.IsDBNull(3) ? null : r.GetString(3),
-                    Qty = r.IsDBNull(4) ? (int?)null : Convert.ToInt32(r.GetValue(4)),
+                    Qty = r.IsDBNull(4) ? (long?)null : Convert.ToInt64(r.GetValue(4)),
                     UnitCost = r.IsDBNull(5) ? (long?)null : Convert.ToInt64(r.GetValue(5)),
                     VendorCode = r.IsDBNull(6) ? null : r.GetString(6),
                     DocNo = r.IsDBNull(7) ? null : r.GetString(7),
