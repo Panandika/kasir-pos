@@ -1507,7 +1507,10 @@ INSERT INTO config(key, value, description) VALUES
     -- Kasir.CloudSync WatermarkPusher (WP-02): last id pushed to the Supabase mirror.
     -- Missing on an older DB = 0 (the pusher treats an absent key as 0).
     ('cloud_push_wm_stock_movements', '0', 'Last pushed stock_movements.id'),
-    ('cloud_push_wm_shifts', '0', 'Last pushed shifts.id');
+    ('cloud_push_wm_shifts', '0', 'Last pushed shifts.id'),
+    -- Kasir.CloudSync PullService (WP-04): next id for a dashboard-originated
+    -- stock_movements row (reserved range, OB-13).
+    ('pull_movement_id_seq', '5000000000', 'Next id for dashboard-originated stock_movements');
 
 -- ============================================================
 -- Section 8: Indexes
@@ -1833,3 +1836,17 @@ CREATE TABLE IF NOT EXISTS inactive_sale_log (
     UNIQUE(product_code, sale_date)
 );
 
+-- ============================================================
+-- Kasir.CloudSync PullService (WP-04): dashboard requests (Supabase
+-- pos_stock_requests) already applied to this kasir.db. Written in the same
+-- transaction as the apply, so a request is applied locally at most once even
+-- when marking it applied in Supabase fails and it is fetched again. Local only
+-- (no sync_queue trigger): only the hub applies requests.
+CREATE TABLE IF NOT EXISTS applied_requests (
+    request_kind    TEXT    NOT NULL,
+    idempotency_key TEXT    NOT NULL,
+    request_id      TEXT,                      -- pos_stock_requests.id (uuid)
+    journal_no      TEXT,                      -- local document the apply wrote, if any
+    applied_at      TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
+    PRIMARY KEY (request_kind, idempotency_key)
+);

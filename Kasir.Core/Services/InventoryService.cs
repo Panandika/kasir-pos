@@ -126,8 +126,12 @@ namespace Kasir.Services
         // (WP-02). The qty itself is stored as given; only the money value divides the
         // scale back out (val_in = unit cost x whole units).
         // cost_price is only written when CostEngineOwnsCostPriceKey is "true".
+        // placement: null = a normal POS row (next id below the dashboard range, stamped
+        // now); Kasir.CloudSync PullService passes the reserved id and the time the
+        // dashboard event happened (WP-04).
         public void RecordStockIn(string productCode, int qty, long unitCost,
-            string movementType, string journalNo, string docDate, int changedBy)
+            string movementType, string journalNo, string docDate, int changedBy,
+            MovementPlacement placement = null)
         {
             int onHandBefore = _movementRepo.GetStockOnHand(productCode);
 
@@ -147,7 +151,7 @@ namespace Kasir.Services
                 ChangedBy = changedBy
             };
 
-            _movementRepo.Insert(movement);
+            InsertMovement(movement, placement);
 
             UpdatePerpetualAverage(productCode, onHandBefore, qty, unitCost, movementType);
         }
@@ -196,9 +200,10 @@ namespace Kasir.Services
             }
         }
 
-        // qty is a LEDGER qty (x100, StockQty) - see RecordStockIn.
+        // qty is a LEDGER qty (x100, StockQty) - see RecordStockIn (also for placement).
         public void RecordStockOut(string productCode, int qty, long costPrice,
-            string movementType, string journalNo, string docDate, int changedBy)
+            string movementType, string journalNo, string docDate, int changedBy,
+            MovementPlacement placement = null)
         {
             var movement = new StockMovement
             {
@@ -216,7 +221,15 @@ namespace Kasir.Services
                 ChangedBy = changedBy
             };
 
-            _movementRepo.Insert(movement);
+            InsertMovement(movement, placement);
+        }
+
+        private void InsertMovement(StockMovement movement, MovementPlacement placement)
+        {
+            if (placement == null)
+                _movementRepo.Insert(movement);
+            else
+                _movementRepo.InsertWithId(movement, placement.Id, placement.MovedAt);
         }
 
         // physicalQty and the result quantities are ledger qty (x100).
@@ -235,6 +248,15 @@ namespace Kasir.Services
                 VarianceCost = StockQty.Value(avgCost, Math.Abs(variance))
             };
         }
+    }
+
+    // Where a movement goes in the ledger when the caller (not SQLite) picks it:
+    // Id in the dashboard range (StockMovementRepository.DashboardIdFloor and up) and
+    // MovedAt = local 'yyyy-MM-dd HH:mm:ss' written to created_at and changed_at.
+    public sealed class MovementPlacement
+    {
+        public long Id { get; set; }
+        public string MovedAt { get; set; }
     }
 
     public class StockVariance
