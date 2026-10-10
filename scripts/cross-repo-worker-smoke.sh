@@ -55,10 +55,14 @@ INSERT INTO products (product_code, name, dept_code, status, unit, price, buying
 VALUES ('$CODE', 'BARANG SMOKE $RUN', '10', 'A', 'PCS', 500000, 300000, 300000, '$VENDOR', 'N', 'N', 'N', 'N');
 INSERT INTO stock_movements (id, product_code, journal_no, movement_type, doc_date, period_code, qty_in, val_in,
                              cost_price, changed_at, created_at)
-VALUES (4999000000, '$CODE', 'GSMRY-2609', 'PURCHASE', '2026-09-30', '202609', 5000, 1500000000, 300000,
+VALUES (4999000000, '$CODE', 'GSMRY-2609', 'PURCHASE', '2026-09-30', '202609', 5000, 15000000, 300000,
         '2026-09-30 20:00:00', '2026-09-30 20:00:00');
 INSERT OR REPLACE INTO config (key, value) VALUES ('cloud_push_wm_stock_movements', '4999000000');
 SQL
+# The ledger qty is x100 (StockQty): val_in = cost_price * qty_in / 100 (StockQty.Value).
+# 50 pcs at Rp 3.000 is Rp 150.000 = 15000000, not cost * qty_in (100x too large).
+badval="$(sqlite3 "$KDB" "select count(*) from stock_movements where qty_in > 0 and val_in != cost_price * qty_in / 100")"
+[ "$badval" = "0" ] || { echo "FAIL: seeded opening stock val_in is not cost_price * qty_in / 100" >&2; exit 1; }
 
 # ---- 2. dashboard: count + apply (RPCs under the users' JWT claims)
 psqlc >/dev/null <<SQL
