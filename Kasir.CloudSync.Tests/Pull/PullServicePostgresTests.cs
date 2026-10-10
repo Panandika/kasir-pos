@@ -25,7 +25,7 @@ namespace Kasir.CloudSync.Tests.Pull
     //   export KASIR_CLOUDSYNC_TEST_PG="Host=127.0.0.1;Port=54322;Database=postgres;Username=postgres;Password=postgres"
     //   dotnet test Kasir.CloudSync.Tests --filter "FullyQualifiedName~PullServicePostgresTests"
     // Each test runs in its own throw-away schema. pos_stock_requests is cloned from
-    // public (the real dashboard 0058 shape, LIKE ... INCLUDING ALL) when the local
+    // public (the real dashboard 0066 shape, LIKE ... INCLUDING ALL) when the local
     // stack has it, else created from pos_stock_requests.fixture.sql (RALPLAN 4.1).
     // public is never written. Refuses non-local hosts. WP-11b re-runs this once the
     // dashboard migration is applied locally, so the clone path is exercised.

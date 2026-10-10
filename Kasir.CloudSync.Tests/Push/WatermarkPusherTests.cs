@@ -184,13 +184,30 @@ namespace Kasir.CloudSync.Tests.Push
         public async Task DashboardOriginatedIds_AreNeverPushedBack()
         {
             InsertMovement(7);
-            InsertMovement(WatermarkPusher.DashboardIdFloor, type: "OPNAME", journal: "OPNAME:s1:P001");
-            InsertMovement(WatermarkPusher.DashboardIdFloor + 1, type: "PURCHASE", qtyIn: 500, qtyOut: 0, journal: "PURCHASE:r1");
+            InsertMovement(StockMovementRepository.DashboardIdFloor, type: "OPNAME", journal: "OPNAME:s1:P001");
+            InsertMovement(StockMovementRepository.DashboardIdFloor + 1, type: "PURCHASE", qtyIn: 500, qtyOut: 0, journal: "PURCHASE:r1");
 
             await _pusher.PushTableAsync("stock_movements", SmKey, 100, CancellationToken.None);
 
             Cloud("stock_movements").Keys.Should().BeEquivalentTo(new[] { "7" });
             Wm(SmKey).Should().Be(7, "the watermark never enters the reserved range");
+        }
+
+        [Test]
+        public async Task PushFloor_IsTheRepositoryDashboardIdFloor()
+        {
+            // Single source of truth (final-review #4): the push filter must use exactly the
+            // floor POS allocation stays below. The highest POS id is pushed; the floor is not.
+            long floor = StockMovementRepository.DashboardIdFloor;
+            InsertMovement(floor - 1);
+            InsertMovement(floor, type: "OPNAME", journal: "OPNAME:s1:P001");
+
+            await _pusher.PushTableAsync("stock_movements", SmKey, 100, CancellationToken.None);
+
+            Cloud("stock_movements").Keys.Should().BeEquivalentTo(new[] { (floor - 1).ToString() });
+            Wm(SmKey).Should().Be(floor - 1);
+            typeof(WatermarkPusher).GetField("DashboardIdFloor").Should()
+                .BeNull("WatermarkPusher must not define its own copy of the floor");
         }
 
         [Test]

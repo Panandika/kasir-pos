@@ -421,7 +421,7 @@ namespace Kasir.CloudSync.Tests.Pull
             Scalar("SELECT COUNT(*) FROM applied_requests").Should().Be(0);
         }
 
-        // ---------- payloads exactly as dashboard 0059 writes them (WP-11b) ----------
+        // ---------- payloads exactly as dashboard 0067 writes them (WP-11b) ----------
 
         private PosStockRequest DashboardBill(string id, string docNo, long total, string billType = "bill",
             string reverses = null, int hour = 12) =>

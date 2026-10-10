@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Kasir.CloudSync.Pull
 {
-    // One row of Supabase pos_stock_requests (dashboard migration 0058, RALPLAN 4.1):
+    // One row of Supabase pos_stock_requests (dashboard migration 0066, RALPLAN 4.1):
     // a dashboard write the hub register must apply to its kasir.db. Quantities and
     // money are INTEGER x100 like the POS ledger.
     //
@@ -20,13 +20,13 @@ namespace Kasir.CloudSync.Pull
     //                from dus); unit_cost (x100 money per stock unit) required;
     //                vendor_code; doc_no = receipt number (required, shared by the lines
     //                of one receipt); payload.po_no or payload.po_doc_no (what dashboard
-    //                0059 validate_receipt writes; optional) -> purchase_items.order_ref.
+    //                0067 validate_receipt writes; optional) -> purchase_items.order_ref.
     //   RETURN_OUT   product_code; qty > 0 (x100); unit_cost (x100, NULL = local
     //                average); vendor_code; doc_no = return number (required);
-    //                payload.ref_no or payload.original_doc_no (0059 validate_return;
+    //                payload.ref_no or payload.original_doc_no (0067 validate_return;
     //                optional, the receipt returned against).
     //   VENDOR_BILL  vendor_code (required); doc_no = bill number (required);
-    //                payload.amount or payload.total (0059 post_vendor_bill writes total;
+    //                payload.amount or payload.total (0067 post_vendor_bill writes total;
     //                x100, required) total payable; payload.gross_amount,
     //                payload.disc_amount (x100, optional); payload.due_date and
     //                payload.bill_date ('YYYY-MM-DD', optional; bill_date defaults to the

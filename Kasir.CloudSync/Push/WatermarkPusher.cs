@@ -43,9 +43,6 @@ namespace Kasir.CloudSync.Push
         public const string StockMovementsTable = "stock_movements";
         public const string ShiftsTable = "shifts";
 
-        // OB-13: PullService (WP-04) allocates dashboard-originated movement ids from here.
-        public const long DashboardIdFloor = 5_000_000_000L;
-
         public const string StockMovementsWatermarkKey = "cloud_push_wm_stock_movements";
         public const string ShiftsWatermarkKey = "cloud_push_wm_shifts";
         public const string OpenShiftsKey = "cloud_push_open_shifts";
@@ -138,7 +135,9 @@ namespace Kasir.CloudSync.Push
                       ORDER BY id ASC
                       LIMIT @batch";
                 cmd.Parameters.AddWithValue("@wm", wm);
-                cmd.Parameters.AddWithValue("@floor", DashboardIdFloor);
+                // OB-13: ids >= the floor are dashboard-originated (PullService, WP-04) and are
+                // never pushed back. Single source of truth: StockMovementRepository.
+                cmd.Parameters.AddWithValue("@floor", StockMovementRepository.DashboardIdFloor);
                 cmd.Parameters.AddWithValue("@batch", batchSize);
                 using var reader = cmd.ExecuteReader();
                 int idOrdinal = reader.GetOrdinal("id");

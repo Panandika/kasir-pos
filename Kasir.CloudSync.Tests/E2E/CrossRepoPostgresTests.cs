@@ -25,7 +25,7 @@ using NUnit.Framework;
 namespace Kasir.CloudSync.Tests.E2E
 {
     // WP-11b cross-repo end to end: the REAL dashboard (sinar-makmur-dashboard
-    // migrations 0058-0062 on a LOCAL Supabase stack, RPCs called over PostgREST with
+    // migrations 0064-0081 on a LOCAL Supabase stack, RPCs called over PostgREST with
     // user JWTs exactly like the browser) and the REAL hub worker (CloudSyncWorker:
     // OutboxRouter + WatermarkPusher push, PullService pull, GenericSink and
     // PostgresPosRequestSource against public.*) meet on one kasir.db.
@@ -88,7 +88,7 @@ namespace Kasir.CloudSync.Tests.E2E
             var csb = new NpgsqlConnectionStringBuilder(_pg);
             if (csb.Host != "localhost" && csb.Host != "127.0.0.1") Assert.Ignore("refusing non-local host " + csb.Host);
             if (!Convert.ToBoolean(await Pg("SELECT to_regclass('public.pos_stock_requests') IS NOT NULL AND to_regprocedure('public.validate_receipt(uuid,boolean)') IS NOT NULL")))
-                Assert.Ignore("dashboard migrations 0058/0059 are not applied on this stack (run pnpm db:reset:local)");
+                Assert.Ignore("dashboard migrations 0066/0067 are not applied on this stack (run pnpm db:reset:local)");
 
             string url = Environment.GetEnvironmentVariable("KASIR_SUPABASE_URL");
             _api = new DashboardApi(string.IsNullOrWhiteSpace(url) ? "http://127.0.0.1:54321" : url,

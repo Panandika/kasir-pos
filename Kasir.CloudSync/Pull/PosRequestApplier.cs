@@ -248,7 +248,7 @@ namespace Kasir.CloudSync.Pull
             var payload = Payload(r);
 
             EnsurePurchaseHeader(r, journalNo, "RECEIPT", docDate, null);
-            // Dashboard 0059 validate_receipt writes po_doc_no; po_no is the documented alias.
+            // Dashboard 0067 validate_receipt writes po_doc_no; po_no is the documented alias.
             AddPurchaseLine(journalNo, product.ProductCode, qty, unitCost,
                 Str(payload, "po_no") ?? Str(payload, "po_doc_no"));
 
@@ -269,7 +269,7 @@ namespace Kasir.CloudSync.Pull
             string docDate = DocDate(at);
             var payload = Payload(r);
 
-            // Dashboard 0059 validate_return writes original_doc_no (the receipt returned
+            // Dashboard 0067 validate_return writes original_doc_no (the receipt returned
             // against); ref_no is the documented alias.
             string refNo = Str(payload, "ref_no") ?? Str(payload, "original_doc_no");
             EnsurePurchaseHeader(r, journalNo, "PURCHASE_RETURN", docDate, refNo);
@@ -360,7 +360,7 @@ namespace Kasir.CloudSync.Pull
             var payload = Payload(r);
             if (string.Equals(Str(payload, "bill_type"), "credit_note", StringComparison.OrdinalIgnoreCase))
                 return ApplyCreditNote(r, journalNo, vendor, payload);
-            // Dashboard 0059 post_vendor_bill writes total; amount is the documented alias.
+            // Dashboard 0067 post_vendor_bill writes total; amount is the documented alias.
             long amount = Long(payload, "amount") ?? Long(payload, "total")
                 ?? throw Invalid(r, "payload.amount (x100) is required");
             long gross = Long(payload, "gross_amount") ?? amount;
