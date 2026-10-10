@@ -206,6 +206,26 @@ namespace Kasir.Tests.Services
             _service.CalculateAverageCost("P001").Should().Be(700000);
         }
 
+        // Legacy hash ids reach ~4.29B (below the dashboard floor): Insert must return the
+        // real id, not an int-truncated negative one.
+        [Test]
+        public void Insert_AfterALegacyIdAboveIntRange_ReturnsTheRealLongId()
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO stock_movements (id, product_code, journal_no, movement_type, doc_date, period_code, qty_in)
+                  VALUES (4290000000, 'P001', 'LEGACY-H', 'PURCHASE', '2026-09-01', '202609', 100)");
+
+            long id = _movementRepo.Insert(new Kasir.Models.StockMovement
+            {
+                ProductCode = "P001", JournalNo = "KLR-1", MovementType = "SALE",
+                DocDate = "2026-10-01", PeriodCode = "202610", QtyOut = 100
+            });
+
+            id.Should().Be(4290000001L);
+            SqlHelper.ExecuteScalar<long>(_db, "SELECT id FROM stock_movements WHERE journal_no = 'KLR-1'")
+                .Should().Be(id);
+        }
+
         [Test]
         public void RecordStockIn_UpdatesCostPrice_PerpetualAvg()
         {

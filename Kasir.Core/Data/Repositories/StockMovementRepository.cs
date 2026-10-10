@@ -25,9 +25,11 @@ namespace Kasir.Data.Repositories
         // (id 5,000,000,000) every POS sale would land in the reserved range, collide
         // with the next pulled id, and be skipped by the cloud push (id < floor).
         // The ORDER BY id DESC LIMIT 1 form is a single rowid b-tree seek.
-        public int Insert(StockMovement m)
+        // Returns the new id as long: a register commissioned from a snapshot can hold
+        // legacy hash ids above int.MaxValue (up to ~4.29B), below the floor.
+        public long Insert(StockMovement m)
         {
-            return (int)InsertCore(m, null, null);
+            return InsertCore(m, null, null);
         }
 
         // Insert at a caller-chosen id (the dashboard range) with created_at and
