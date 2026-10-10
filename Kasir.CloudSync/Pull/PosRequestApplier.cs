@@ -21,13 +21,22 @@ namespace Kasir.CloudSync.Pull
     // The request cannot be applied (yet). Nothing was written. Deferred = a
     // prerequisite is missing locally (e.g. the product of a NEW_PRODUCT not applied
     // yet) and a later tick may succeed; otherwise the request data is invalid.
+    // Rejected = it can never be applied (e.g. a stock request on a non-stock code,
+    // K1/K4): PullService marks it failed in Supabase (failed_at / failed_reason,
+    // dashboard 0072) instead of retrying it every tick.
     public sealed class PosRequestApplyException : Exception
     {
         public bool Deferred { get; }
+        public bool Rejected { get; }
 
-        public PosRequestApplyException(string message, bool deferred) : base(message)
+        public PosRequestApplyException(string message, bool deferred) : this(message, deferred, rejected: false)
         {
-            Deferred = deferred;
+        }
+
+        public PosRequestApplyException(string message, bool deferred, bool rejected) : base(message)
+        {
+            Deferred = deferred && !rejected;
+            Rejected = rejected;
         }
     }
 
@@ -42,8 +51,8 @@ namespace Kasir.CloudSync.Pull
     // CalculateAverageCost for OPNAME cost (OB-14, StockOpnameService pattern).
     //
     // Every movement gets an id from the dashboard range (>= 5,000,000,000, OB-13;
-    // config pull_movement_id_seq) and is stamped at the request's happened_at (WIB
-    // wall clock), so later count-time comparisons and the cloud push filter
+    // config pull_movement_id_seq) and is stamped at the request's happened_at (store
+    // wall clock, WITA), so later count-time comparisons and the cloud push filter
     // (WatermarkPusher skips id >= floor, PV-3) both see it correctly.
     public sealed class PosRequestApplier
     {
@@ -117,6 +126,23 @@ namespace Kasir.CloudSync.Pull
         // Returns the local document written (journal_no), or null.
         private string Dispatch(PosStockRequest r)
         {
+            // K1/K4: code 1/2/44/99 and the category keys carry no stock. Checked before
+            // the product lookup, so a code the hub has no row for is rejected too (not
+            // deferred for ever).
+            if (PosRequestKinds.MovesStock(r.RequestKind) && SalesService.IsNonStockItem(r.ProductCode))
+                throw Rejected(r, (r.ProductCode ?? "").Trim()
+                    + " is not a stock item (manual price code / category key); "
+                    + "the POS never counts, buys or returns it");
+
+            // D21: a dashboard-created product (NP code) reaches this hub through its own
+            // NEW_PRODUCT request. Stock on it waits until that request is applied HERE, so
+            // a receipt / count never lands before the product, nor on a different local
+            // product that happens to hold the code (its NEW_PRODUCT is then rejected).
+            if (PosRequestKinds.NeedsDashboardProduct(r.RequestKind) && PosRequestKinds.IsDashboardProductCode(r.ProductCode)
+                && !NewProductApplied(r.ProductCode))
+                throw new PosRequestApplyException(Describe(r) + ": waiting for "
+                    + PosRequestKinds.NewProductKey(r.ProductCode) + " to be applied on this register", deferred: true);
+
             switch (r.RequestKind)
             {
                 case PosRequestKinds.Opname: return ApplyOpname(r);
@@ -125,6 +151,7 @@ namespace Kasir.CloudSync.Pull
                 case PosRequestKinds.VendorBill: return ApplyVendorBill(r);
                 case PosRequestKinds.ProductStatus: return ApplyProductStatus(r);
                 case PosRequestKinds.NewProduct: return ApplyNewProduct(r);
+                case PosRequestKinds.ProductPack: return ApplyProductPack(r);
                 case PosRequestKinds.BarcodeLink: return null; // POS has no barcode table (Migration_005)
                 default: throw Invalid(r, "unknown request_kind " + r.RequestKind);
             }
@@ -135,12 +162,10 @@ namespace Kasir.CloudSync.Pull
         private string ApplyOpname(PosStockRequest r)
         {
             var product = RequireProduct(r);
-            int counted = r.Qty ?? throw Invalid(r, "qty (counted qty x100) is required");
+            int counted = LedgerQty(r) ?? throw Invalid(r, "qty (counted qty x100) is required");
             if (counted < 0) throw Invalid(r, "counted qty must be >= 0");
-            // Code "1" and the category keys carry no stock (PR-K4, review L3).
-            if (SalesService.IsNonStockCode(product.ProductCode)) return null;
 
-            DateTime countAt = Wib(r.HappenedAt);
+            DateTime countAt = StoreWallClock(r.HappenedAt);
             // PR-K6: the shelf was seen at countAt; movements written after it (sales,
             // receipts) happened on top of the counted qty.
             var since = _movements.GetMovementsSince(product.ProductCode, countAt);
@@ -218,12 +243,12 @@ namespace Kasir.CloudSync.Pull
             long unitCost = r.UnitCost ?? throw Invalid(r, "unit_cost (x100 per stock unit) is required");
             if (unitCost < 0) throw Invalid(r, "unit_cost must be >= 0");
             string journalNo = RequireDocNo(r);
-            DateTime at = Wib(r.HappenedAt);
+            DateTime at = StoreWallClock(r.HappenedAt);
             string docDate = DocDate(at);
             var payload = Payload(r);
 
             EnsurePurchaseHeader(r, journalNo, "RECEIPT", docDate, null);
-            // Dashboard 0059 validate_receipt writes po_doc_no; po_no is the documented alias.
+            // Dashboard 0067 validate_receipt writes po_doc_no; po_no is the documented alias.
             AddPurchaseLine(journalNo, product.ProductCode, qty, unitCost,
                 Str(payload, "po_no") ?? Str(payload, "po_doc_no"));
 
@@ -240,11 +265,11 @@ namespace Kasir.CloudSync.Pull
             long unitCost = r.UnitCost ?? _inventory.CalculateAverageCost(product.ProductCode);
             if (unitCost < 0) throw Invalid(r, "unit_cost must be >= 0");
             string journalNo = RequireDocNo(r);
-            DateTime at = Wib(r.HappenedAt);
+            DateTime at = StoreWallClock(r.HappenedAt);
             string docDate = DocDate(at);
             var payload = Payload(r);
 
-            // Dashboard 0059 validate_return writes original_doc_no (the receipt returned
+            // Dashboard 0067 validate_return writes original_doc_no (the receipt returned
             // against); ref_no is the documented alias.
             string refNo = Str(payload, "ref_no") ?? Str(payload, "original_doc_no");
             EnsurePurchaseHeader(r, journalNo, "PURCHASE_RETURN", docDate, refNo);
@@ -335,12 +360,12 @@ namespace Kasir.CloudSync.Pull
             var payload = Payload(r);
             if (string.Equals(Str(payload, "bill_type"), "credit_note", StringComparison.OrdinalIgnoreCase))
                 return ApplyCreditNote(r, journalNo, vendor, payload);
-            // Dashboard 0059 post_vendor_bill writes total; amount is the documented alias.
+            // Dashboard 0067 post_vendor_bill writes total; amount is the documented alias.
             long amount = Long(payload, "amount") ?? Long(payload, "total")
                 ?? throw Invalid(r, "payload.amount (x100) is required");
             long gross = Long(payload, "gross_amount") ?? amount;
             long disc = Long(payload, "disc_amount") ?? 0;
-            string billDate = Date(r, payload, "bill_date") ?? DocDate(Wib(r.HappenedAt));
+            string billDate = Date(r, payload, "bill_date") ?? DocDate(StoreWallClock(r.HappenedAt));
             string dueDate = Date(r, payload, "due_date");
 
             // payables_register has no unique key; the same bill already there (e.g. a
@@ -379,6 +404,14 @@ namespace Kasir.CloudSync.Pull
         // payable of its own. The original bill must be applied first (it always is:
         // a credit note is posted after its bill, and the pull runs in created_at
         // order); until then the request waits.
+        //
+        // D27: the bill's value never goes below zero (the dashboard caps credit
+        // notes at the bill total, but the hub row may already be lower), and a
+        // bill whose payments cover what is left becomes paid. The "NK <doc>"
+        // markers in remark are the replay guard for a restored DB, so the list
+        // is never cut at the legacy 60 chars: with three partial credit notes the
+        // third marker would be cut off and a replay would credit it twice.
+        // Nothing reads payables_register.remark back with a width.
         private string ApplyCreditNote(PosStockRequest r, string journalNo, string vendor, JObject payload)
         {
             long credit = Long(payload, "amount") ?? Long(payload, "total")
@@ -400,15 +433,15 @@ namespace Kasir.CloudSync.Pull
 
             SqlHelper.ExecuteNonQuery(_db,
                 @"UPDATE payables_register
-                  SET value = value - @credit,
+                  SET value = MAX(value - @credit, 0),
                       gross_amount = MAX(COALESCE(gross_amount, 0) - @credit, 0),
-                      is_paid = CASE WHEN COALESCE(payment_amount, 0) >= value - @credit THEN 'Y' ELSE is_paid END,
+                      is_paid = CASE WHEN COALESCE(payment_amount, 0) >= MAX(value - @credit, 0) THEN 'Y' ELSE is_paid END,
                       remark = @remark,
                       changed_by = @by,
                       changed_at = datetime('now','localtime')
                   WHERE id = @id",
                 SqlHelper.Param("@credit", credit),
-                SqlHelper.Param("@remark", Truncate((remark.Length > 0 ? remark + "; " : "") + marker, 60)),
+                SqlHelper.Param("@remark", (remark.Length > 0 ? remark + "; " : "") + marker),
                 SqlHelper.Param("@by", PullUserId),
                 SqlHelper.Param("@id", id));
             return journalNo;
@@ -436,15 +469,33 @@ namespace Kasir.CloudSync.Pull
         {
             string code = (r.ProductCode ?? "").Trim();
             if (code.Length == 0) throw Invalid(r, "product_code is required");
-            if (_products.GetByCode(code) != null) return null; // already here: leave it as it is
 
             var payload = Payload(r);
             string name = (Str(payload, "name") ?? "").Trim().ToUpperInvariant();
             if (name.Length == 0) throw Invalid(r, "payload.name is required");
             if (name.Length > MaxNameLength) name = name.Substring(0, MaxNameLength);
+
+            var existing = _products.GetByCode(code);
+            if (existing != null)
+            {
+                // Already here (a replay after a lost applied_requests row, a restored DB):
+                // leave it as it is. An NP code held by a DIFFERENT product cannot be the
+                // dashboard's product: reject, so nothing is ever applied to the wrong one.
+                if (PosRequestKinds.IsDashboardProductCode(code)
+                    && !string.Equals((existing.Name ?? "").Trim(), name, StringComparison.OrdinalIgnoreCase))
+                    throw Rejected(r, "code " + code + " is already used on this register by \""
+                        + (existing.Name ?? "").Trim() + "\" (dashboard product \"" + name + "\")");
+                return null;
+            }
+
             string status = (Str(payload, "status") ?? "A").Trim().ToUpperInvariant();
             if (status != "A" && status != "I") throw Invalid(r, "payload.status must be A or I");
             long cost = Long(payload, "cost_price") ?? 0;
+            string unit2 = Str(payload, "unit2");
+            long? conversion1 = Long(payload, "conversion1");
+            if (conversion1.HasValue && conversion1.Value < 100)
+                throw Invalid(r, "payload.conversion1 (x100 stock units per pack) must be >= 100");
+            if (unit2 != null && unit2.Length > 6) throw Invalid(r, "payload.unit2 is longer than 6");
 
             _products.Insert(new Product
             {
@@ -463,8 +514,86 @@ namespace Kasir.CloudSync.Pull
                 IsConsignment = "N",
                 ChangedBy = PullUserId
             });
+
+            // Pack size (D21 optional, legacy UNIT2 / KONVERSI1 x100). Not on the Product
+            // model, so set on the row just inserted (same transaction).
+            if (unit2 != null || (conversion1.HasValue && conversion1.Value != 100))
+                SqlHelper.ExecuteNonQuery(_db,
+                    "UPDATE products SET unit2 = @u2, conversion1 = @c1 WHERE product_code = @code",
+                    SqlHelper.Param("@u2", unit2?.ToUpperInvariant()),
+                    SqlHelper.Param("@c1", conversion1 ?? 100),
+                    SqlHelper.Param("@code", code));
             return null;
         }
+
+        // ---------- PRODUCT_PACK (D22) ----------
+
+        // "Isi per dus?" from the dashboard: products.unit2 / conversion1 (legacy UNIT2 /
+        // KONVERSI1, x100 stock units per pack). Only these two columns change.
+        // trg_products_sync_u does not watch them, so the row is queued for sync by hand:
+        // the LAN sync (SELECT *) takes the pack to the other registers, and the cloud push
+        // sends Supabase the pack it already has.
+        private string ApplyProductPack(PosStockRequest r)
+        {
+            if (SalesService.IsNonStockItem(r.ProductCode))
+                throw Rejected(r, (r.ProductCode ?? "").Trim()
+                    + " is not a stock item (manual price code / category key); it has no pack size");
+            var product = RequireProduct(r);
+
+            var payload = Payload(r);
+            string unit2 = (Str(payload, "unit2") ?? "").ToUpperInvariant();
+            if (unit2.Length == 0) throw Invalid(r, "payload.unit2 (pack unit) is required");
+            if (unit2.Length > 6) throw Invalid(r, "payload.unit2 is longer than 6");
+            long conversion1 = Long(payload, "conversion1") ?? throw Invalid(r, "payload.conversion1 (x100 stock units per pack) is required");
+            if (conversion1 <= 100 || conversion1 > int.MaxValue)
+                throw Invalid(r, "payload.conversion1 (x100 stock units per pack) must be > 100");
+
+            // A newer pack for this product is already here (requests applied out of
+            // order after a retry): this older one must not put its pack back.
+            if (NewerPackApplied(r)) return null;
+
+            var current = SqlHelper.ExecuteScalar<string>(_db,
+                "SELECT COALESCE(unit2, '') || '|' || COALESCE(conversion1, 100) FROM products WHERE product_code = @code",
+                SqlHelper.Param("@code", product.ProductCode));
+            if (current == unit2 + "|" + conversion1.ToString(CultureInfo.InvariantCulture)) return null;
+
+            SqlHelper.ExecuteNonQuery(_db,
+                @"UPDATE products SET unit2 = @u2, conversion1 = @c1, changed_by = @by, changed_at = datetime('now','localtime')
+                  WHERE product_code = @code",
+                SqlHelper.Param("@u2", unit2),
+                SqlHelper.Param("@c1", conversion1),
+                SqlHelper.Param("@by", PullUserId),
+                SqlHelper.Param("@code", product.ProductCode));
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO sync_queue (register_id, table_name, record_key, operation)
+                  VALUES (COALESCE((SELECT value FROM config WHERE key = 'register_id'), 'unknown'), 'products', @code, 'U')",
+                SqlHelper.Param("@code", product.ProductCode));
+            return null;
+        }
+
+        // Keys are 'PRODUCT_PACK:<code>:<yyyyMMddHHmmssffffff>' (dashboard 0075): within one
+        // product the key order is the change order.
+        private bool NewerPackApplied(PosStockRequest r)
+        {
+            string key = r.IdempotencyKey ?? "";
+            int cut = key.LastIndexOf(':');
+            if (cut <= 0) return false;
+            string prefix = key.Substring(0, cut + 1);
+            return SqlHelper.ExecuteScalar<long>(_db,
+                @"SELECT COUNT(*) FROM applied_requests
+                  WHERE request_kind = @k AND substr(idempotency_key, 1, length(@prefix)) = @prefix
+                    AND length(idempotency_key) = length(@key) AND idempotency_key > @key",
+                SqlHelper.Param("@k", PosRequestKinds.ProductPack),
+                SqlHelper.Param("@prefix", prefix),
+                SqlHelper.Param("@key", key)) > 0;
+        }
+
+        // True once this register applied the code's NEW_PRODUCT (applied_requests).
+        private bool NewProductApplied(string code) =>
+            SqlHelper.ExecuteScalar<long>(_db,
+                "SELECT COUNT(*) FROM applied_requests WHERE request_kind = @k AND idempotency_key = @key",
+                SqlHelper.Param("@k", PosRequestKinds.NewProduct),
+                SqlHelper.Param("@key", PosRequestKinds.NewProductKey(code))) > 0;
 
         // ---------- helpers ----------
 
@@ -501,9 +630,22 @@ namespace Kasir.CloudSync.Pull
 
         private static int RequirePositiveQty(PosStockRequest r)
         {
-            int qty = r.Qty ?? throw Invalid(r, "qty (x100) is required");
+            int qty = LedgerQty(r) ?? throw Invalid(r, "qty (x100) is required");
             if (qty <= 0) throw Invalid(r, "qty must be > 0");
             return qty;
+        }
+
+        // pos_stock_requests.qty is BIGINT; the register ledger keeps int qty (x100).
+        // A value that does not fit can never apply, so it is rejected (marked failed)
+        // instead of retrying every tick.
+        private static int? LedgerQty(PosStockRequest r)
+        {
+            if (r.Qty == null) return null;
+            long q = r.Qty.Value;
+            if (q > int.MaxValue || q < int.MinValue)
+                throw Rejected(r, "qty " + q.ToString(CultureInfo.InvariantCulture)
+                    + " is out of range for the register ledger (max " + int.MaxValue.ToString(CultureInfo.InvariantCulture) + ")");
+            return (int)q;
         }
 
         private static string RequireDocNo(PosStockRequest r)
@@ -515,11 +657,11 @@ namespace Kasir.CloudSync.Pull
 
         private string RegisterId() => _config.Get("register_id") ?? "01";
 
-        // Register wall clock (WIB) of an instant; the POS writes local time everywhere.
-        internal static DateTime Wib(DateTimeOffset at) =>
-            DateTime.SpecifyKind(at.ToOffset(DateParser.Wib).DateTime, DateTimeKind.Unspecified);
+        // Register wall clock (store time, StoreTimeZone) of an instant; the POS writes
+        // local time everywhere.
+        internal static DateTime StoreWallClock(DateTimeOffset at) => StoreTimeZone.WallClock(at);
 
-        private static string DocDate(DateTime wib) => wib.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        private static string DocDate(DateTime wallClock) => wallClock.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         private static string Period(string docDate) => docDate.Substring(0, 4) + docDate.Substring(5, 2);
 
@@ -569,5 +711,8 @@ namespace Kasir.CloudSync.Pull
 
         private static PosRequestApplyException Invalid(PosStockRequest r, string why) =>
             new PosRequestApplyException(Describe(r) + ": " + why, deferred: false);
+
+        private static PosRequestApplyException Rejected(PosStockRequest r, string why) =>
+            new PosRequestApplyException(Describe(r) + ": " + why, deferred: false, rejected: true);
     }
 }

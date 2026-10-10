@@ -11,6 +11,7 @@ namespace Kasir.CloudSync.Tests.TestHelpers
     // Cloud mirror stand-in: one dictionary per table keyed by the mapping's primary
     // key, with the same upsert semantics as GenericSink (including the guarded
     // UpsertMatchingAsync). FailNext makes the next call throw like a dropped link.
+    // Like Postgres (21000), a batch that holds one primary key twice is rejected.
     public sealed class InMemoryMirrorSink : IMirrorSink
     {
         public Dictionary<string, Dictionary<string, IDictionary<string, object>>> Tables { get; } =
@@ -33,6 +34,15 @@ namespace Kasir.CloudSync.Tests.TestHelpers
         private static string Key(TableMapping m, IDictionary<string, object> row) =>
             string.Join("|", m.PrimaryKeyColumns.Select(c => Convert.ToString(row[c])));
 
+        private static void RejectDuplicateKeys(TableMapping m, IReadOnlyCollection<IDictionary<string, object>> rows)
+        {
+            var seen = new HashSet<string>();
+            foreach (var r in rows)
+                if (!seen.Add(Key(m, r)))
+                    throw new InvalidOperationException(
+                        "21000: ON CONFLICT DO UPDATE command cannot affect row a second time (" + m.TableName + " " + Key(m, r) + ")");
+        }
+
         private void Enter(int count)
         {
             Calls++;
@@ -47,6 +57,7 @@ namespace Kasir.CloudSync.Tests.TestHelpers
         public Task<int> UpsertAsync(TableMapping mapping, IReadOnlyCollection<IDictionary<string, object>> rows, CancellationToken ct)
         {
             Enter(rows.Count);
+            RejectDuplicateKeys(mapping, rows);
             var t = Table(mapping.TableName);
             foreach (var r in rows) t[Key(mapping, r)] = new Dictionary<string, object>(r);
             return Task.FromResult(rows.Count);
@@ -57,6 +68,7 @@ namespace Kasir.CloudSync.Tests.TestHelpers
             string returningColumn, CancellationToken ct)
         {
             Enter(rows.Count);
+            RejectDuplicateKeys(mapping, rows);
             var t = Table(mapping.TableName);
             var written = new List<long>();
             foreach (var r in rows)

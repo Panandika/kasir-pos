@@ -19,39 +19,47 @@ namespace Kasir.Data.Repositories
             {
                 try
                 {
-                    SqlHelper.ExecuteNonQuery(_db,
-                        @"INSERT INTO stock_transfers (doc_type, journal_no, doc_date, from_location,
-                          to_location, remark, control, period_code, register_id, changed_by, changed_at)
-                          VALUES (@type, @jnl, @date, @from, @to, @remark, @control,
-                          @period, @reg, @changedBy, datetime('now','localtime'))",
-                        SqlHelper.Param("@type", header.DocType ?? "TRANSFER"),
-                        SqlHelper.Param("@jnl", header.JournalNo),
-                        SqlHelper.Param("@date", header.DocDate),
-                        SqlHelper.Param("@from", header.FromLocation),
-                        SqlHelper.Param("@to", header.ToLocation),
-                        SqlHelper.Param("@remark", header.Remark ?? ""),
-                        SqlHelper.Param("@control", header.Control),
-                        SqlHelper.Param("@period", header.PeriodCode),
-                        SqlHelper.Param("@reg", header.RegisterId ?? "01"),
-                        SqlHelper.Param("@changedBy", header.ChangedBy));
-
-                    foreach (var item in items)
-                    {
-                        SqlHelper.ExecuteNonQuery(_db,
-                            @"INSERT INTO stock_transfer_items (journal_no, product_code, quantity, cost_price, value)
-                              VALUES (@jnl, @product, @qty, @cost, @val)",
-                            SqlHelper.Param("@jnl", header.JournalNo),
-                            SqlHelper.Param("@product", item.ProductCode),
-                            SqlHelper.Param("@qty", item.Quantity),
-                            SqlHelper.Param("@cost", item.CostPrice),
-                            SqlHelper.Param("@val", item.Value));
-                    }
-
+                    int id = InsertWithoutTransaction(header, items);
                     txn.Commit();
-                    return (int)SqlHelper.LastInsertRowId(_db);
+                    return id;
                 }
                 catch { txn.Rollback(); throw; }
             }
+        }
+
+        // Body of Insert without its own transaction, so StockTransferService can enlist
+        // the transfer document and its paired stock movements in one atomic unit.
+        public int InsertWithoutTransaction(StockTransfer header, List<StockTransferItem> items)
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO stock_transfers (doc_type, journal_no, doc_date, from_location,
+                  to_location, remark, control, period_code, register_id, changed_by, changed_at)
+                  VALUES (@type, @jnl, @date, @from, @to, @remark, @control,
+                  @period, @reg, @changedBy, datetime('now','localtime'))",
+                SqlHelper.Param("@type", header.DocType ?? "TRANSFER"),
+                SqlHelper.Param("@jnl", header.JournalNo),
+                SqlHelper.Param("@date", header.DocDate),
+                SqlHelper.Param("@from", header.FromLocation),
+                SqlHelper.Param("@to", header.ToLocation),
+                SqlHelper.Param("@remark", header.Remark ?? ""),
+                SqlHelper.Param("@control", header.Control),
+                SqlHelper.Param("@period", header.PeriodCode),
+                SqlHelper.Param("@reg", header.RegisterId ?? "01"),
+                SqlHelper.Param("@changedBy", header.ChangedBy));
+
+            foreach (var item in items)
+            {
+                SqlHelper.ExecuteNonQuery(_db,
+                    @"INSERT INTO stock_transfer_items (journal_no, product_code, quantity, cost_price, value)
+                      VALUES (@jnl, @product, @qty, @cost, @val)",
+                    SqlHelper.Param("@jnl", header.JournalNo),
+                    SqlHelper.Param("@product", item.ProductCode),
+                    SqlHelper.Param("@qty", item.Quantity),
+                    SqlHelper.Param("@cost", item.CostPrice),
+                    SqlHelper.Param("@val", item.Value));
+            }
+
+            return (int)SqlHelper.LastInsertRowId(_db);
         }
 
         public List<StockTransfer> GetByDateRange(string from, string to)

@@ -171,6 +171,29 @@ namespace Kasir.CloudSync.Tests.Worker
         }
 
         [Test]
+        public async Task Outbox_SaleVoidedInSameTick_ShipsOneRow_AndClearsEveryQueueEntry()
+        {
+            SeedProduct("P001");
+            var sale = MakeSale("P001", 1);
+            var sales = new SalesService(_db, new FixedClock());
+            sales.SetCashier("ADM", 1);
+            sales.VoidSale(sale.JournalNo);
+            MarkQueueLanSynced();
+            var queue = new SyncQueueRepository(_db);
+            queue.GetPendingCloud(100, new[] { "sales" }).Count(e => e.RecordKey == sale.JournalNo)
+                .Should().BeGreaterThan(1, "insert + void queue the same sale twice");
+            var router = new OutboxRouter(_db, queue, _sink, NullLogger<OutboxRouter>.Instance, new[] { "sales" });
+
+            int shipped = await router.TickAsync(100, CancellationToken.None);
+
+            shipped.Should().BeGreaterThan(1, "every queue entry counts as shipped");
+            _sink.BatchSizes.Should().Equal(new[] { 1 }, "one row per sale key reaches the sink");
+            Convert.ToInt32(_sink.Table("sales")[sale.JournalNo]["control"]).Should().Be(3, "the voided state wins");
+            queue.GetPendingCloud(100, new[] { "sales" }).Should().BeEmpty("duplicates are marked synced too, so the table is not stalled");
+            (await router.TickAsync(100, CancellationToken.None)).Should().Be(0);
+        }
+
+        [Test]
         public void OutboxTableList_Parses()
         {
             new CloudSyncConfig().OutboxTableList().Should().Equal("sales");

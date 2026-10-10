@@ -67,7 +67,7 @@ namespace Kasir.Data.Repositories
             return SqlHelper.Query(_db,
                 @"SELECT sai.id, sai.journal_no, sai.product_code, sai.quantity,
                          sai.unit_price, sai.value, sai.remark,
-                         sa.doc_date, sa.doc_type, p.name AS product_name
+                         sa.doc_date, sa.doc_type, sa.legacy_source, p.name AS product_name
                   FROM stock_adjustment_items sai
                   JOIN stock_adjustments sa ON sai.journal_no = sa.journal_no
                   LEFT JOIN products p ON sai.product_code = p.product_code
@@ -84,6 +84,7 @@ namespace Kasir.Data.Repositories
                     Reason = SqlHelper.GetString(r, "remark"),
                     DocDate = SqlHelper.GetString(r, "doc_date"),
                     DocType = SqlHelper.GetString(r, "doc_type"),
+                    LegacySource = SqlHelper.GetString(r, "legacy_source"),
                     ProductName = SqlHelper.GetString(r, "product_name")
                 },
                 SqlHelper.Param("@from", from), SqlHelper.Param("@to", to));

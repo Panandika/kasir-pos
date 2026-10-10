@@ -21,7 +21,7 @@ using NUnit.Framework;
 namespace Kasir.CloudSync.Tests.Push
 {
     // WP-02 acceptance against a real (LOCAL) Supabase Postgres: a POS sale ends up as
-    // a stock_movements row with x100 qty and the WIB instant; replay adds nothing;
+    // a stock_movements row with x100 qty and the store-time (WITA) instant; replay adds nothing;
     // the watermark advances; a colliding legacy id is not overwritten.
     //
     // [Explicit]: needs a LOCAL database, e.g. `supabase start` in sinar-makmur-dashboard:
@@ -130,7 +130,7 @@ namespace Kasir.CloudSync.Tests.Push
             new WatermarkPusher(_db, new GenericSink(_sinkConn), NullLogger<WatermarkPusher>.Instance);
 
         [Test]
-        public async Task PosSale_ReachesSupabase_WithWibTime_AndX100Qty()
+        public async Task PosSale_ReachesSupabase_WithStoreTime_AndX100Qty()
         {
             var sale = Sell(2);
 
@@ -142,10 +142,10 @@ namespace Kasir.CloudSync.Tests.Push
                 .Should().Be(200L);
             (await CloudScalar($"SELECT val_out FROM stock_movements WHERE journal_no = '{sale.JournalNo}'"))
                 .Should().Be(3600000L);
-            (await CloudScalar($"SELECT to_char(created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI:SS') FROM stock_movements WHERE journal_no = '{sale.JournalNo}'"))
-                .Should().Be("2026-10-09 15:00:00", "the WIB wall clock survives the round trip");
+            (await CloudScalar($"SELECT to_char(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD HH24:MI:SS') FROM stock_movements WHERE journal_no = '{sale.JournalNo}'"))
+                .Should().Be("2026-10-09 15:00:00", "the WITA wall clock survives the round trip");
             (await CloudScalar($"SELECT to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') FROM stock_movements WHERE journal_no = '{sale.JournalNo}'"))
-                .Should().Be("2026-10-09 08:00:00");
+                .Should().Be("2026-10-09 07:00:00");
         }
 
         [Test]
@@ -233,6 +233,33 @@ namespace Kasir.CloudSync.Tests.Push
 
             (await CloudScalar($"SELECT count(*) FROM sales WHERE journal_no = '{sale.JournalNo}'")).Should().Be(1L);
             (await CloudScalar($"SELECT qty_out FROM stock_movements WHERE journal_no = '{sale.JournalNo}'")).Should().Be(200L);
+        }
+
+        [Test]
+        public async Task Outbox_SaleVoidedInSameTick_UpsertsOnce_AndDoesNotStall()
+        {
+            var sale = Sell(1);
+            var sales = new SalesService(_db, new FixedClock());
+            sales.SetCashier("ADM", 1);
+            sales.VoidSale(sale.JournalNo);
+            using (var cmd = _db.CreateCommand())
+            {
+                cmd.CommandText = "UPDATE sync_queue SET status = 'synced'";
+                cmd.ExecuteNonQuery();
+            }
+            var queue = new SyncQueueRepository(_db);
+            queue.GetPendingCloud(100, new[] { "sales" }).Count(e => e.RecordKey == sale.JournalNo)
+                .Should().BeGreaterThan(1, "insert + void queue the same sale twice");
+            var router = new OutboxRouter(_db, queue, new GenericSink(_sinkConn),
+                NullLogger<OutboxRouter>.Instance, new[] { "sales" });
+
+            int shipped = await router.TickAsync(100, CancellationToken.None);
+
+            shipped.Should().BeGreaterThan(1, "Postgres accepted the batch (no 21000)");
+            queue.GetPendingCloud(100, new[] { "sales" }).Should().BeEmpty();
+            (await CloudScalar($"SELECT count(*) FROM sales WHERE journal_no = '{sale.JournalNo}'")).Should().Be(1L);
+            Convert.ToInt32(await CloudScalar($"SELECT control FROM sales WHERE journal_no = '{sale.JournalNo}'"))
+                .Should().Be(3, "the voided state reaches Supabase");
         }
     }
 }

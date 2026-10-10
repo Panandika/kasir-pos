@@ -164,6 +164,96 @@ namespace Kasir.Tests.Services
             _service.CalculateAverageCost("P001").Should().Be(0, "cost_price 0 and no purchase history -> 0");
         }
 
+        // D28: the fallback reads the line cost under the shared rule, not unit_price.
+        private void SeedLegacyPurchaseLine(string journal, string docDate, long unitPrice, long discValue, long cogs)
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, legacy_source)
+                  VALUES ('PURCHASE', @j, @d, 'V001', 0, '202609', 'SM');
+                  INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, disc_value, cogs, value)
+                  VALUES (@j, 'P001', 500, @price, @disc, @cogs, 0);",
+                SqlHelper.Param("@j", journal), SqlHelper.Param("@d", docDate),
+                SqlHelper.Param("@price", unitPrice), SqlHelper.Param("@disc", discValue),
+                SqlHelper.Param("@cogs", cogs));
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_UsesCogs_NotPreDiscountUnitPrice()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SeedLegacyPurchaseLine("DSRI-1", "2026-09-01", unitPrice: 1000000, discValue: 200000, cogs: 800000);
+
+            _service.CalculateAverageCost("P001").Should().Be(800000, "D28: cogs (after discount) when > 0");
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_CogsZero_UsesUnitPriceMinusDiscValue()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SeedLegacyPurchaseLine("DSRI-1", "2026-09-01", unitPrice: 1000000, discValue: 100000, cogs: 0);
+
+            _service.CalculateAverageCost("P001").Should().Be(900000, "D28 fallback: unit_price - disc_value");
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_SkipsLinesWhoseRuleCostIsZero()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SeedLegacyPurchaseLine("DSRI-1", "2026-09-01", unitPrice: 700000, discValue: 0, cogs: 0);
+            // Later, but fully discounted: cost 0 under the rule, so it is not a price.
+            SeedLegacyPurchaseLine("DSRI-2", "2026-09-10", unitPrice: 100000, discValue: 100000, cogs: 0);
+
+            _service.CalculateAverageCost("P001").Should().Be(700000);
+        }
+
+        // Dashboard purchases reach the POS as RECEIPT documents (PosRequestApplier),
+        // so the fallback must read them too, not only legacy PURCHASE invoices.
+        [Test]
+        public void CalculateAverageCost_Fallback_ReadsDashboardReceiptLine()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, control, legacy_source)
+                  VALUES ('RECEIPT', 'RCV-DB-1', '2026-10-01', 'V001', 0, '202610', 1, 'DASHBOARD');
+                  INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, value)
+                  VALUES ('RCV-DB-1', 'P001', 10, 280000, 2800000);");
+
+            _service.CalculateAverageCost("P001").Should().Be(280000);
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_IgnoresOtherDocTypes()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, control)
+                  VALUES ('PURCHASE_RETURN', 'RTN-1', '2026-10-01', 'V001', 0, '202610', 1);
+                  INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, value)
+                  VALUES ('RTN-1', 'P001', 1, 990000, 990000);");
+
+            _service.CalculateAverageCost("P001").Should().Be(0, "a return is not a cost source");
+        }
+
+        // Legacy hash ids reach ~4.29B (below the dashboard floor): Insert must return the
+        // real id, not an int-truncated negative one.
+        [Test]
+        public void Insert_AfterALegacyIdAboveIntRange_ReturnsTheRealLongId()
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO stock_movements (id, product_code, journal_no, movement_type, doc_date, period_code, qty_in)
+                  VALUES (4290000000, 'P001', 'LEGACY-H', 'PURCHASE', '2026-09-01', '202609', 100)");
+
+            long id = _movementRepo.Insert(new Kasir.Models.StockMovement
+            {
+                ProductCode = "P001", JournalNo = "KLR-1", MovementType = "SALE",
+                DocDate = "2026-10-01", PeriodCode = "202610", QtyOut = 100
+            });
+
+            id.Should().Be(4290000001L);
+            SqlHelper.ExecuteScalar<long>(_db, "SELECT id FROM stock_movements WHERE journal_no = 'KLR-1'")
+                .Should().Be(id);
+        }
+
         [Test]
         public void RecordStockIn_UpdatesCostPrice_PerpetualAvg()
         {

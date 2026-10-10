@@ -113,15 +113,21 @@ namespace Kasir.CloudSync.Outbox
 
             if (rows.Count == 0) return 0;
 
+            // Two queue entries for one record (insert then update/void inside one
+            // tick) read the same current row twice; a multi-row upsert touching one
+            // key twice fails with Postgres 21000 and would stall the table forever.
+            // Ship one row per key; every entry, duplicates included, is marked below.
+            var unique = RowDedup.ByPrimaryKey(mapping, rows);
+
             try
             {
-                await _sink.UpsertAsync(mapping, rows, ct).ConfigureAwait(false);
+                await _sink.UpsertAsync(mapping, unique, ct).ConfigureAwait(false);
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex,
                     "GenericSink upsert failed for {Table} batch of {Count}; rows stay cloud_synced=0 for retry",
-                    mapping.TableName, rows.Count);
+                    mapping.TableName, unique.Count);
                 return 0;
             }
 

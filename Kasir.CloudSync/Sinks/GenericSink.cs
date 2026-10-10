@@ -28,6 +28,10 @@ namespace Kasir.CloudSync.Sinks
         {
             if (rows == null || rows.Count == 0) return 0;
 
+            // One statement may not touch the same key twice (Postgres 21000);
+            // collapse to the newest row per primary key whoever the caller is.
+            rows = RowDedup.ByPrimaryKey(mapping, rows);
+
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync(ct).ConfigureAwait(false);
 

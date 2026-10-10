@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Kasir.CloudSync.Pull
 {
-    // One row of Supabase pos_stock_requests (dashboard migration 0058, RALPLAN 4.1):
+    // One row of Supabase pos_stock_requests (dashboard migration 0066, RALPLAN 4.1):
     // a dashboard write the hub register must apply to its kasir.db. Quantities and
     // money are INTEGER x100 like the POS ledger.
     //
@@ -20,25 +20,46 @@ namespace Kasir.CloudSync.Pull
     //                from dus); unit_cost (x100 money per stock unit) required;
     //                vendor_code; doc_no = receipt number (required, shared by the lines
     //                of one receipt); payload.po_no or payload.po_doc_no (what dashboard
-    //                0059 validate_receipt writes; optional) -> purchase_items.order_ref.
+    //                0067 validate_receipt writes; optional) -> purchase_items.order_ref.
     //   RETURN_OUT   product_code; qty > 0 (x100); unit_cost (x100, NULL = local
     //                average); vendor_code; doc_no = return number (required);
-    //                payload.ref_no or payload.original_doc_no (0059 validate_return;
+    //                payload.ref_no or payload.original_doc_no (0067 validate_return;
     //                optional, the receipt returned against).
     //   VENDOR_BILL  vendor_code (required); doc_no = bill number (required);
-    //                payload.amount or payload.total (0059 post_vendor_bill writes total;
+    //                payload.amount or payload.total (0067 post_vendor_bill writes total;
     //                x100, required) total payable; payload.gross_amount,
     //                payload.disc_amount (x100, optional); payload.due_date and
     //                payload.bill_date ('YYYY-MM-DD', optional; bill_date defaults to the
-    //                WIB date of happened_at); payload.vendor_invoice_no (optional).
+    //                store-time (WITA) date of happened_at); payload.vendor_invoice_no (optional).
     //                payload.bill_type 'credit_note' (+ payload.reverses_doc_no, the bill
     //                it reverses) lowers that bill's payables_register value by the total
     //                instead of adding a payable; it waits until the bill is applied.
     //   PRODUCT_STATUS product_code; payload.status 'A' | 'I' | 'D' (default 'A').
-    //   NEW_PRODUCT  product_code (dashboard 'NP' code, OB-10); payload.name (required);
+    //   NEW_PRODUCT  product_code (dashboard 'NP' code, OB-10 / D21, dashboard 0074
+    //                create_dashboard_product); payload.name (required);
     //                payload.dept_code, unit, price, buying_price, cost_price (x100),
-    //                vendor_code, status (optional). An existing code is left unchanged.
+    //                vendor_code, status (optional), unit2 + conversion1 (pack, x100 stock
+    //                units per pack, optional). An existing code is left unchanged; for an
+    //                NP code whose local product has another name the request is
+    //                rejected (the code is taken on this hub).
+    //                Applied BEFORE anything that depends on it: PullService takes every
+    //                fetched NEW_PRODUCT first, and an OPNAME / PURCHASE / RETURN_OUT on an
+    //                NP code waits (deferred) until that code's NEW_PRODUCT is applied here.
     //   BARCODE_LINK no-op on the POS (barcodes were dropped, Migration_005); marked applied.
+    //   PRODUCT_PACK product_code; payload.unit2 (pack unit, max 6, required) +
+    //                payload.conversion1 (x100 stock units per pack, > 100, required),
+    //                payload.previous_unit2 / previous_conversion1 / source (info only).
+    //                "Isi per dus?" saved in the dashboard (D22, dashboard 0075
+    //                set_product_pack): written to products.unit2 / conversion1. Key
+    //                'PRODUCT_PACK:<code>:<yyyyMMddHHmmssffffff>', one per change; a pack
+    //                request older than one already applied here for the same product is
+    //                a no-op (never puts an old pack back). On an NP code it waits for
+    //                the code's NEW_PRODUCT like the stock requests.
+    //
+    // OPNAME / PURCHASE / RETURN_OUT on a non-stock code (SalesService.IsNonStockItem:
+    // 1/2/44/99, AL/AT/PR/PL/MY/LL; K1/K4) are rejected: nothing is written and the row
+    // gets failed_at / failed_reason / failed_by_register (dashboard 0072), which takes it
+    // out of the pending fetch. The dashboard never queues them (0072); older rows may exist.
     //
     // (request_kind, idempotency_key) is UNIQUE in Supabase and in local applied_requests.
     public sealed class PosStockRequest
@@ -47,7 +68,9 @@ namespace Kasir.CloudSync.Pull
         public string RequestKind { get; set; }
         public string IdempotencyKey { get; set; }
         public string ProductCode { get; set; }
-        public int? Qty { get; set; }
+        // BIGINT in Supabase (pos_stock_requests.qty); the applier narrows it to the
+        // int ledger qty and rejects a value that does not fit.
+        public long? Qty { get; set; }
         public long? UnitCost { get; set; }
         public string VendorCode { get; set; }
         public string DocNo { get; set; }
@@ -66,6 +89,7 @@ namespace Kasir.CloudSync.Pull
         public const string ProductStatus = "PRODUCT_STATUS";
         public const string NewProduct = "NEW_PRODUCT";
         public const string BarcodeLink = "BARCODE_LINK";
+        public const string ProductPack = "PRODUCT_PACK";
 
         // Tie-break inside one created_at (one dashboard RPC writes all its rows in one
         // transaction, so they share now()): a product must exist before stock moves on
@@ -76,6 +100,7 @@ namespace Kasir.CloudSync.Pull
             {
                 case NewProduct: return 0;
                 case ProductStatus: return 1;
+                case ProductPack: return 1;
                 case BarcodeLink: return 2;
                 case Purchase: return 3;
                 case ReturnOut: return 4;
@@ -89,10 +114,24 @@ namespace Kasir.CloudSync.Pull
         public static bool MovesStock(string kind) =>
             kind == Opname || kind == Purchase || kind == ReturnOut;
 
+        // Kinds that need the product of a dashboard 'NP' code to be the dashboard's
+        // own (its NEW_PRODUCT applied here) before they run.
+        public static bool NeedsDashboardProduct(string kind) => MovesStock(kind) || kind == ProductPack;
+
+        // Dashboard-created product codes (reserved 'NP' prefix, D21 / dashboard 0074).
+        public static bool IsDashboardProductCode(string code) => Kasir.Services.ProductService.IsDashboardProductCode(code);
+
+        // The idempotency key the dashboard gives a code's NEW_PRODUCT request.
+        public static string NewProductKey(string code) => "NEW_PRODUCT:" + (code ?? "").Trim();
+
         // The order PullService applies a fetched batch in (and the SQL ORDER BY).
+        // NEW_PRODUCT first (it depends on nothing, and stock requests on its code wait
+        // for it even when they were queued earlier), then created_at, then kind.
         public static readonly IComparer<PosStockRequest> ApplyOrder = Comparer<PosStockRequest>.Create((a, b) =>
         {
-            int c = a.CreatedAt.CompareTo(b.CreatedAt);
+            int c = (a.RequestKind == NewProduct ? 0 : 1).CompareTo(b.RequestKind == NewProduct ? 0 : 1);
+            if (c != 0) return c;
+            c = a.CreatedAt.CompareTo(b.CreatedAt);
             if (c != 0) return c;
             c = Priority(a.RequestKind).CompareTo(Priority(b.RequestKind));
             if (c != 0) return c;

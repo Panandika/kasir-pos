@@ -25,7 +25,7 @@ using NUnit.Framework;
 namespace Kasir.CloudSync.Tests.E2E
 {
     // WP-11b cross-repo end to end: the REAL dashboard (sinar-makmur-dashboard
-    // migrations 0058-0062 on a LOCAL Supabase stack, RPCs called over PostgREST with
+    // migrations 0064-0081 on a LOCAL Supabase stack, RPCs called over PostgREST with
     // user JWTs exactly like the browser) and the REAL hub worker (CloudSyncWorker:
     // OutboxRouter + WatermarkPusher push, PullService pull, GenericSink and
     // PostgresPosRequestSource against public.*) meet on one kasir.db.
@@ -35,6 +35,8 @@ namespace Kasir.CloudSync.Tests.E2E
     //   receipt between count and "Terapkan" is counted once     (PLAN edge 10, #29)
     //   dashboard receipt / bill / return / credit note -> POS once (#47 #50 #51 #53)
     //   POS purchasing stays locked while the dashboard purchases (#46)
+    //   dashboard-made product (NP, D21) -> NEW_PRODUCT before its receipt and count
+    //   "Isi per dus?" (D22) -> PRODUCT_PACK on the hub, kept against a stale push
     //
     // [Explicit]: needs the dashboard's LOCAL stack (`pnpm db:reset:local` in
     // sinar-makmur-dashboard, which applies every migration + seed):
@@ -55,7 +57,7 @@ namespace Kasir.CloudSync.Tests.E2E
     public class CrossRepoPostgresTests
     {
         private const long Floor = 5_000_000_000L;
-        private static readonly TimeSpan WibOffset = TimeSpan.FromHours(7);
+        private static readonly TimeSpan StoreOffset = TimeSpan.FromHours(8); // WITA (D26)
 
         private string _pg;
         private DashboardApi _api;
@@ -86,7 +88,7 @@ namespace Kasir.CloudSync.Tests.E2E
             var csb = new NpgsqlConnectionStringBuilder(_pg);
             if (csb.Host != "localhost" && csb.Host != "127.0.0.1") Assert.Ignore("refusing non-local host " + csb.Host);
             if (!Convert.ToBoolean(await Pg("SELECT to_regclass('public.pos_stock_requests') IS NOT NULL AND to_regprocedure('public.validate_receipt(uuid,boolean)') IS NOT NULL")))
-                Assert.Ignore("dashboard migrations 0058/0059 are not applied on this stack (run pnpm db:reset:local)");
+                Assert.Ignore("dashboard migrations 0066/0067 are not applied on this stack (run pnpm db:reset:local)");
 
             string url = Environment.GetEnvironmentVariable("KASIR_SUPABASE_URL");
             _api = new DashboardApi(string.IsNullOrWhiteSpace(url) ? "http://127.0.0.1:54321" : url,
@@ -274,7 +276,7 @@ namespace Kasir.CloudSync.Tests.E2E
             await Task.Delay(1500);               // the sale is strictly later (seconds on the POS clock)
             var sale = Sell(b, 2);                 // 2 sold before "Terapkan"
 
-            // The push carries the sale to Supabase, x100 and at its WIB time.
+            // The push carries the sale to Supabase, x100 and at its store (WITA) time.
             (await _worker.TickAsync(CancellationToken.None)).Should().BeTrue();
             var cloudSale = await PgRow(@"SELECT id, qty_out, created_at FROM public.stock_movements
                                           WHERE product_code = @p AND journal_no = @j", ("@p", b), ("@j", sale.JournalNo));
@@ -425,6 +427,14 @@ namespace Kasir.CloudSync.Tests.E2E
                 "the credit note reduces the payable (dashboard_payables: bill + negative credit note)");
             (await Pg("SELECT sum(amount) FROM public.dashboard_payables WHERE vendor_code = @v", ("@v", _vendor)))
                 .Should().Be(billTotal - cnTotal);
+            // D27 (dashboard 0076): the credit note lowers the hutang of the bill it
+            // reverses on both sides, and the two agree.
+            var billPay = await PgRow("SELECT credited_amount, outstanding, status FROM public.dashboard_payables WHERE bill_id = @b", ("@b", bill));
+            ((long)billPay["credited_amount"]).Should().Be(cnTotal);
+            ((long)billPay["outstanding"]).Should().Be(billTotal - cnTotal);
+            ((string)billPay["status"]).Should().Be("partial");
+            new PayablesRepository(_db).GetByJournalNo(billNo).Amount.Should().Be((long)billPay["outstanding"],
+                "hub payables_register.value = dashboard outstanding of the same bill");
 
             // Replay: every request of this test is applied and marked; another tick adds nothing.
             long movements = Scalar("SELECT COUNT(*) FROM stock_movements");
@@ -438,6 +448,147 @@ namespace Kasir.CloudSync.Tests.E2E
             // The dashboard path never opened the POS purchasing screens.
             lockService.IsLocked.Should().BeTrue("pulling dashboard purchases does not unlock POS purchasing");
             Scalar($"SELECT COUNT(*) FROM config_audit WHERE key = '{PurchasingLockService.ConfigKey}'").Should().Be(0);
+        }
+
+        // D21 / WP-13 (dashboard 0074): a product made in the dashboard (NP code), received
+        // by the dus on Barang Masuk Cepat and counted, reaches the hub in that order: the
+        // NEW_PRODUCT first (with its pack), then the PURCHASE, then the OPNAME.
+        [Test, Order(5)]
+        public async Task New_product_made_in_the_dashboard_is_created_received_and_counted_on_the_hub()
+        {
+            if (!Convert.ToBoolean(await Pg("SELECT to_regprocedure('public.create_dashboard_product(text,text,text,bigint,bigint,text,bigint,text,text,uuid,text)') IS NOT NULL")))
+                Assert.Ignore("dashboard migration 0074 is not applied on this stack (run pnpm db:reset:local)");
+
+            string name = "PRODUK BARU UJI " + _run;
+            var made = (JObject)await _api.Rpc(_mgr1, "create_dashboard_product", new
+            {
+                p_name = name.ToLowerInvariant(), p_dept_code = "10", p_unit = "pcs",
+                p_cost_price = 300000L, p_price = 500000L, p_pack_unit = "dus", p_pack_qty = 1200L,
+                p_vendor_code = _vendor, p_source = "direct_receipt", p_client_key = "x-np-" + _run
+            });
+            string np = made["product_code"].Value<string>();
+            np.Should().MatchRegex("^NP[0-9]{4,}$");
+            _products.Add(np);
+            // A replay of the same submit makes no second product.
+            var replay = (JObject)await _api.Rpc(_mgr1, "create_dashboard_product", new
+            {
+                p_name = name, p_dept_code = "10", p_unit = "PCS", p_cost_price = 300000L, p_price = 500000L,
+                p_pack_unit = "DUS", p_pack_qty = 1200L, p_vendor_code = _vendor, p_source = "direct_receipt",
+                p_client_key = "x-np-" + _run
+            });
+            replay["product_code"].Value<string>().Should().Be(np);
+            replay["created"].Value<bool>().Should().BeFalse();
+
+            // 2 dus x 12 on Barang Masuk Cepat, then a count of 20 pcs.
+            var rc = (JObject)await _api.Rpc(_mgr1, "create_direct_receipt", new
+            {
+                p_vendor_code = _vendor,
+                p_lines = new JArray(PoLine(np, 200, 3600000, "DUS", 1200))
+            });
+            rc["requests_created"].Value<int>().Should().Be(1);
+            await Task.Delay(1500); // the count is strictly after the receipt
+            await Count(_mgr1, np, 2000, "Rak produk baru");
+            await Apply(np);
+
+            var newReq = await RequestOf("NEW_PRODUCT", np);
+            newReq["idempotency_key"].Value<string>().Should().Be("NEW_PRODUCT:" + np);
+            newReq["payload"]["name"].Value<string>().Should().Be(name);
+
+            (await _worker.TickAsync(CancellationToken.None)).Should().BeTrue();
+            _pull.LastResult.Failed.Should().BeEmpty();
+            _pull.LastResult.Applied.Should().HaveCount(3);
+            _pull.LastResult.Applied[0].Should().Be(newReq.Id(), "the product lands before its receipt and count");
+
+            var p = new ProductRepository(_db).GetByCode(np);
+            p.Should().NotBeNull();
+            (p.Name, p.DeptCode, p.Unit, p.Status, p.Price, p.VendorCode).Should().Be((name, "10", "PCS", "A", 500000L, _vendor));
+            Text($"SELECT unit2 || ' x ' || conversion1 FROM products WHERE product_code = '{np}'").Should().Be("DUS x 1200");
+            OnHand(np).Should().Be(2000, "24 received, 20 counted");
+            var opn = new StockMovementRepository(_db).GetByProduct(np, "2000-01-01", "2099-12-31").Single(x => x.MovementType == "OPNAME");
+            opn.QtyOut.Should().Be(400);
+            opn.Id.Should().BeGreaterThanOrEqualTo(Floor);
+            new ProductRepository(_db).GetByCode(np).CostPrice.Should().Be(300000, "Rp 36.000 / dus of 12");
+
+            (await Pg(@"SELECT count(*) FROM public.pos_stock_requests WHERE product_code = @p AND applied_at IS NOT NULL",
+                ("@p", np))).Should().Be(3L);
+            // The hub's copy of the product, if pushed back, matches what the dashboard made.
+            var cloud = await PgRow("SELECT name, unit2, conversion1, status FROM public.products WHERE product_code = @p", ("@p", np));
+            ((string)cloud["name"], (string)cloud["unit2"], (long)cloud["conversion1"], (string)cloud["status"])
+                .Should().Be((name, "DUS", 1200L, "A"));
+
+            (await _worker.TickAsync(CancellationToken.None)).Should().BeTrue();
+            _pull.LastResult.Fetched.Should().Be(0, "nothing left for this product");
+        }
+
+        // D22 / WP-14 (dashboard 0075): "Isi per dus?" answered while counting reaches the
+        // hub as PRODUCT_PACK. A till edit of the same product pushed before the hub has the
+        // pack does not put the old (empty) pack back in Supabase; the hub ends on the pack,
+        // and a second, different answer is refused instead of overwriting the first.
+        [Test, Order(6)]
+        public async Task Pack_size_saved_while_counting_reaches_the_hub_and_survives_a_stale_push()
+        {
+            if (!Convert.ToBoolean(await Pg("SELECT to_regprocedure('public.set_product_pack(text,text,bigint,text,uuid,boolean)') IS NOT NULL")))
+                Assert.Ignore("dashboard migration 0075 is not applied on this stack (run pnpm db:reset:local)");
+
+            string p = await Product("K", 0);
+            var res = (JObject)await _api.Rpc(_mgr1, "set_product_pack", new
+            {
+                p_product_code = p, p_pack_unit = "dus", p_pack_qty = 2400L, p_source = "opname", p_session_id = _session
+            });
+            res["changed"].Value<bool>().Should().BeTrue();
+            var req = await RequestOf("PRODUCT_PACK", p);
+            req["idempotency_key"].Value<string>().Should().StartWith("PRODUCT_PACK:" + p + ":");
+            req["payload"]["conversion1"].Value<long>().Should().Be(2400);
+
+            // Someone else answers differently: refused (409), the first pack stays.
+            var conflict = await FluentActions.Awaiting(() => _api.Rpc(_mgr2, "set_product_pack", new
+            {
+                p_product_code = p, p_pack_unit = "DUS", p_pack_qty = 1200L, p_source = "opname"
+            })).Should().ThrowAsync<DashboardRpcException>();
+            conflict.Which.Status.Should().Be(409);
+            conflict.Which.Body.Should().Contain("sudah diisi");
+
+            // This hub also pushes products (OutboxTables "sales,products", the post-cutover
+            // scope; the default "sales" never pushes them). The worker pushes before it pulls.
+            var pushCfg = new CloudSyncConfig { PullBatchSize = 5000, OutboxTables = "sales,products" };
+            var sink = new GenericSink(_pg);
+            var worker = new CloudSyncWorker(NullLogger<CloudSyncWorker>.Instance, Options.Create(pushCfg),
+                new OutboxRouter(_db, new SyncQueueRepository(_db), sink, NullLogger<OutboxRouter>.Instance, pushCfg.OutboxTableList()),
+                new WatermarkPusher(_db, sink, NullLogger<WatermarkPusher>.Instance),
+                _pull);
+            // The hub row's insert queue entry stands for history the cloud already has
+            // (Product() wrote both rows); start from an empty queue.
+            Exec("DELETE FROM sync_queue");
+
+            // A price change at the till, queued before the hub has the pack: its push
+            // carries unit2 NULL / conversion1 100.
+            Exec($"UPDATE products SET price = 550000, changed_at = datetime('now','localtime') WHERE product_code = '{p}'");
+            Scalar($"SELECT COUNT(*) FROM sync_queue WHERE table_name = 'products' AND record_key = '{p}' AND operation = 'U'")
+                .Should().BeGreaterThan(0);
+            // The LAN push already ran (the cloud push ships rows the LAN sync has synced).
+            Exec("UPDATE sync_queue SET status = 'synced'");
+
+            (await worker.TickAsync(CancellationToken.None)).Should().BeTrue();
+            _pull.LastResult.Failed.Should().BeEmpty();
+            _pull.LastResult.Applied.Should().Contain(req.Id());
+
+            Text($"SELECT unit2 || ' x ' || conversion1 FROM products WHERE product_code = '{p}'").Should().Be("DUS x 2400");
+            var cloud = await PgRow("SELECT price, unit2, conversion1 FROM public.products WHERE product_code = @p", ("@p", p));
+            ((long)cloud["price"], (string)cloud["unit2"], (long)cloud["conversion1"])
+                .Should().Be((550000L, "DUS", 2400L), "the till's price went through, the dashboard's pack was kept");
+            (await Pg("SELECT applied_at IS NOT NULL FROM public.pos_stock_requests WHERE id = @id", ("@id", req.Id())))
+                .Should().Be(true);
+
+            // The hub queued its row so the pack also reaches the other registers (LAN sync)
+            // and the cloud; after that push Supabase still has the same pack.
+            Scalar($"SELECT COUNT(*) FROM sync_queue WHERE record_key = '{p}' AND status <> 'synced'")
+                .Should().Be(1, "ApplyProductPack queued the row (trg_products_sync_u ignores unit2 / conversion1)");
+            Exec("UPDATE sync_queue SET status = 'synced'");
+            (await worker.TickAsync(CancellationToken.None)).Should().BeTrue();
+            Scalar($"SELECT COUNT(*) FROM sync_queue WHERE record_key = '{p}' AND cloud_synced = 0").Should().Be(0);
+            _pull.LastResult.Fetched.Should().Be(0);
+            var after = await PgRow("SELECT unit2, conversion1 FROM public.products WHERE product_code = @p", ("@p", p));
+            ((string)after["unit2"], (long)after["conversion1"]).Should().Be(("DUS", 2400L));
         }
 
         // ------------------------------------------------------------------ dashboard helpers
@@ -494,22 +645,22 @@ namespace Kasir.CloudSync.Tests.E2E
 
         // ------------------------------------------------------------------ POS helpers
 
-        private sealed class WibClock : IClock
+        private sealed class StoreClock : IClock
         {
             public DateTime Now { get; set; }
-            public DateTime UtcNow => Now.AddHours(-7);
+            public DateTime UtcNow => Now - StoreOffset;
         }
 
-        // A sale at the register's wall clock (WIB) right now.
+        // A sale at the register's wall clock (WITA) right now.
         private Sale Sell(string product, int units)
         {
-            var now = DateTimeOffset.UtcNow.ToOffset(WibOffset).DateTime;
+            var now = DateTimeOffset.UtcNow.ToOffset(StoreOffset).DateTime;
             now = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second);
-            var sales = new SalesService(_db, new WibClock { Now = now });
+            var sales = new SalesService(_db, new StoreClock { Now = now });
             sales.SetCashier("ADM", 1);
             sales.AddItem(product, units);
             var sale = sales.CompleteSale(100000000, 0, 0, "", "", "");
-            // The movement row takes SQLite localtime by default; pin it to the WIB clock
+            // The movement row takes SQLite localtime by default; pin it to the WITA clock
             // so the test does not depend on the machine's time zone.
             string ts = now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
             Exec($"UPDATE stock_movements SET created_at = '{ts}', changed_at = '{ts}' WHERE journal_no = '{sale.JournalNo}'");

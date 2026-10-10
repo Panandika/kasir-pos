@@ -181,6 +181,44 @@ namespace Kasir.Tests.Services
         }
 
         [Test]
+        public void OpnameSheet_SkipsManualCodes2_44_99()
+        {
+            // K1/K4 (follow-up item 7): the legacy manual price codes kept by the D3
+            // cleanup are not stock items either.
+            var repo = new ProductRepository(_db);
+            foreach (var code in new[] { "2", "44", "99", "P001" })
+                repo.Insert(new Product
+                {
+                    ProductCode = code, Name = "TEST " + code, Price = 500000, Status = "A",
+                    OpenPrice = code == "P001" ? "N" : "Y", VatFlag = "N", LuxuryTaxFlag = "N", IsConsignment = "N"
+                });
+
+            var codes = new StockOpnameService(_db, new FakeClock(new DateTime(2026, 4, 4, 10, 0, 0)))
+                .GetOpnameSheet(1000).Select(l => l.ProductCode).ToList();
+
+            codes.Should().Contain("P001");
+            codes.Should().NotContain(new[] { "2", "44", "99" });
+            codes.Should().NotContain(c => SalesService.IsNonStockItem(c));
+        }
+
+        [Test]
+        public void IsNonStockItem_IsTheSaleRulePlusManualCodes()
+        {
+            foreach (var c in new[] { "1", "AL", "AT", "PR", "PL", "MY", "LL" })
+            {
+                SalesService.IsNonStockCode(c).Should().BeTrue(c);
+                SalesService.IsNonStockItem(c).Should().BeTrue(c);
+            }
+            foreach (var c in new[] { "2", "44", "99" })
+            {
+                SalesService.IsNonStockItem(c).Should().BeTrue(c);
+                SalesService.IsNonStockCode(c).Should().BeFalse(c + ": the sale path is unchanged");
+            }
+            SalesService.IsNonStockItem("P001").Should().BeFalse();
+            SalesService.IsNonStockItem(null).Should().BeFalse();
+        }
+
+        [Test]
         public void Migration013_EnsuresMigration012Table_WhenK3WasSkipped()
         {
             // H3: a register that reached schema 13 from a build without 012 must still

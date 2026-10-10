@@ -9,15 +9,18 @@ namespace Kasir.CloudSync.Pull
 {
     public sealed class PostgresPosRequestSource : IPosRequestSource
     {
-        // Targets the hub applies (single-hub-applicant model, OB-12).
+        // Targets the hub applies (single-hub-applicant model, OB-12). NEW_PRODUCT rows
+        // come first so a batch limit never leaves a product behind the receipt / count
+        // that needs it (PosRequestKinds.ApplyOrder, D21).
         internal const string PendingSql =
             @"SELECT id, request_kind, idempotency_key, product_code, qty, unit_cost,
                      vendor_code, doc_no, target_register, payload::text, happened_at, created_at
               FROM pos_stock_requests
-              WHERE applied_at IS NULL AND target_register IN ('hub', 'ALL')
-              ORDER BY created_at ASC,
+              WHERE applied_at IS NULL AND failed_at IS NULL AND target_register IN ('hub', 'ALL')
+              ORDER BY (request_kind = 'NEW_PRODUCT') DESC,
+                       created_at ASC,
                        CASE request_kind
-                         WHEN 'NEW_PRODUCT' THEN 0 WHEN 'PRODUCT_STATUS' THEN 1
+                         WHEN 'NEW_PRODUCT' THEN 0 WHEN 'PRODUCT_STATUS' THEN 1 WHEN 'PRODUCT_PACK' THEN 1
                          WHEN 'BARCODE_LINK' THEN 2 WHEN 'PURCHASE' THEN 3
                          WHEN 'RETURN_OUT' THEN 4 WHEN 'OPNAME' THEN 5
                          WHEN 'VENDOR_BILL' THEN 6 ELSE 9 END ASC,
@@ -28,6 +31,15 @@ namespace Kasir.CloudSync.Pull
             @"UPDATE pos_stock_requests
               SET applied_at = @at, applied_by_register = @reg
               WHERE id = @id AND applied_at IS NULL";
+
+        // failed_reason is plain text for the dashboard; capped so a long message
+        // never fails the mark.
+        internal const int MaxFailedReasonLength = 500;
+
+        internal const string MarkFailedSql =
+            @"UPDATE pos_stock_requests
+              SET failed_at = @at, failed_reason = @reason, failed_by_register = @reg
+              WHERE id = @id AND applied_at IS NULL AND failed_at IS NULL";
 
         private readonly string _connectionString;
 
@@ -53,7 +65,7 @@ namespace Kasir.CloudSync.Pull
                     RequestKind = r.GetString(1),
                     IdempotencyKey = r.GetString(2),
                     ProductCode = r.IsDBNull(3) ? null : r.GetString(3),
-                    Qty = r.IsDBNull(4) ? (int?)null : Convert.ToInt32(r.GetValue(4)),
+                    Qty = r.IsDBNull(4) ? (long?)null : Convert.ToInt64(r.GetValue(4)),
                     UnitCost = r.IsDBNull(5) ? (long?)null : Convert.ToInt64(r.GetValue(5)),
                     VendorCode = r.IsDBNull(6) ? null : r.GetString(6),
                     DocNo = r.IsDBNull(7) ? null : r.GetString(7),
@@ -73,6 +85,21 @@ namespace Kasir.CloudSync.Pull
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = MarkSql;
             cmd.Parameters.Add(new NpgsqlParameter("@at", NpgsqlDbType.TimestampTz) { Value = appliedAt.ToUniversalTime() });
+            cmd.Parameters.AddWithValue("@reg", registerId ?? "");
+            cmd.Parameters.AddWithValue("@id", id);
+            return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) == 1;
+        }
+
+        public async Task<bool> MarkFailedAsync(Guid id, string registerId, DateTimeOffset failedAt, string reason, CancellationToken ct)
+        {
+            string why = reason ?? "";
+            if (why.Length > MaxFailedReasonLength) why = why.Substring(0, MaxFailedReasonLength);
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await conn.OpenAsync(ct).ConfigureAwait(false);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = MarkFailedSql;
+            cmd.Parameters.Add(new NpgsqlParameter("@at", NpgsqlDbType.TimestampTz) { Value = failedAt.ToUniversalTime() });
+            cmd.Parameters.AddWithValue("@reason", why);
             cmd.Parameters.AddWithValue("@reg", registerId ?? "");
             cmd.Parameters.AddWithValue("@id", id);
             return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) == 1;

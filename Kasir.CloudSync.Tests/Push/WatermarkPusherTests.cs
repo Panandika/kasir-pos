@@ -184,13 +184,30 @@ namespace Kasir.CloudSync.Tests.Push
         public async Task DashboardOriginatedIds_AreNeverPushedBack()
         {
             InsertMovement(7);
-            InsertMovement(WatermarkPusher.DashboardIdFloor, type: "OPNAME", journal: "OPNAME:s1:P001");
-            InsertMovement(WatermarkPusher.DashboardIdFloor + 1, type: "PURCHASE", qtyIn: 500, qtyOut: 0, journal: "PURCHASE:r1");
+            InsertMovement(StockMovementRepository.DashboardIdFloor, type: "OPNAME", journal: "OPNAME:s1:P001");
+            InsertMovement(StockMovementRepository.DashboardIdFloor + 1, type: "PURCHASE", qtyIn: 500, qtyOut: 0, journal: "PURCHASE:r1");
 
             await _pusher.PushTableAsync("stock_movements", SmKey, 100, CancellationToken.None);
 
             Cloud("stock_movements").Keys.Should().BeEquivalentTo(new[] { "7" });
             Wm(SmKey).Should().Be(7, "the watermark never enters the reserved range");
+        }
+
+        [Test]
+        public async Task PushFloor_IsTheRepositoryDashboardIdFloor()
+        {
+            // Single source of truth (final-review #4): the push filter must use exactly the
+            // floor POS allocation stays below. The highest POS id is pushed; the floor is not.
+            long floor = StockMovementRepository.DashboardIdFloor;
+            InsertMovement(floor - 1);
+            InsertMovement(floor, type: "OPNAME", journal: "OPNAME:s1:P001");
+
+            await _pusher.PushTableAsync("stock_movements", SmKey, 100, CancellationToken.None);
+
+            Cloud("stock_movements").Keys.Should().BeEquivalentTo(new[] { (floor - 1).ToString() });
+            Wm(SmKey).Should().Be(floor - 1);
+            typeof(WatermarkPusher).GetField("DashboardIdFloor").Should()
+                .BeNull("WatermarkPusher must not define its own copy of the floor");
         }
 
         [Test]
@@ -206,16 +223,16 @@ namespace Kasir.CloudSync.Tests.Push
         }
 
         [Test]
-        public async Task CreatedAt_IsPushedAsWibInstant()
+        public async Task CreatedAt_IsPushedAsStoreTimeInstant()
         {
             InsertMovement(1, createdAt: "2026-10-09 15:00:00");
 
             await _pusher.PushTableAsync("stock_movements", SmKey, 100, CancellationToken.None);
 
             var row = Cloud("stock_movements")["1"];
-            row["created_at"].Should().Be(new DateTimeOffset(2026, 10, 9, 8, 0, 0, TimeSpan.Zero),
-                "15:00 WIB on the register is 08:00 UTC");
-            row["changed_at"].Should().Be(new DateTimeOffset(2026, 10, 9, 8, 0, 0, TimeSpan.Zero));
+            row["created_at"].Should().Be(new DateTimeOffset(2026, 10, 9, 7, 0, 0, TimeSpan.Zero),
+                "15:00 WITA on the register is 07:00 UTC");
+            row["changed_at"].Should().Be(new DateTimeOffset(2026, 10, 9, 7, 0, 0, TimeSpan.Zero));
         }
 
         [Test]
@@ -306,10 +323,10 @@ namespace Kasir.CloudSync.Tests.Push
         }
 
         [Test]
-        public async Task PosSale_IsPushedWithX100Qty_AndWibTime()
+        public async Task PosSale_IsPushedWithX100Qty_AndStoreTime()
         {
             // Acceptance: a sale in the POS creates a stock_movements row in the mirror
-            // with x100 qty and the WIB instant it happened.
+            // with x100 qty and the store-time (WITA) instant it happened.
             new ProductRepository(_db).Insert(new Product
             {
                 ProductCode = "P001", Name = "LAMPU 10W", Price = 2500000, CostPrice = 1800000,
@@ -334,7 +351,7 @@ namespace Kasir.CloudSync.Tests.Push
             row["movement_type"].Should().Be("SALE");
             row["qty_out"].Should().Be(200L, "2 units in the x100 ledger");
             row["val_out"].Should().Be(3600000L, "2 x Rp 18.000");
-            row["created_at"].Should().Be(new DateTimeOffset(2026, 10, 9, 8, 0, 0, TimeSpan.Zero));
+            row["created_at"].Should().Be(new DateTimeOffset(2026, 10, 9, 7, 0, 0, TimeSpan.Zero));
         }
 
         [Test]

@@ -85,6 +85,7 @@ namespace Kasir.CloudSync
                 await Console.Error.WriteLineAsync("CloudSync worker not started: " + configError).ConfigureAwait(false);
                 return 78; // EX_CONFIG
             }
+            StoreTimeZone.Configure(cfgValue.StoreTimeZone);
 
             try
             {
@@ -146,6 +147,8 @@ namespace Kasir.CloudSync
                 return "CloudSync:KasirDbPath does not exist: " + cfg.KasirDbPath;
             if (cfg.BatchSize <= 0 || cfg.PushBatchSize <= 0 || cfg.PushMaxBatchesPerTick <= 0 || cfg.PullBatchSize <= 0)
                 return "CloudSync:BatchSize, PushBatchSize, PushMaxBatchesPerTick and PullBatchSize must be > 0";
+            if (!string.IsNullOrWhiteSpace(cfg.StoreTimeZone) && !StoreTimeZone.TryResolve(cfg.StoreTimeZone, out _))
+                return "CloudSync:StoreTimeZone '" + cfg.StoreTimeZone + "' is not a known time zone without DST (e.g. Asia/Makassar)";
             return null;
         }
 
@@ -192,6 +195,15 @@ namespace Kasir.CloudSync
                 "--initial-load requires CloudSync:SupabaseConnectionString and CloudSync:KasirDbPath (or KASIR_CLOUDSYNC_SUPABASE / KASIR_CLOUDSYNC_DBPATH env vars)");
             return 64; // EX_USAGE
         }
+
+        string storeTz = configuration["CloudSync:StoreTimeZone"];
+        if (!string.IsNullOrWhiteSpace(storeTz) && !StoreTimeZone.TryResolve(storeTz, out _))
+        {
+            await Console.Error.WriteLineAsync(
+                "--initial-load: CloudSync:StoreTimeZone '" + storeTz + "' is not a known time zone without DST (e.g. Asia/Makassar)");
+            return 64; // EX_USAGE
+        }
+        StoreTimeZone.Configure(storeTz);
 
         using var loggerFactory = LoggerFactory.Create(b =>
             b.AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat = "HH:mm:ss "; }));

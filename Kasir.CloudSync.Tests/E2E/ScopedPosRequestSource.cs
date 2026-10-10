@@ -24,6 +24,7 @@ namespace Kasir.CloudSync.Tests.E2E
 
         public int FailMarks { get; set; }
         public int Marks { get; private set; }
+        public int FailedMarks { get; private set; }
 
         public async Task<IReadOnlyList<PosStockRequest>> FetchPendingAsync(int limit, CancellationToken ct)
         {
@@ -40,6 +41,12 @@ namespace Kasir.CloudSync.Tests.E2E
             }
             Marks++;
             return _inner.MarkAppliedAsync(id, registerId, appliedAt, ct);
+        }
+
+        public Task<bool> MarkFailedAsync(Guid id, string registerId, DateTimeOffset failedAt, string reason, CancellationToken ct)
+        {
+            FailedMarks++;
+            return _inner.MarkFailedAsync(id, registerId, failedAt, reason, ct);
         }
     }
 }

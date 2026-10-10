@@ -6,6 +6,8 @@ using Kasir.Data.Repositories;
 using Kasir.Models;
 using Kasir.Tests.TestHelpers;
 using System.Collections.Generic;
+using System.Linq;
+using Kasir.Services;
 
 namespace Kasir.Tests.Data
 {
@@ -108,6 +110,25 @@ namespace Kasir.Tests.Data
             items[0].Quantity.Should().Be(500);
         }
 
+        // Opname lines (POS and dashboard pull) and the FoxPro OTDTL import are x100;
+        // POS stock-outs are plain units. The report formats by this flag.
+        [Test]
+        public void GetAllItemsByDateRange_FlagsLedgerScaleRows()
+        {
+            InsertTestProduct("P001", "GALON");
+            InsertAdjustmentWithItems("OPN-01-2604-0001", "2026-04-01", "OPNAME", "P001", 50, 300000);
+            InsertAdjustmentWithItems("OTM-01-2604-0001", "2026-04-02", "DAMAGE", "P001", 2, 300000);
+            InsertAdjustmentWithItems("OTM-SM-0001", "2026-04-03", "USAGE", "P001", 150, 300000);
+            SqlHelper.ExecuteNonQuery(_db,
+                "UPDATE stock_adjustments SET legacy_source = 'SM' WHERE journal_no = 'OTM-SM-0001'");
+
+            var items = _repo.GetAllItemsByDateRange("2026-04-01", "2026-04-30");
+
+            items.Select(i => i.JournalNo + ":" + i.IsLedgerQty).Should().Equal(
+                "OPN-01-2604-0001:True", "OTM-01-2604-0001:False", "OTM-SM-0001:True");
+            StockQty.Format(items[0].Quantity).Should().Be("0,5");
+        }
+
         [Test]
         public void GetAllItemsByDateRange_EmptyRange_ReturnsEmpty()
         {
@@ -158,7 +179,8 @@ namespace Kasir.Tests.Data
             var rows = _repo.GetOpnameByDateRange("2026-04-01", "2026-04-30");
 
             rows[0].Variance.Should().Be(-500);
-            rows[0].VarianceValue.Should().Be(-500L * 1500000);
+            // 100 -> 95 pcs (x100 ledger), 5 pcs short at Rp 15.000 = Rp 75.000 (x100).
+            rows[0].VarianceValue.Should().Be(-7500000L);
         }
     }
 }

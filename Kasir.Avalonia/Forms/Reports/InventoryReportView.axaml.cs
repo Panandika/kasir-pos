@@ -179,7 +179,7 @@ public partial class InventoryReportView : UserControl
                 item.DocType,
                 item.ProductCode,
                 item.ProductName,
-                item.Quantity.ToString(),
+                item.IsLedgerQty ? StockQty.Format(item.Quantity) : item.Quantity.ToString(),
                 Formatting.FormatCurrencyShort(item.CostPrice),
                 Formatting.FormatCurrencyShort(item.Value),
                 item.Reason ?? ""));
@@ -201,8 +201,9 @@ public partial class InventoryReportView : UserControl
             totalVariance += o.VarianceValue;
             _rows.Add(new InvRow(
                 o.ProductCode, o.ProductName,
-                o.QtySystem.ToString(), o.QtyActual.ToString(),
-                o.Variance.ToString(),
+                // stock_opname qty is ledger scale (x100, QLAST N(13,2) x 100).
+                StockQty.Format(o.QtySystem), StockQty.Format(o.QtyActual),
+                StockQty.Format(o.Variance),
                 Formatting.FormatCurrencyShort(o.CostPrice),
                 Formatting.FormatCurrencyShort(o.VarianceValue),
                 "", ""));

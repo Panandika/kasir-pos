@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -24,7 +25,7 @@ namespace Kasir.CloudSync.Tests.Pull
     //   export KASIR_CLOUDSYNC_TEST_PG="Host=127.0.0.1;Port=54322;Database=postgres;Username=postgres;Password=postgres"
     //   dotnet test Kasir.CloudSync.Tests --filter "FullyQualifiedName~PullServicePostgresTests"
     // Each test runs in its own throw-away schema. pos_stock_requests is cloned from
-    // public (the real dashboard 0058 shape, LIKE ... INCLUDING ALL) when the local
+    // public (the real dashboard 0066 shape, LIKE ... INCLUDING ALL) when the local
     // stack has it, else created from pos_stock_requests.fixture.sql (RALPLAN 4.1).
     // public is never written. Refuses non-local hosts. WP-11b re-runs this once the
     // dashboard migration is applied locally, so the clone path is exercised.
@@ -129,7 +130,7 @@ namespace Kasir.CloudSync.Tests.Pull
         public async Task OpnameRequest_CreatesMovementAboveTheFloor_AndIsMarkedApplied()
         {
             await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, doc_no, happened_at)
-                       VALUES ('OPNAME', 'OPNAME:sess:P001', 'P001', 4800, NULL, 'OPN-DB-OKT26', '2026-10-09 09:00:00+07')");
+                       VALUES ('OPNAME', 'OPNAME:sess:P001', 'P001', 4800, NULL, 'OPN-DB-OKT26', '2026-10-09 09:00:00+08')");
 
             (await Pull().TickAsync(CancellationToken.None)).Should().Be(1);
 
@@ -142,6 +143,27 @@ namespace Kasir.CloudSync.Tests.Pull
                 .Should().Be(true);
             (await Pg("SELECT applied_by_register FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:sess:P001'"))
                 .Should().Be("01");
+        }
+
+        // qty is BIGINT in Supabase: a value above int range is read (no OverflowException
+        // on every tick) and the request is marked failed with a reason.
+        [Test]
+        public async Task OpnameRequest_WithQtyAboveIntRange_IsReadAndMarkedFailed()
+        {
+            await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, doc_no, happened_at)
+                       VALUES ('OPNAME', 'OPNAME:big:P001', 'P001', 2400000000, 'OPN-DB-OKT26', '2026-10-09 09:00:00+08')");
+
+            var fetched = await new PostgresPosRequestSource(_conn).FetchPendingAsync(10, CancellationToken.None);
+            fetched.Single().Qty.Should().Be(2_400_000_000L);
+
+            var pull = Pull();
+            (await pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            pull.LastResult.Rejected.Should().HaveCount(1);
+            (await Pg("SELECT failed_at IS NOT NULL FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:big:P001'"))
+                .Should().Be(true);
+            ((string)await Pg("SELECT failed_reason FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:big:P001'"))
+                .Should().Contain("out of range");
+            new InventoryService(_db).GetStockOnHand("P001").Should().Be(5000);
         }
 
         [Test]
@@ -168,9 +190,9 @@ namespace Kasir.CloudSync.Tests.Pull
         public async Task SqlOrder_PutsNewProductFirst_AndOtherRegistersAreSkipped()
         {
             await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, vendor_code, doc_no, created_at)
-                       VALUES ('PURCHASE', 'PURCHASE:np', 'NP0001', 500, 250000, 'V001', 'RCV-2', '2026-10-09 10:00:00+07');
+                       VALUES ('PURCHASE', 'PURCHASE:np', 'NP0001', 500, 250000, 'V001', 'RCV-2', '2026-10-09 10:00:00+08');
                        INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, payload, created_at)
-                       VALUES ('NEW_PRODUCT', 'NEW_PRODUCT:NP0001', 'NP0001', '{""name"":""Lampu""}', '2026-10-09 10:00:00+07');
+                       VALUES ('NEW_PRODUCT', 'NEW_PRODUCT:NP0001', 'NP0001', '{""name"":""Lampu""}', '2026-10-09 10:00:00+08');
                        INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, payload, target_register)
                        VALUES ('PRODUCT_STATUS', 'PRODUCT_STATUS:P001', 'P001', '{""status"":""I""}', 'KLR-02');");
 
@@ -179,6 +201,26 @@ namespace Kasir.CloudSync.Tests.Pull
             new InventoryService(_db).GetStockOnHand("NP0001").Should().Be(500);
             new ProductRepository(_db).GetByCode("P001").Status.Should().Be("A", "a KLR-02 request is not the hub's");
             (await Pg("SELECT applied_at IS NULL FROM pos_stock_requests WHERE target_register = 'KLR-02'")).Should().Be(true);
+        }
+
+        // D21: a NEW_PRODUCT queued after the receipt that needs it is still fetched
+        // first, even when the batch limit only takes one row.
+        [Test]
+        public async Task SqlOrder_FetchesNewProductFirst_EvenWhenQueuedLater_UnderABatchLimit()
+        {
+            await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, vendor_code, doc_no, created_at)
+                       VALUES ('PURCHASE', 'PURCHASE:np3', 'NP0003', 500, 250000, 'V001', 'RCV-3', '2026-10-09 10:00:00+08');
+                       INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, payload, created_at)
+                       VALUES ('NEW_PRODUCT', 'NEW_PRODUCT:NP0003', 'NP0003', '{""name"":""Lampu 3""}', '2026-10-09 10:05:00+08');");
+            var source = new PostgresPosRequestSource(_conn);
+
+            var first = await source.FetchPendingAsync(1, CancellationToken.None);
+            first.Select(r => r.RequestKind).Should().Equal("NEW_PRODUCT");
+
+            var pull = new PullService(_db, source, NullLogger<PullService>.Instance, 1);
+            (await pull.TickAsync(CancellationToken.None)).Should().Be(1);
+            (await pull.TickAsync(CancellationToken.None)).Should().Be(1);
+            new InventoryService(_db).GetStockOnHand("NP0003").Should().Be(500);
         }
 
         [Test]
@@ -191,6 +233,49 @@ namespace Kasir.CloudSync.Tests.Pull
             (await source.MarkAppliedAsync(Guid.Parse("00000000-0000-0000-0000-000000000001"), "01",
                 DateTimeOffset.UtcNow, CancellationToken.None)).Should().BeFalse();
             (await Pg("SELECT applied_by_register FROM pos_stock_requests")).Should().Be("KLR-03");
+        }
+
+        // Follow-up item 7 (K1/K4): a stock request on a non-stock code is marked failed
+        // with its reason (dashboard 0072 columns) and is no longer fetched.
+        [Test]
+        public async Task NonStockRequest_IsMarkedFailedWithReason_AndNotFetchedAgain()
+        {
+            await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, vendor_code, doc_no, payload)
+                       VALUES ('PURCHASE', 'PURCHASE:ns-1', 'AL', 100, 500000, 'V001', 'RCV-NS', '{""po_no"":""PO-9""}');
+                       INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, doc_no, happened_at)
+                       VALUES ('OPNAME', 'OPNAME:sess:44', '44', 300, 'OPN-DB-OKT26', '2026-10-09 09:00:00+08');");
+
+            var pull = Pull();
+            (await pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            pull.LastResult.Rejected.Should().HaveCount(2);
+
+            (await Pg("SELECT count(*) FROM pos_stock_requests WHERE failed_at IS NOT NULL AND applied_at IS NULL")).Should().Be(2L);
+            (await Pg("SELECT failed_reason FROM pos_stock_requests WHERE idempotency_key = 'PURCHASE:ns-1'")).Should()
+                .Be("PURCHASE PURCHASE:ns-1: AL is not a stock item (manual price code / category key); the POS never counts, buys or returns it");
+            (await Pg("SELECT failed_by_register FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:sess:44'")).Should().Be("01");
+            SqlHelper.ExecuteScalar<long>(_db, "SELECT COUNT(*) FROM stock_movements WHERE id >= 5000000000").Should().Be(0);
+            SqlHelper.ExecuteScalar<long>(_db, "SELECT COUNT(*) FROM purchases").Should().Be(0);
+
+            (await new PostgresPosRequestSource(_conn).FetchPendingAsync(200, CancellationToken.None)).Should().BeEmpty();
+            (await pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            pull.LastResult.Fetched.Should().Be(0);
+        }
+
+        [Test]
+        public async Task MarkFailed_DoesNotTouchAnAppliedOrFailedRow()
+        {
+            await Pg(@"INSERT INTO pos_stock_requests (id, request_kind, idempotency_key, applied_at, applied_by_register)
+                       VALUES ('00000000-0000-0000-0000-000000000002', 'BARCODE_LINK', 'BARCODE_LINK:y', '2026-10-01 00:00:00+00', 'KLR-03');
+                       INSERT INTO pos_stock_requests (id, request_kind, idempotency_key, failed_at, failed_reason)
+                       VALUES ('00000000-0000-0000-0000-000000000003', 'OPNAME', 'OPNAME:z', '2026-10-01 00:00:00+00', 'first');");
+            var source = new PostgresPosRequestSource(_conn);
+
+            (await source.MarkFailedAsync(Guid.Parse("00000000-0000-0000-0000-000000000002"), "01", DateTimeOffset.UtcNow,
+                "x", CancellationToken.None)).Should().BeFalse();
+            (await source.MarkFailedAsync(Guid.Parse("00000000-0000-0000-0000-000000000003"), "01", DateTimeOffset.UtcNow,
+                "second", CancellationToken.None)).Should().BeFalse();
+            (await Pg("SELECT failed_at IS NULL FROM pos_stock_requests WHERE idempotency_key = 'BARCODE_LINK:y'")).Should().Be(true);
+            (await Pg("SELECT failed_reason FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:z'")).Should().Be("first");
         }
     }
 }

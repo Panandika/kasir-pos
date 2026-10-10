@@ -234,6 +234,13 @@ public partial class ProductView : UserControl
             await MsgBox.Show(NavigationService.Owner, "Kode dan nama barang harus diisi.");
             return;
         }
+        if (p.Id == 0 && ProductService.IsDashboardProductCode(p.ProductCode))
+        {
+            // D21: NP codes belong to products made in the dashboard; they arrive here by sync.
+            await MsgBox.Show(NavigationService.Owner,
+                "Kode berawalan " + ProductService.DashboardCodePrefix + " khusus produk baru dari dashboard. Pakai kode lain.");
+            return;
+        }
         try
         {
             if (p.Id == 0) _productRepo.Insert(p);

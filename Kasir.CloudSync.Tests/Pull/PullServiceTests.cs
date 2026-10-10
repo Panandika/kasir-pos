@@ -26,7 +26,7 @@ namespace Kasir.CloudSync.Tests.Pull
     [TestFixture]
     public class PullServiceTests
     {
-        private static readonly TimeSpan Wib = TimeSpan.FromHours(7);
+        private static readonly TimeSpan Wita = TimeSpan.FromHours(8);
         private const long Floor = 5_000_000_000L;
 
         private SqliteConnection _db;
@@ -94,7 +94,7 @@ namespace Kasir.CloudSync.Tests.Pull
         private int OnHand(string code) => new InventoryService(_db).GetStockOnHand(code);
 
         private static DateTimeOffset At(int hour, int minute = 0) =>
-            new DateTimeOffset(2026, 10, 9, hour, minute, 0, Wib);
+            new DateTimeOffset(2026, 10, 9, hour, minute, 0, Wita);
 
         private PosStockRequest Opname(string code, int counted, DateTimeOffset countedAt, long? unitCost = null,
             DateTimeOffset? createdAt = null) =>
@@ -156,6 +156,104 @@ namespace Kasir.CloudSync.Tests.Pull
             var row = _source.RowOf(req.Id);
             row.AppliedAt.Should().NotBeNull("applied requests are marked in Supabase");
             row.AppliedBy.Should().Be("01");
+        }
+
+        // D28/OB-1: a product with no average yet is valued at the last purchase line's
+        // cogs (after discount), not its pre-discount unit_price.
+        [Test]
+        public async Task opname_on_a_product_without_an_average_uses_the_d28_line_cost()
+        {
+            SeedProduct("P009", "A", 0);
+            Exec(@"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, legacy_source)
+                   VALUES ('PURCHASE', 'DSRI-9', '2026-09-01', 'V001', 0, '202609', 'SM');
+                   INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, disc_value, cogs, value)
+                   VALUES ('DSRI-9', 'P009', 500, 1000000, 200000, 800000, 0);");
+            SeedStock("P009", 5000);
+            Opname("P009", 5500, At(9)); // 5 surplus units
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            var m = new StockMovementRepository(_db).GetByJournal("OPN-DB-OKT26").Single();
+            m.CostPrice.Should().Be(800000, "cogs, not unit_price 1000000");
+            m.ValIn.Should().Be(4000000);
+            Scalar("SELECT value FROM stock_adjustment_items WHERE journal_no = 'OPN-DB-OKT26'").Should().Be(4000000);
+        }
+
+        // pos_stock_requests.qty is BIGINT: a qty the int ledger cannot hold is rejected
+        // (failed_at set) once, not retried every tick.
+        [Test]
+        public async Task opname_qty_above_int_range_is_rejected_not_retried()
+        {
+            SeedStock("P001", 5000);
+            var req = _source.Add(new PosStockRequest
+            {
+                RequestKind = "OPNAME", IdempotencyKey = "OPNAME:sess-big:P001", ProductCode = "P001",
+                Qty = 2_400_000_000L, DocNo = "OPN-DB-OKT26", HappenedAt = At(9), CreatedAt = At(16)
+            });
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Rejected.Should().Equal(req.Id);
+            _pull.LastResult.Failed.Should().BeEmpty();
+            _source.RowOf(req.Id).FailedReason.Should()
+                .Be("OPNAME OPNAME:sess-big:P001: qty 2400000000 is out of range for the register ledger (max 2147483647)");
+            OnHand("P001").Should().Be(5000);
+            Scalar("SELECT COUNT(*) FROM stock_movements WHERE movement_type = 'OPNAME'").Should().Be(0);
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Fetched.Should().Be(0, "a rejected request leaves the pending fetch");
+        }
+
+        [Test]
+        public async Task purchase_qty_above_int_range_is_rejected()
+        {
+            var req = Purchase("big-1", "P001", 100, 100000);
+            req.Qty = (long)int.MaxValue + 1;
+
+            await _pull.TickAsync(CancellationToken.None);
+
+            _pull.LastResult.Rejected.Should().Equal(req.Id);
+            Scalar("SELECT COUNT(*) FROM stock_movements").Should().Be(0);
+        }
+
+        private sealed class CapturingLogger : Microsoft.Extensions.Logging.ILogger<PullService>
+        {
+            public System.Collections.Generic.List<string> Messages { get; } = new System.Collections.Generic.List<string>();
+            public IDisposable BeginScope<TState>(TState state) where TState : notnull => null;
+            public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel level) => true;
+            public void Log<TState>(Microsoft.Extensions.Logging.LogLevel level, Microsoft.Extensions.Logging.EventId id,
+                TState state, Exception ex, Func<TState, Exception, string> formatter) => Messages.Add(formatter(state, ex));
+        }
+
+        // An invalid request is NOT marked failed: the log must not call it "rejected".
+        [Test]
+        public async Task invalid_request_log_says_it_retries_not_rejected()
+        {
+            var log = new CapturingLogger();
+            var pull = new PullService(_db, _source, log, 200,
+                () => new DateTimeOffset(2026, 10, 9, 9, 30, 0, TimeSpan.Zero));
+            var req = _source.Add(new PosStockRequest
+            {
+                RequestKind = "OPNAME", IdempotencyKey = "OPNAME:sess-noqty:P001", ProductCode = "P001",
+                Qty = null, DocNo = "OPN-DB-OKT26", HappenedAt = At(9), CreatedAt = At(16)
+            });
+
+            await pull.TickAsync(CancellationToken.None);
+
+            pull.LastResult.Failed.Should().Equal(req.Id);
+            _source.RowOf(req.Id).FailedAt.Should().BeNull("an invalid request is not marked failed");
+            var line = log.Messages.Single(m => m.Contains("OPNAME:sess-noqty:P001"));
+            line.Should().Contain("invalid data, not marked failed; retries every tick").And.NotContain("rejected");
+        }
+
+        [Test]
+        public void not_applied_reason_distinguishes_deferred_invalid_and_error()
+        {
+            PullService.NotAppliedReason(new PosRequestApplyException("x", deferred: true))
+                .Should().Be("waiting for a prerequisite");
+            PullService.NotAppliedReason(new PosRequestApplyException("x", deferred: false))
+                .Should().Be("invalid data, not marked failed; retries every tick");
+            PullService.NotAppliedReason(new InvalidOperationException("db locked"))
+                .Should().Be("error, not marked failed; retries every tick");
         }
 
         [Test]
@@ -323,7 +421,7 @@ namespace Kasir.CloudSync.Tests.Pull
             Scalar("SELECT COUNT(*) FROM applied_requests").Should().Be(0);
         }
 
-        // ---------- payloads exactly as dashboard 0059 writes them (WP-11b) ----------
+        // ---------- payloads exactly as dashboard 0067 writes them (WP-11b) ----------
 
         private PosStockRequest DashboardBill(string id, string docNo, long total, string billType = "bill",
             string reverses = null, int hour = 12) =>
@@ -367,6 +465,85 @@ namespace Kasir.CloudSync.Tests.Pull
             new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001").Amount.Should().Be(2445000);
             new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(2445000);
             Text("SELECT remark FROM payables_register").Should().Be("Tagihan dashboard; NK DCN-2610-0001");
+        }
+
+        // D27 partial return math: dashboard 0076 credits 10 pcs @ Rp 2.800 as
+        // 2 + 3 + 5 pcs with cumulative rounding (5.600 + 8.400,01 + 13.999,99).
+        [Test]
+        public async Task dashboard_partial_credit_notes_add_up_and_settle_the_bill()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 2800000);
+            DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            var ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(2240000, "28.000 - 5.600: the bill it reverses is lowered");
+            ap.IsPaid.Should().Be("N");
+
+            DashboardBill("c2", "DCN-2610-0002", 840001, "credit_note", "DVB-2610-0001", hour: 14);
+            DashboardBill("c3", "DCN-2610-0003", 1399999, "credit_note", "DVB-2610-0001", hour: 15);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+
+            ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(0, "2 + 3 + 5 pcs credited = the whole bill, to the cent");
+            ap.GrossAmount.Should().Be(0);
+            ap.IsPaid.Should().Be("Y", "nothing left to pay");
+            Scalar("SELECT COUNT(*) FROM payables_register").Should().Be(1);
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(0);
+            Text("SELECT remark FROM payables_register").Should()
+                .Be("Tagihan dashboard; NK DCN-2610-0001; NK DCN-2610-0002; NK DCN-2610-0003");
+        }
+
+        [Test]
+        public async Task dashboard_credit_note_replay_on_a_restored_db_is_not_applied_twice()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 2800000);
+            var c1 = DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+            var c2 = DashboardBill("c2", "DCN-2610-0002", 840001, "credit_note", "DVB-2610-0001", hour: 14);
+            var c3 = DashboardBill("c3", "DCN-2610-0003", 700000, "credit_note", "DVB-2610-0001", hour: 15);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(4);
+
+            // Restored DB: applied_requests lost, the Supabase marks cleared.
+            Exec("DELETE FROM applied_requests");
+            foreach (var r in new[] { c1, c2, c3 }) _source.RowOf(r.Id).AppliedAt = null;
+            await _pull.TickAsync(CancellationToken.None);
+
+            new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001").Amount.Should().Be(2800000 - 560000 - 840001 - 700000,
+                "every credit note, including the third (past the legacy 60-char remark), is booked once");
+        }
+
+        [Test]
+        public async Task dashboard_credit_note_never_takes_the_bill_below_zero()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 2800000);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+            // the hub row is already lower than the dashboard bill (edited on the hub)
+            Exec("UPDATE payables_register SET value = 300000, gross_amount = 300000 WHERE journal_no = 'DVB-2610-0001'");
+
+            DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            var ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(0, "never below zero");
+            ap.GrossAmount.Should().Be(0);
+            ap.IsPaid.Should().Be("Y");
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(0);
+        }
+
+        [Test]
+        public async Task dashboard_credit_note_on_a_partly_paid_bill_marks_it_paid_when_covered()
+        {
+            DashboardBill("b1", "DVB-2610-0001", 2800000);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+            Exec("UPDATE payables_register SET payment_amount = 2240000 WHERE journal_no = 'DVB-2610-0001'");
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(560000);
+
+            DashboardBill("c1", "DCN-2610-0001", 560000, "credit_note", "DVB-2610-0001", hour: 13);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            var ap = new PayablesRepository(_db).GetByJournalNo("DVB-2610-0001");
+            ap.Amount.Should().Be(2240000);
+            ap.IsPaid.Should().Be("Y", "paid 22.400 + credited 5.600 covers the 28.000 bill");
+            new PayablesRepository(_db).GetTotalUnpaidByVendor("V001").Should().Be(0);
         }
 
         [Test]
@@ -535,24 +712,154 @@ namespace Kasir.CloudSync.Tests.Pull
             pushed.Should().OnlyContain(id => id < Floor, "dashboard-originated rows are never pushed back (PV-3)");
         }
 
+        // D21: a NEW_PRODUCT queued AFTER its purchase (two dashboard transactions whose
+        // now() crossed) is still applied first in the same tick: NEW_PRODUCT leads the batch.
         [Test]
-        public async Task out_of_order_purchase_before_its_new_product_waits_one_tick()
+        public async Task out_of_order_purchase_before_its_new_product_is_applied_after_it_in_the_same_tick()
         {
             var purchase = Purchase("np-line", "NP0002", 200, 150000, doc: "RCV-0003", createdAt: At(10));
-            _source.Add(new PosStockRequest
-            {
-                RequestKind = "NEW_PRODUCT", IdempotencyKey = "NEW_PRODUCT:NP0002", ProductCode = "NP0002",
-                PayloadJson = "{\"name\":\"KABEL ROL\"}", HappenedAt = At(10, 5), CreatedAt = At(10, 5)
-            });
+            var product = NewProductRequest("NP0002", "{\"name\":\"KABEL ROL\"}", At(10, 5));
 
-            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1, "only the product; the purchase waits");
-            _pull.LastResult.Failed.Should().Equal(purchase.Id);
-            _source.RowOf(purchase.Id).AppliedAt.Should().BeNull();
-            OnHand("NP0002").Should().Be(0);
-
-            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            _pull.LastResult.Applied.Should().Equal(product.Id, purchase.Id);
             OnHand("NP0002").Should().Be(200);
             _source.RowOf(purchase.Id).AppliedAt.Should().NotBeNull();
+        }
+
+        // The NEW_PRODUCT has not reached the hub yet (not fetched): the purchase waits,
+        // writes nothing, and goes through on the tick after the product arrives.
+        [Test]
+        public async Task purchase_on_an_np_code_waits_until_its_new_product_arrives()
+        {
+            var purchase = Purchase("np-line", "NP0002", 200, 150000, doc: "RCV-0003", createdAt: At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0, "the product is not here yet");
+            _pull.LastResult.Failed.Should().Equal(purchase.Id);
+            _source.RowOf(purchase.Id).AppliedAt.Should().BeNull();
+            _source.RowOf(purchase.Id).FailedAt.Should().BeNull("waiting is not a rejection");
+            Scalar("SELECT COUNT(*) FROM purchases").Should().Be(0);
+
+            NewProductRequest("NP0002", "{\"name\":\"KABEL ROL\"}", At(10, 5));
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            OnHand("NP0002").Should().Be(200);
+        }
+
+        private PosStockRequest NewProductRequest(string code, string payload, DateTimeOffset createdAt) =>
+            _source.Add(new PosStockRequest
+            {
+                RequestKind = "NEW_PRODUCT", IdempotencyKey = "NEW_PRODUCT:" + code, ProductCode = code,
+                PayloadJson = payload, HappenedAt = createdAt, CreatedAt = createdAt
+            });
+
+        // An NP product that exists here without its NEW_PRODUCT having been applied (made
+        // by hand before the POS refused NP codes) is not the dashboard's: stock waits.
+        [Test]
+        public async Task stock_on_an_np_code_waits_for_its_new_product_even_when_a_local_product_has_the_code()
+        {
+            SeedProduct("NP0009", "A", 100000);
+            var purchase = Purchase("np9", "NP0009", 100, 100000, createdAt: At(10));
+            var count = Opname("NP0009", 300, At(11), createdAt: At(12));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Failed.Should().Equal(purchase.Id);
+            _pull.LastResult.HeldBack.Should().Equal(count.Id);
+            OnHand("NP0009").Should().Be(0);
+            Scalar("SELECT COUNT(*) FROM stock_movements").Should().Be(0);
+        }
+
+        // The hub's NP0009 is a different product: the NEW_PRODUCT is rejected (failed_at,
+        // reason) and the dashboard's receipt / count on that code never lands on it.
+        [Test]
+        public async Task new_product_on_an_np_code_taken_by_another_product_is_rejected_and_its_stock_waits()
+        {
+            SeedProduct("NP0009", "A", 100000); // name "NP0009"
+            var product = NewProductRequest("NP0009", "{\"name\":\"Sabun Cair Baru\"}", At(10));
+            var purchase = Purchase("np9", "NP0009", 100, 100000, createdAt: At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Rejected.Should().Equal(product.Id);
+            _pull.LastResult.HeldBack.Should().Equal(purchase.Id);
+            _source.RowOf(product.Id).FailedReason.Should()
+                .Be("NEW_PRODUCT NEW_PRODUCT:NP0009: code NP0009 is already used on this register by \"NP0009\" (dashboard product \"SABUN CAIR BARU\")");
+            new ProductRepository(_db).GetByCode("NP0009").Name.Should().Be("NP0009");
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0, "next tick: the product is still not the dashboard's");
+            _pull.LastResult.Failed.Should().Equal(purchase.Id);
+            OnHand("NP0009").Should().Be(0);
+        }
+
+        // Replay after a restore: the product is already here with the same name. The
+        // NEW_PRODUCT is applied as a no-op and unblocks its stock.
+        [Test]
+        public async Task new_product_already_here_with_the_same_name_is_a_no_op_that_unblocks_its_stock()
+        {
+            new ProductRepository(_db).Insert(new Product
+            {
+                ProductCode = "NP0010", Name = "KABEL ROL", Price = 900000, CostPrice = 700000, Status = "A",
+                OpenPrice = "N", VatFlag = "N", LuxuryTaxFlag = "N", IsConsignment = "N"
+            });
+            NewProductRequest("NP0010", "{\"name\":\"kabel rol\",\"price\":1}", At(10));
+            Purchase("np10", "NP0010", 300, 700000, createdAt: At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            new ProductRepository(_db).GetByCode("NP0010").Price.Should().Be(900000, "left as it is");
+            OnHand("NP0010").Should().Be(300);
+        }
+
+        [Test]
+        public async Task new_product_with_a_pack_size_sets_unit2_and_conversion1()
+        {
+            NewProductRequest("NP0011",
+                "{\"name\":\"TEH KOTAK BARU\",\"dept_code\":\"11\",\"unit\":\"PCS\",\"unit2\":\"DUS\",\"conversion1\":2400,"
+                + "\"price\":400000,\"buying_price\":300000,\"cost_price\":300000,\"vendor_code\":\"V001\",\"status\":\"A\",\"source\":\"direct_receipt\"}",
+                At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            Text("SELECT unit || '/' || unit2 || '/' || conversion1 || '/' || dept_code || '/' || vendor_code FROM products WHERE product_code = 'NP0011'")
+                .Should().Be("PCS/DUS/2400/11/V001");
+            var p = new ProductRepository(_db).GetByCode("NP0011");
+            (p.Price, p.BuyingPrice, p.CostPrice, p.Status).Should().Be((400000L, 300000L, 300000L, "A"));
+        }
+
+        [Test]
+        public async Task new_product_with_a_bad_pack_size_is_invalid_and_holds_its_stock_back()
+        {
+            var product = NewProductRequest("NP0012", "{\"name\":\"X\",\"unit2\":\"DUS\",\"conversion1\":50}", At(10));
+            var purchase = Purchase("np12", "NP0012", 100, 100000, createdAt: At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Failed.Should().Equal(product.Id);
+            _pull.LastResult.HeldBack.Should().Equal(purchase.Id);
+            new ProductRepository(_db).GetByCode("NP0012").Should().BeNull();
+        }
+
+        // create -> receive -> count, the D21 flow as the hub sees it.
+        [Test]
+        public async Task new_product_received_then_counted_applies_in_order()
+        {
+            var created = At(9);
+            NewProductRequest("NP0013", "{\"name\":\"KERUPUK BARU\",\"cost_price\":150000,\"price\":200000}", created);
+            Purchase("np13", "NP0013", 2400, 150000, doc: "RCV-0013", createdAt: At(10));
+            Opname("NP0013", 2000, At(11), createdAt: At(12));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(3);
+
+            OnHand("NP0013").Should().Be(2000, "24 received, 20 counted: a shortage of 4");
+            Scalar("SELECT COUNT(*) FROM stock_movements WHERE product_code = 'NP0013' AND movement_type = 'OPNAME'").Should().Be(1);
+            Scalar("SELECT COUNT(*) FROM applied_requests WHERE request_kind = 'NEW_PRODUCT' AND idempotency_key = 'NEW_PRODUCT:NP0013'").Should().Be(1);
+        }
+
+        [Test]
+        public void apply_order_puts_every_new_product_first()
+        {
+            var late = new PosStockRequest { Id = Guid.NewGuid(), RequestKind = "NEW_PRODUCT", CreatedAt = At(12) };
+            var early = new PosStockRequest { Id = Guid.NewGuid(), RequestKind = "PURCHASE", CreatedAt = At(9) };
+            var status = new PosStockRequest { Id = Guid.NewGuid(), RequestKind = "PRODUCT_STATUS", CreatedAt = At(9) };
+            new[] { early, status, late }.OrderBy(x => x, PosRequestKinds.ApplyOrder).Should().Equal(late, status, early);
+            PosRequestKinds.IsDashboardProductCode(" np0001").Should().BeTrue();
+            PosRequestKinds.IsDashboardProductCode("9001").Should().BeFalse();
+            PosRequestKinds.NewProductKey(" NP0001 ").Should().Be("NEW_PRODUCT:NP0001");
         }
 
         [Test]

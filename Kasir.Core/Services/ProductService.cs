@@ -48,6 +48,16 @@ namespace Kasir.Services
             _clock = clock;
         }
 
+        // Product codes reserved for the dashboard (D21, dashboard migration 0074): 'NP' +
+        // a number, created by create_dashboard_product and brought here by the pull worker
+        // (NEW_PRODUCT). The POS never creates one by hand, so the code always means the
+        // dashboard's product.
+        public const string DashboardCodePrefix = "NP";
+
+        public static bool IsDashboardProductCode(string code) =>
+            !string.IsNullOrWhiteSpace(code)
+            && code.Trim().StartsWith(DashboardCodePrefix, StringComparison.OrdinalIgnoreCase);
+
         // (First, Last) of the register's code block, or null when it has none.
         public static (int First, int Last)? QuickCodeBlock(string registerId)
         {
