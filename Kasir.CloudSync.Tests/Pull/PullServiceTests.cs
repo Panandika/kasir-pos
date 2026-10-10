@@ -194,6 +194,47 @@ namespace Kasir.CloudSync.Tests.Pull
             Scalar("SELECT COUNT(*) FROM stock_movements").Should().Be(0);
         }
 
+        private sealed class CapturingLogger : Microsoft.Extensions.Logging.ILogger<PullService>
+        {
+            public System.Collections.Generic.List<string> Messages { get; } = new System.Collections.Generic.List<string>();
+            public IDisposable BeginScope<TState>(TState state) where TState : notnull => null;
+            public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel level) => true;
+            public void Log<TState>(Microsoft.Extensions.Logging.LogLevel level, Microsoft.Extensions.Logging.EventId id,
+                TState state, Exception ex, Func<TState, Exception, string> formatter) => Messages.Add(formatter(state, ex));
+        }
+
+        // An invalid request is NOT marked failed: the log must not call it "rejected".
+        [Test]
+        public async Task invalid_request_log_says_it_retries_not_rejected()
+        {
+            var log = new CapturingLogger();
+            var pull = new PullService(_db, _source, log, 200,
+                () => new DateTimeOffset(2026, 10, 9, 9, 30, 0, TimeSpan.Zero));
+            var req = _source.Add(new PosStockRequest
+            {
+                RequestKind = "OPNAME", IdempotencyKey = "OPNAME:sess-noqty:P001", ProductCode = "P001",
+                Qty = null, DocNo = "OPN-DB-OKT26", HappenedAt = At(9), CreatedAt = At(16)
+            });
+
+            await pull.TickAsync(CancellationToken.None);
+
+            pull.LastResult.Failed.Should().Equal(req.Id);
+            _source.RowOf(req.Id).FailedAt.Should().BeNull("an invalid request is not marked failed");
+            var line = log.Messages.Single(m => m.Contains("OPNAME:sess-noqty:P001"));
+            line.Should().Contain("invalid data, not marked failed; retries every tick").And.NotContain("rejected");
+        }
+
+        [Test]
+        public void not_applied_reason_distinguishes_deferred_invalid_and_error()
+        {
+            PullService.NotAppliedReason(new PosRequestApplyException("x", deferred: true))
+                .Should().Be("waiting for a prerequisite");
+            PullService.NotAppliedReason(new PosRequestApplyException("x", deferred: false))
+                .Should().Be("invalid data, not marked failed; retries every tick");
+            PullService.NotAppliedReason(new InvalidOperationException("db locked"))
+                .Should().Be("error, not marked failed; retries every tick");
+        }
+
         [Test]
         public async Task exact_time_count0900_48_sale1500_2_onhand46()
         {

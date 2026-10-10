@@ -100,9 +100,8 @@ namespace Kasir.CloudSync.Pull
                 {
                     result.Failed.Add(r.Id);
                     if (product != null) heldProducts.Add(product);
-                    bool deferred = ex is PosRequestApplyException pe && pe.Deferred;
                     _logger?.LogError(ex, "Pull: {Kind} {Key} ({Id}) not applied ({Why}); stays pending",
-                        r.RequestKind, r.IdempotencyKey, r.Id, deferred ? "waiting for a prerequisite" : "rejected");
+                        r.RequestKind, r.IdempotencyKey, r.Id, NotAppliedReason(ex));
                     continue;
                 }
 
@@ -134,6 +133,17 @@ namespace Kasir.CloudSync.Pull
                     result.Applied.Count, result.Remarked.Count, result.Failed.Count, result.Rejected.Count,
                     result.HeldBack.Count, result.Fetched);
             return result.Applied.Count;
+        }
+
+        // Why a request that threw stays pending. Only a Rejected exception marks the
+        // row failed; everything else retries every tick, and the log must say so.
+        internal static string NotAppliedReason(Exception ex)
+        {
+            if (ex is PosRequestApplyException pe)
+                return pe.Deferred
+                    ? "waiting for a prerequisite"
+                    : "invalid data, not marked failed; retries every tick";
+            return "error, not marked failed; retries every tick";
         }
 
         private async Task MarkRejectedAsync(PosStockRequest r, string reason, string registerId, PullTickResult result,
