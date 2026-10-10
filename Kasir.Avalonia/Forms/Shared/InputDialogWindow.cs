@@ -12,7 +12,7 @@ namespace Kasir.Avalonia.Forms.Shared;
 public static class InputDialogWindow
 {
     public static async Task<(bool ok, string[] values)> Show(
-        Visual? owner, string title, string[] labels, string[] defaults)
+        Visual? owner, string title, string[] labels, string[] defaults, bool[]? masked = null)
     {
         ShellWindow? shell = TopLevel.GetTopLevel(owner) as ShellWindow;
         if (shell is null
@@ -26,7 +26,7 @@ public static class InputDialogWindow
             return (false, Array.Empty<string>());
         }
 
-        var overlay = new InputDialogOverlay(title, labels, defaults);
+        var overlay = new InputDialogOverlay(title, labels, defaults, masked);
         shell.ShowOverlay(overlay);
         try
         {

@@ -195,6 +195,18 @@ namespace Kasir.Data
 
                 // Run pending schema migrations (for existing and imported databases)
                 MigrationRunner.Run(conn);
+
+                // WP-05: an emergency purchasing unlock lasts only until the app
+                // restarts. Never blocks startup: the screens read a missing or bad
+                // value as locked anyway.
+                try
+                {
+                    new Kasir.Services.PurchasingLockService(conn).ReengageOnStartup();
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine("Purchasing lock re-engage failed: " + ex.Message);
+                }
             }
 
             IsInitialized = true;
@@ -359,7 +371,8 @@ namespace Kasir.Data
                         ('sync_hub_share', '\\\\KASIR01\\kasir\\sync', 'UNC path to sync share'),
                         ('sync_hmac_key', @hmacKey, 'HMAC-SHA256 key for sync and update signing'),
                         ('update_auto_check', 'false', 'Auto-check for updates after login'),
-                        ('last_update_check', '', 'Timestamp of last update check');";
+                        ('last_update_check', '', 'Timestamp of last update check'),
+                        ('purchasing_locked', 'true', 'When true, POS purchasing is disabled; use dashboard instead');";
                     cmd.Parameters.AddWithValue("@hmacKey", hmacKey);
                     cmd.ExecuteNonQuery();
 

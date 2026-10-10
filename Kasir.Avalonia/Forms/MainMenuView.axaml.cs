@@ -17,6 +17,7 @@ using Kasir.Avalonia.Navigation;
 using Kasir.Avalonia.Utils;
 using Kasir.Auth;
 using Kasir.Services;
+using Kasir.Avalonia.Forms.Shared;
 using Kasir.Avalonia.Forms.Master;
 using Kasir.Avalonia.Forms.Admin;
 using Kasir.Avalonia.Forms.POS;
@@ -146,12 +147,46 @@ public partial class MainMenuView : UserControl, INavigationAware
             new TileSpec { Label = "Printer Config",   UnderlineIndex = 0, Hotkey = Key.P, Activate = () => NavigationService.Navigate(new PrinterConfigView()) },
             new TileSpec { Label = "Cloud Sync",       UnderlineIndex = 0, Hotkey = Key.C, Activate = () => NavigationService.Navigate(new CloudSyncSetupView()) },
             new TileSpec { Label = "Backup",           UnderlineIndex = 0, Hotkey = Key.B, Activate = () => NavigationService.Navigate(new BackupView()) },
+            new TileSpec { Label = PurchasingLockTileLabel(), UnderlineIndex = 0, Hotkey = Key.K, Activate = () => _ = TogglePurchasingLockAsync() },
             new TileSpec { Label = "Shift Management", UnderlineIndex = 0, Hotkey = Key.S, Activate = () => NavigationService.Navigate(new ShiftView(_userId)) },
             new TileSpec { Label = "Periksa Update" + (_updateBadgeVersion != null ? $"  ● v{_updateBadgeVersion}" : ""), UnderlineIndex = 8, Hotkey = Key.U, Activate = () => NavigationService.Navigate(new UpdateView()) },
             new TileSpec { Label = "Tentang",          UnderlineIndex = 0, Hotkey = Key.T, Activate = () => NavigationService.Navigate(new AboutView()) },
         },
         _ => Array.Empty<TileSpec>(),
     };
+
+    // ── Purchasing lock (WP-05) ───────────────────────────────────────────
+
+    private static string PurchasingLockTileLabel()
+    {
+        bool locked = new PurchasingLockService(DbConnection.GetConnection()).IsLocked;
+        return "Kunci Pembelian: " + (locked ? "TERKUNCI" : "DIBUKA");
+    }
+
+    // Shows the lock state and lets the owner open (password) or close POS purchasing.
+    // An open lock closes again on the next app start.
+    private async Task TogglePurchasingLockAsync()
+    {
+        var service = new PurchasingLockService(DbConnection.GetConnection());
+        if (service.IsLocked)
+        {
+            bool go = await MsgBox.Confirm(this,
+                PurchasingLockService.LockedMessage + "\n\nBuka pembelian di kasir sementara? " +
+                "Hanya untuk keadaan darurat (internet mati). Terkunci lagi saat aplikasi dibuka ulang.",
+                "Kunci Pembelian");
+            if (!go) return;
+            await PurchasingLockPrompt.UnlockAsync(this, PurchasingLockService.SourceAdmin);
+        }
+        else
+        {
+            bool go = await MsgBox.Confirm(this,
+                "Pembelian di kasir sedang DIBUKA. Kunci lagi sekarang?", "Kunci Pembelian");
+            if (!go) return;
+            service.Lock(CurrentSession.User?.Username ?? "", PurchasingLockService.SourceAdmin);
+            await MsgBox.Show(this, "Pembelian di kasir dikunci. " + PurchasingLockService.LockedMessage, "Kunci Pembelian");
+        }
+        if (_level == Level.SubMenu && _openCategory == "Utility") DrillInto("Utility");
+    }
 
     // ── Tile rendering ────────────────────────────────────────────────────
 
