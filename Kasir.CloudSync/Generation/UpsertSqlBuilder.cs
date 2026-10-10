@@ -10,6 +10,18 @@ namespace Kasir.CloudSync.Generation
     {
         public static string Build(TableMapping mapping, int batchSize)
         {
+            return Build(mapping, batchSize, null, null);
+        }
+
+        // Guarded variant (WP-02 WatermarkPusher). On a primary-key conflict the
+        // existing row is only updated when it is the same logical row, i.e. every
+        // guardColumns value matches (IS NOT DISTINCT FROM, null-safe). A different row
+        // that happens to hold the same id (a legacy 32-bit row-hash id colliding with a
+        // POS rowid) is left untouched. RETURNING lists the keys that were inserted or
+        // updated, so the caller can tell which rows were refused.
+        public static string Build(TableMapping mapping, int batchSize,
+            System.Collections.Generic.IReadOnlyList<string> guardColumns, string returningColumn)
+        {
             var sb = new StringBuilder();
             var columnNames = mapping.Columns.Select(c => c.Name).ToList();
 
@@ -44,7 +56,19 @@ namespace Kasir.CloudSync.Generation
                     sb.Append(col).Append(" = EXCLUDED.").Append(col);
                     first = false;
                 }
+                if (guardColumns != null && guardColumns.Count > 0)
+                {
+                    sb.Append(" WHERE ");
+                    for (int g = 0; g < guardColumns.Count; g++)
+                    {
+                        if (g > 0) sb.Append(" AND ");
+                        sb.Append(mapping.TableName).Append('.').Append(guardColumns[g])
+                          .Append(" IS NOT DISTINCT FROM EXCLUDED.").Append(guardColumns[g]);
+                    }
+                }
             }
+            if (!string.IsNullOrEmpty(returningColumn))
+                sb.Append(" RETURNING ").Append(returningColumn);
             sb.Append(';');
             return sb.ToString();
         }

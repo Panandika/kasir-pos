@@ -28,5 +28,30 @@ namespace Kasir.CloudSync
         // machine's SMB outbox-consumer DB. Required in production; tests inject
         // an in-memory SqliteConnection directly.
         public string KasirDbPath { get; set; }
+
+        // sync_queue tables OutboxRouter ships, comma-separated (WP-02 / OB-8 push
+        // scope). Default "sales": products, purchases etc. stay legacy-sync-owned in
+        // the cloud until the POS is their only writer. "*" = every mapped table.
+        public string OutboxTables { get; set; } = "sales";
+
+        // WatermarkPusher (stock_movements, shifts): rows per upsert and the most
+        // batches per table per tick, so a first-run backlog drains over several ticks
+        // instead of one huge transaction.
+        public int PushBatchSize { get; set; } = 500;
+        public int PushMaxBatchesPerTick { get; set; } = 20;
+
+        // Parsed OutboxTables; null = no restriction ("*").
+        public System.Collections.Generic.IReadOnlyCollection<string> OutboxTableList()
+        {
+            var raw = (OutboxTables ?? "").Trim();
+            if (raw == "*") return null;
+            var list = new System.Collections.Generic.List<string>();
+            foreach (var part in raw.Split(','))
+            {
+                var t = part.Trim();
+                if (t.Length > 0 && !list.Contains(t)) list.Add(t);
+            }
+            return list;
+        }
     }
 }

@@ -67,7 +67,7 @@ public partial class OpnameView : UserControl
             NavigationService.Owner,
             $"Edit Qty Fisik: {line.ProductCode}",
             new[] { "Qty Fisik" },
-            new[] { line.PhysicalQty.ToString() });
+            new[] { StockQty.ToUnits(line.PhysicalQty).ToString() });
 
         if (!ok) return;
 
@@ -79,7 +79,8 @@ public partial class OpnameView : UserControl
 
         // Stamps the count time and takes the system qty now (PR-K6); later sales and
         // receipts are allowed for when the opname is saved.
-        _service.RecordCount(line, physQty);
+        // The ledger is x100 (StockQty); the operator types whole units.
+        _service.RecordCount(line, StockQty.ToLedger(physQty));
         RefreshGrid();
         DgvOpname.SelectedIndex = idx;
     }
@@ -93,9 +94,9 @@ public partial class OpnameView : UserControl
             _rows.Add(new OpnameRow(
                 line.ProductCode ?? "",
                 line.ProductName ?? "",
-                counted ? line.SystemQty.ToString() : "-",
-                counted ? line.PhysicalQty.ToString() : "belum dihitung",
-                counted ? line.Variance.ToString() : "-",
+                counted ? StockQty.Format(line.SystemQty) : "-",
+                counted ? StockQty.Format(line.PhysicalQty) : "belum dihitung",
+                counted ? StockQty.Format(line.Variance) : "-",
                 counted ? line.CountTime!.Value.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) : ""));
         }
     }

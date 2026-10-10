@@ -12,7 +12,7 @@ namespace Kasir.CloudSync.Sinks
     // PostgresSink classes that would otherwise multiply across 17 tables. Gives
     // up some compile-time type safety vs hand-written sinks but pairs with the
     // schema-drift CI check (US-B3) to catch drift before runtime.
-    public class GenericSink
+    public class GenericSink : IMirrorSink
     {
         private readonly string _connectionString;
 
@@ -36,6 +36,29 @@ namespace Kasir.CloudSync.Sinks
             BindParameters(cmd, mapping, rows);
 
             return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        public async Task<IReadOnlyCollection<long>> UpsertMatchingAsync(
+            TableMapping mapping,
+            IReadOnlyCollection<IDictionary<string, object>> rows,
+            IReadOnlyList<string> identityColumns,
+            string returningColumn,
+            CancellationToken ct)
+        {
+            var written = new List<long>();
+            if (rows == null || rows.Count == 0) return written;
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await conn.OpenAsync(ct).ConfigureAwait(false);
+
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = UpsertSqlBuilder.Build(mapping, rows.Count, identityColumns, returningColumn);
+            BindParameters(cmd, mapping, rows);
+
+            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+                written.Add(Convert.ToInt64(reader.GetValue(0)));
+            return written;
         }
 
         internal static void BindParameters(

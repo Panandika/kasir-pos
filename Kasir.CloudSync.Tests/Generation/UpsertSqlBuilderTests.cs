@@ -72,5 +72,26 @@ namespace Kasir.CloudSync.Tests.Generation
             TableMappings.Get("stock_movements").Should().BeSameAs(TableMappings.StockMovements);
             TableMappings.Get("nonexistent").Should().BeNull();
         }
+    
+        [Test]
+        public void Guarded_Build_Adds_Identity_Where_And_Returning()
+        {
+            var sql = UpsertSqlBuilder.Build(TableMappings.StockMovements, 2,
+                new[] { "journal_no", "product_code" }, "id");
+
+            sql.Should().Contain("ON CONFLICT (id) DO UPDATE SET");
+            sql.Should().Contain(" WHERE stock_movements.journal_no IS NOT DISTINCT FROM EXCLUDED.journal_no"
+                + " AND stock_movements.product_code IS NOT DISTINCT FROM EXCLUDED.product_code");
+            sql.Should().EndWith(" RETURNING id;");
+            sql.Should().Contain("@id_1");
+        }
+
+        [Test]
+        public void Unguarded_Build_Is_Unchanged()
+        {
+            UpsertSqlBuilder.Build(TableMappings.StockMovements, 1)
+                .Should().Be(UpsertSqlBuilder.Build(TableMappings.StockMovements, 1, null, null));
+            UpsertSqlBuilder.Build(TableMappings.StockMovements, 1).Should().NotContain("RETURNING");
+        }
     }
 }

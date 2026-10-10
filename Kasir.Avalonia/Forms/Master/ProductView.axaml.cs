@@ -102,8 +102,8 @@ public partial class ProductView : UserControl
             p.ProductCode,
             p.Name,
             Formatting.FormatCurrencyShort(p.Price),
-            stockStore.ToString(),
-            stockWarehouse.ToString(),
+            StockQty.Format(stockStore),      // ledger qty is x100
+            StockQty.Format(stockWarehouse),
             p.Status,
             p);
     }
@@ -160,8 +160,8 @@ public partial class ProductView : UserControl
         // Sekarang = current on-hand from stock_movements aggregate (matches grid)
         int nowT = _inventoryService.GetStockOnHandByLocation(p.ProductCode ?? "", "T");
         int nowG = _inventoryService.GetStockOnHandByLocation(p.ProductCode ?? "", "G");
-        LblStokNowT.Text = nowT.ToString();
-        LblStokNowG.Text = nowG.ToString();
+        LblStokNowT.Text = StockQty.Format(nowT); // ledger qty is x100
+        LblStokNowG.Text = StockQty.Format(nowG);
     }
 
     private static string FormatMoney(long cents)

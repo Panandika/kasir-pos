@@ -40,6 +40,7 @@ namespace Kasir.Services
             return _movementRepo.GetStockOnHandByLocation(productCode, locationCode);
         }
 
+        // qty is a ledger qty (x100, see StockQty); the result is money x100.
         public long GetCostPrice(string productCode, int qty)
         {
             string method = _configRepo.Get("costing_method") ?? "AVG";
@@ -47,7 +48,7 @@ namespace Kasir.Services
             {
                 return CalculateFifoCost(productCode, qty);
             }
-            return CalculateAverageCost(productCode) * qty;
+            return StockQty.Value(CalculateAverageCost(productCode), qty);
         }
 
         public long CalculateFifoCost(string productCode, int qtyNeeded)
@@ -82,8 +83,10 @@ namespace Kasir.Services
                 if (lotQty <= 0) continue;
 
                 int take = Math.Min(lotQty, remaining);
-                long unitCost = lot.QtyIn > 0 ? lot.ValIn / lot.QtyIn : 0;
-                totalCost += unitCost * take;
+                // val_in is money x100 for the whole lot and qty_in is x100, so the
+                // per-unit cost (money x100) is val_in * 100 / qty_in.
+                long unitCost = lot.QtyIn > 0 ? lot.ValIn * StockQty.Scale / lot.QtyIn : 0;
+                totalCost += StockQty.Value(unitCost, take);
                 remaining -= take;
 
                 if (remaining <= 0) break;
@@ -118,8 +121,10 @@ namespace Kasir.Services
         // products.cost_price; stock-outs (sales, purchase returns) never change it.
         // on_hand and qty must be in the same unit (the local ledger's) - the average is a
         // pure ratio, so it is unaffected by the x100 qty scale as long as it is not mixed.
-        // NOT safe yet on a snapshot-commissioned register: legacy movements are x100 and POS
-        // ones are raw units, so GetStockOnHand mixes scales - normalise before cutover.
+        // qty is a LEDGER qty (x100, StockQty): legacy GHIST/GSMRY rows and dashboard requests
+        // are x100, so callers holding a plain unit count pass StockQty.ToLedger(units)
+        // (WP-02). The qty itself is stored as given; only the money value divides the
+        // scale back out (val_in = unit cost x whole units).
         // cost_price is only written when CostEngineOwnsCostPriceKey is "true".
         public void RecordStockIn(string productCode, int qty, long unitCost,
             string movementType, string journalNo, string docDate, int changedBy)
@@ -136,7 +141,7 @@ namespace Kasir.Services
                 LocationCode = DefaultLocationCode,
                 QtyIn = qty,
                 QtyOut = 0,
-                ValIn = unitCost * qty,
+                ValIn = StockQty.Value(unitCost, qty),
                 ValOut = 0,
                 CostPrice = unitCost,
                 ChangedBy = changedBy
@@ -191,6 +196,7 @@ namespace Kasir.Services
             }
         }
 
+        // qty is a LEDGER qty (x100, StockQty) - see RecordStockIn.
         public void RecordStockOut(string productCode, int qty, long costPrice,
             string movementType, string journalNo, string docDate, int changedBy)
         {
@@ -205,7 +211,7 @@ namespace Kasir.Services
                 QtyIn = 0,
                 QtyOut = qty,
                 ValIn = 0,
-                ValOut = costPrice * qty,
+                ValOut = StockQty.Value(costPrice, qty),
                 CostPrice = costPrice,
                 ChangedBy = changedBy
             };
@@ -213,6 +219,7 @@ namespace Kasir.Services
             _movementRepo.Insert(movement);
         }
 
+        // physicalQty and the result quantities are ledger qty (x100).
         public StockVariance CalculateVariance(string productCode, int physicalQty)
         {
             int systemQty = GetStockOnHand(productCode);
@@ -225,7 +232,7 @@ namespace Kasir.Services
                 SystemQty = systemQty,
                 PhysicalQty = physicalQty,
                 Variance = variance,
-                VarianceCost = avgCost * Math.Abs(variance)
+                VarianceCost = StockQty.Value(avgCost, Math.Abs(variance))
             };
         }
     }

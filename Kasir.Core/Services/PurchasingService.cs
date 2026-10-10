@@ -104,9 +104,10 @@ namespace Kasir.Services
 
                     foreach (var item in items)
                     {
+                        // purchase_items.quantity is plain units; the ledger is x100 (StockQty).
                         _inventoryService.RecordStockIn(
                             item.ProductCode,
-                            item.Quantity,
+                            StockQty.ToLedger(item.Quantity),
                             item.UnitPrice,
                             "PURCHASE",
                             journalNo,
@@ -180,9 +181,10 @@ namespace Kasir.Services
                         if (!string.IsNullOrEmpty(item.OrderRef) && receiptRefs.Contains(item.OrderRef))
                             continue;
 
+                        // purchase_items.quantity is plain units; the ledger is x100 (StockQty).
                         _inventoryService.RecordStockIn(
                             item.ProductCode,
-                            item.Quantity,
+                            StockQty.ToLedger(item.Quantity),
                             item.UnitPrice,
                             "PURCHASE",
                             journalNo,
@@ -232,9 +234,10 @@ namespace Kasir.Services
 
                     foreach (var item in items)
                     {
+                        // purchase_items.quantity is plain units; the ledger is x100 (StockQty).
                         _inventoryService.RecordStockOut(
                             item.ProductCode,
-                            item.Quantity,
+                            StockQty.ToLedger(item.Quantity),
                             item.UnitPrice,
                             "RETURN_OUT",
                             journalNo,

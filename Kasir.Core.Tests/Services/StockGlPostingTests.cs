@@ -522,7 +522,7 @@ namespace Kasir.Tests.Services
             Receive(10, 300000);
             _opname.CreateOpnameAdjustment(new List<OpnameLine>
             {
-                new OpnameLine { ProductCode = "P001", PhysicalQty = 7, CountTime = Counted } // shortage 3
+                new OpnameLine { ProductCode = "P001", PhysicalQty = StockQty.ToLedger(7), CountTime = Counted } // shortage 3
             }, 1);
 
             _posting.PostStockAdjustments(Period).ErrorCount.Should().Be(0);
@@ -530,7 +530,7 @@ namespace Kasir.Tests.Services
 
             _opname.CreateOpnameAdjustment(new List<OpnameLine>
             {
-                new OpnameLine { ProductCode = "P001", PhysicalQty = 8, CountTime = Counted } // surplus 1
+                new OpnameLine { ProductCode = "P001", PhysicalQty = StockQty.ToLedger(8), CountTime = Counted } // surplus 1
             }, 1);
             _posting.PostStockAdjustments(Period).ErrorCount.Should().Be(0);
 
@@ -546,7 +546,7 @@ namespace Kasir.Tests.Services
             Receive(10, 300000);
             _opname.CreateOpnameAdjustment(new List<OpnameLine>
             {
-                new OpnameLine { ProductCode = "P001", PhysicalQty = 9, CountTime = Counted }
+                new OpnameLine { ProductCode = "P001", PhysicalQty = StockQty.ToLedger(9), CountTime = Counted }
             }, 1);
             _opname.CreateStockOut("DAMAGE", "TOKO",
                 new List<StockAdjustmentItem> { new StockAdjustmentItem { ProductCode = "P001", Quantity = 1 } }, 1);

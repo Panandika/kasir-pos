@@ -18,24 +18,32 @@ namespace Kasir.CloudSync.Outbox
     {
         private readonly SqliteConnection _db;
         private readonly SyncQueueRepository _queueRepo;
-        private readonly GenericSink _sink;
+        private readonly IMirrorSink _sink;
         private readonly ILogger<OutboxRouter> _logger;
+        private readonly IReadOnlyCollection<string> _allowedTables;
 
+        // allowedTables: the sync_queue tables this router may ship (WP-02 / OB-8 push
+        // scope). null = every table with a TableMapping (the pre-WP-02 behaviour).
+        // Rows of other tables stay cloud_synced=0 for a later phase.
         public OutboxRouter(
             SqliteConnection db,
             SyncQueueRepository queueRepo,
-            GenericSink sink,
-            ILogger<OutboxRouter> logger)
+            IMirrorSink sink,
+            ILogger<OutboxRouter> logger,
+            IReadOnlyCollection<string> allowedTables = null)
         {
             _db = db;
             _queueRepo = queueRepo;
             _sink = sink;
             _logger = logger;
+            _allowedTables = allowedTables;
         }
+
+        public IReadOnlyCollection<string> AllowedTables => _allowedTables;
 
         public async Task<int> TickAsync(int batchSize, CancellationToken ct)
         {
-            var pending = _queueRepo.GetPendingCloud(batchSize);
+            var pending = _queueRepo.GetPendingCloud(batchSize, _allowedTables);
             if (pending.Count == 0) return 0;
 
             // Group entries by table so we can ship each table's rows in one

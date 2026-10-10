@@ -54,6 +54,8 @@ namespace Kasir.Services
         }
 
         // The shelf was counted now: stamp the time and take the system qty at this moment.
+        // physicalQty is a LEDGER qty (x100, StockQty) like SystemQty, so the variance is
+        // never mixed-scale; OpnameView converts the typed unit count with ToLedger.
         public void RecordCount(OpnameLine line, int physicalQty)
         {
             line.PhysicalQty = physicalQty;
@@ -98,8 +100,9 @@ namespace Kasir.Services
 
                     foreach (var item in items)
                     {
+                        // The document holds plain units; the ledger is x100 (StockQty).
                         _inventoryService.RecordStockOut(
-                            item.ProductCode, item.Quantity, item.CostPrice,
+                            item.ProductCode, StockQty.ToLedger(item.Quantity), item.CostPrice,
                             "ADJUSTMENT", journalNo, today, userId);
                     }
 
@@ -142,12 +145,15 @@ namespace Kasir.Services
 
                         long avgCost = _inventoryService.CalculateAverageCost(line.ProductCode);
 
+                        // variance is ledger x100; the adjustment document keeps the ledger
+                        // qty (a counted shelf against x100 legacy stock can differ by a
+                        // fraction of a unit) and its money value divides the scale out.
                         adjustItems.Add(new StockAdjustmentItem
                         {
                             ProductCode = line.ProductCode,
                             Quantity = Math.Abs(variance),
                             CostPrice = avgCost,
-                            Value = avgCost * Math.Abs(variance),
+                            Value = StockQty.Value(avgCost, Math.Abs(variance)),
                             Reason = variance > 0 ? "SURPLUS" : "SHORTAGE"
                         });
 

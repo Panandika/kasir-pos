@@ -69,7 +69,7 @@ namespace Kasir.Services
                     MovementType = "TRANSFER_OUT",
                     DocDate = today,
                     PeriodCode = period,
-                    QtyOut = item.Quantity,
+                    QtyOut = StockQty.ToLedger(item.Quantity), // ledger is x100; document is plain units
                     ValOut = item.Value,
                     CostPrice = item.CostPrice,
                     ChangedBy = userId
@@ -85,7 +85,7 @@ namespace Kasir.Services
                     MovementType = "TRANSFER_IN",
                     DocDate = today,
                     PeriodCode = period,
-                    QtyIn = item.Quantity,
+                    QtyIn = StockQty.ToLedger(item.Quantity), // ledger is x100; document is plain units
                     ValIn = item.Value,
                     CostPrice = item.CostPrice,
                     ChangedBy = userId

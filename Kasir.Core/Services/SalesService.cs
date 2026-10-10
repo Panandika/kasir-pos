@@ -467,9 +467,10 @@ namespace Kasir.Services
                     {
                         var item = _currentItems[i];
                         if (IsNonStockCode(item.ProductCode)) continue;
+                        // The ledger is x100 (StockQty); the cart holds plain units.
                         _inventoryService.RecordStockOut(
                             item.ProductCode,
-                            item.Quantity,
+                            StockQty.ToLedger(item.Quantity),
                             unitCosts[i],
                             "SALE",
                             journalNo,
@@ -529,8 +530,9 @@ namespace Kasir.Services
                         if (IsNonStockCode(item.ProductCode)) continue; // never stocked out
                         // item.Cogs is the line total (unit cost × qty); the movement needs the unit cost.
                         long unitCost = item.Quantity != 0 ? item.Cogs / item.Quantity : 0;
+                        // sale_items.quantity is plain units; the ledger is x100 (StockQty).
                         _inventoryService.RecordStockIn(
-                            item.ProductCode, item.Quantity, unitCost,
+                            item.ProductCode, StockQty.ToLedger(item.Quantity), unitCost,
                             "RETURN_IN", journalNo, sale.DocDate, _cashierUserId);
                     }
 

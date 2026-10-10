@@ -90,7 +90,7 @@ namespace Kasir.Tests.Services
 
             // Verify stock movement created
             int stock = _movementRepo.GetStockOnHand("P001");
-            stock.Should().Be(10);
+            stock.Should().Be(StockQty.ToLedger(10));
         }
 
         [Test]
@@ -132,7 +132,7 @@ namespace Kasir.Tests.Services
             string jnl = _service.CreatePurchaseReturn(ret, retItems, false, 1);
 
             jnl.Should().Contain("RMS");
-            _movementRepo.GetStockOnHand("P001").Should().Be(7); // 10 - 3
+            _movementRepo.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(7)); // 10 - 3
         }
 
         // PR-K2: a purchase updates the perpetual average on products.cost_price.
@@ -184,7 +184,7 @@ namespace Kasir.Tests.Services
             var m = _movementRepo.GetByJournal(jnl);
             m.Should().ContainSingle();
             m[0].MovementType.Should().Be("RETURN_OUT");
-            m[0].QtyOut.Should().Be(3);
+            m[0].QtyOut.Should().Be(StockQty.ToLedger(3));
         }
 
         // Fallback chain step 1: cost_price 0 -> last PURCHASE unit_price by doc_date (via
@@ -301,7 +301,7 @@ namespace Kasir.Tests.Services
                 true, 1);
 
             // Verify final state
-            _movementRepo.GetStockOnHand("P001").Should().Be(15); // 20 received - 5 returned
+            _movementRepo.GetStockOnHand("P001").Should().Be(StockQty.ToLedger(15)); // 20 received - 5 returned
             var ap = _payablesRepo.GetByJournalNo(invJnl);
             ap.PaymentAmount.Should().Be(1500000); // 5 × 300000 offset
         }
