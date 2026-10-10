@@ -158,6 +158,27 @@ namespace Kasir.CloudSync.Tests.Pull
             row.AppliedBy.Should().Be("01");
         }
 
+        // D28/OB-1: a product with no average yet is valued at the last purchase line's
+        // cogs (after discount), not its pre-discount unit_price.
+        [Test]
+        public async Task opname_on_a_product_without_an_average_uses_the_d28_line_cost()
+        {
+            SeedProduct("P009", "A", 0);
+            Exec(@"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, legacy_source)
+                   VALUES ('PURCHASE', 'DSRI-9', '2026-09-01', 'V001', 0, '202609', 'SM');
+                   INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, disc_value, cogs, value)
+                   VALUES ('DSRI-9', 'P009', 500, 1000000, 200000, 800000, 0);");
+            SeedStock("P009", 5000);
+            Opname("P009", 5500, At(9)); // 5 surplus units
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            var m = new StockMovementRepository(_db).GetByJournal("OPN-DB-OKT26").Single();
+            m.CostPrice.Should().Be(800000, "cogs, not unit_price 1000000");
+            m.ValIn.Should().Be(4000000);
+            Scalar("SELECT value FROM stock_adjustment_items WHERE journal_no = 'OPN-DB-OKT26'").Should().Be(4000000);
+        }
+
         // pos_stock_requests.qty is BIGINT: a qty the int ledger cannot hold is rejected
         // (failed_at set) once, not retried every tick.
         [Test]

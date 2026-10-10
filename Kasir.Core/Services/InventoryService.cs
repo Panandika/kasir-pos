@@ -97,21 +97,24 @@ namespace Kasir.Services
 
         // Unit cost (x100 money) for COGS and stock valuation: the perpetual moving average
         // kept in products.cost_price (FoxPro AVGCOST via the snapshot; maintained by
-        // RecordStockIn once CostEngineOwnsCostPriceKey is on). Fallback when it is 0: last PURCHASE unit_price, then 0.
+        // RecordStockIn once CostEngineOwnsCostPriceKey is on). Fallback when it is 0: the
+        // last PURCHASE line's cost under the D28 rule (LegacyCost: cogs, else
+        // unit_price - disc_value), then 0.
         public long CalculateAverageCost(string productCode)
         {
             var product = _productRepo.GetByCode(productCode);
             if (product != null && product.CostPrice > 0) return product.CostPrice;
 
             // purchase_items has no doc_date; the JOIN to purchases supplies it.
+            string unitCost = LegacyCost.UnitCostSql("pi");
             return SqlHelper.ExecuteScalar<long>(_db,
-                @"SELECT pi.unit_price
+                $@"SELECT {unitCost}
                   FROM purchase_items pi
                   JOIN purchases p ON p.journal_no = pi.journal_no
                   WHERE pi.product_code = @code
                     AND p.doc_type = 'PURCHASE'
                     AND p.control != 3
-                    AND pi.unit_price > 0
+                    AND {unitCost} > 0
                   ORDER BY p.doc_date DESC, p.id DESC, pi.id DESC
                   LIMIT 1",
                 SqlHelper.Param("@code", productCode));

@@ -164,6 +164,48 @@ namespace Kasir.Tests.Services
             _service.CalculateAverageCost("P001").Should().Be(0, "cost_price 0 and no purchase history -> 0");
         }
 
+        // D28: the fallback reads the line cost under the shared rule, not unit_price.
+        private void SeedLegacyPurchaseLine(string journal, string docDate, long unitPrice, long discValue, long cogs)
+        {
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO purchases (doc_type, journal_no, doc_date, sub_code, total_value, period_code, legacy_source)
+                  VALUES ('PURCHASE', @j, @d, 'V001', 0, '202609', 'SM');
+                  INSERT INTO purchase_items (journal_no, product_code, quantity, unit_price, disc_value, cogs, value)
+                  VALUES (@j, 'P001', 500, @price, @disc, @cogs, 0);",
+                SqlHelper.Param("@j", journal), SqlHelper.Param("@d", docDate),
+                SqlHelper.Param("@price", unitPrice), SqlHelper.Param("@disc", discValue),
+                SqlHelper.Param("@cogs", cogs));
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_UsesCogs_NotPreDiscountUnitPrice()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SeedLegacyPurchaseLine("DSRI-1", "2026-09-01", unitPrice: 1000000, discValue: 200000, cogs: 800000);
+
+            _service.CalculateAverageCost("P001").Should().Be(800000, "D28: cogs (after discount) when > 0");
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_CogsZero_UsesUnitPriceMinusDiscValue()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SeedLegacyPurchaseLine("DSRI-1", "2026-09-01", unitPrice: 1000000, discValue: 100000, cogs: 0);
+
+            _service.CalculateAverageCost("P001").Should().Be(900000, "D28 fallback: unit_price - disc_value");
+        }
+
+        [Test]
+        public void CalculateAverageCost_Fallback_SkipsLinesWhoseRuleCostIsZero()
+        {
+            SeedProduct("P001", costPrice: 0);
+            SeedLegacyPurchaseLine("DSRI-1", "2026-09-01", unitPrice: 700000, discValue: 0, cogs: 0);
+            // Later, but fully discounted: cost 0 under the rule, so it is not a price.
+            SeedLegacyPurchaseLine("DSRI-2", "2026-09-10", unitPrice: 100000, discValue: 100000, cogs: 0);
+
+            _service.CalculateAverageCost("P001").Should().Be(700000);
+        }
+
         [Test]
         public void RecordStockIn_UpdatesCostPrice_PerpetualAvg()
         {
