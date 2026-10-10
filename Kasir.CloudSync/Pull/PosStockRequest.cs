@@ -46,6 +46,15 @@ namespace Kasir.CloudSync.Pull
     //                fetched NEW_PRODUCT first, and an OPNAME / PURCHASE / RETURN_OUT on an
     //                NP code waits (deferred) until that code's NEW_PRODUCT is applied here.
     //   BARCODE_LINK no-op on the POS (barcodes were dropped, Migration_005); marked applied.
+    //   PRODUCT_PACK product_code; payload.unit2 (pack unit, max 6, required) +
+    //                payload.conversion1 (x100 stock units per pack, > 100, required),
+    //                payload.previous_unit2 / previous_conversion1 / source (info only).
+    //                "Isi per dus?" saved in the dashboard (D22, dashboard 0075
+    //                set_product_pack): written to products.unit2 / conversion1. Key
+    //                'PRODUCT_PACK:<code>:<yyyyMMddHHmmssffffff>', one per change; a pack
+    //                request older than one already applied here for the same product is
+    //                a no-op (never puts an old pack back). On an NP code it waits for
+    //                the code's NEW_PRODUCT like the stock requests.
     //
     // OPNAME / PURCHASE / RETURN_OUT on a non-stock code (SalesService.IsNonStockItem:
     // 1/2/44/99, AL/AT/PR/PL/MY/LL; K1/K4) are rejected: nothing is written and the row
@@ -78,6 +87,7 @@ namespace Kasir.CloudSync.Pull
         public const string ProductStatus = "PRODUCT_STATUS";
         public const string NewProduct = "NEW_PRODUCT";
         public const string BarcodeLink = "BARCODE_LINK";
+        public const string ProductPack = "PRODUCT_PACK";
 
         // Tie-break inside one created_at (one dashboard RPC writes all its rows in one
         // transaction, so they share now()): a product must exist before stock moves on
@@ -88,6 +98,7 @@ namespace Kasir.CloudSync.Pull
             {
                 case NewProduct: return 0;
                 case ProductStatus: return 1;
+                case ProductPack: return 1;
                 case BarcodeLink: return 2;
                 case Purchase: return 3;
                 case ReturnOut: return 4;
@@ -100,6 +111,10 @@ namespace Kasir.CloudSync.Pull
         // Kinds that write stock movements (their relative order per product matters).
         public static bool MovesStock(string kind) =>
             kind == Opname || kind == Purchase || kind == ReturnOut;
+
+        // Kinds that need the product of a dashboard 'NP' code to be the dashboard's
+        // own (its NEW_PRODUCT applied here) before they run.
+        public static bool NeedsDashboardProduct(string kind) => MovesStock(kind) || kind == ProductPack;
 
         // Dashboard-created product codes (reserved 'NP' prefix, D21 / dashboard 0074).
         public static bool IsDashboardProductCode(string code) => Kasir.Services.ProductService.IsDashboardProductCode(code);

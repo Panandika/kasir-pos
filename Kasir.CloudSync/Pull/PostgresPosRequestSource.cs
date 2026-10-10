@@ -20,7 +20,7 @@ namespace Kasir.CloudSync.Pull
               ORDER BY (request_kind = 'NEW_PRODUCT') DESC,
                        created_at ASC,
                        CASE request_kind
-                         WHEN 'NEW_PRODUCT' THEN 0 WHEN 'PRODUCT_STATUS' THEN 1
+                         WHEN 'NEW_PRODUCT' THEN 0 WHEN 'PRODUCT_STATUS' THEN 1 WHEN 'PRODUCT_PACK' THEN 1
                          WHEN 'BARCODE_LINK' THEN 2 WHEN 'PURCHASE' THEN 3
                          WHEN 'RETURN_OUT' THEN 4 WHEN 'OPNAME' THEN 5
                          WHEN 'VENDOR_BILL' THEN 6 ELSE 9 END ASC,

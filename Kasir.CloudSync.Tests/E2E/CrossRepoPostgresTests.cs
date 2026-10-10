@@ -36,6 +36,7 @@ namespace Kasir.CloudSync.Tests.E2E
     //   dashboard receipt / bill / return / credit note -> POS once (#47 #50 #51 #53)
     //   POS purchasing stays locked while the dashboard purchases (#46)
     //   dashboard-made product (NP, D21) -> NEW_PRODUCT before its receipt and count
+    //   "Isi per dus?" (D22) -> PRODUCT_PACK on the hub, kept against a stale push
     //
     // [Explicit]: needs the dashboard's LOCAL stack (`pnpm db:reset:local` in
     // sinar-makmur-dashboard, which applies every migration + seed):
@@ -509,6 +510,77 @@ namespace Kasir.CloudSync.Tests.E2E
 
             (await _worker.TickAsync(CancellationToken.None)).Should().BeTrue();
             _pull.LastResult.Fetched.Should().Be(0, "nothing left for this product");
+        }
+
+        // D22 / WP-14 (dashboard 0075): "Isi per dus?" answered while counting reaches the
+        // hub as PRODUCT_PACK. A till edit of the same product pushed before the hub has the
+        // pack does not put the old (empty) pack back in Supabase; the hub ends on the pack,
+        // and a second, different answer is refused instead of overwriting the first.
+        [Test, Order(6)]
+        public async Task Pack_size_saved_while_counting_reaches_the_hub_and_survives_a_stale_push()
+        {
+            if (!Convert.ToBoolean(await Pg("SELECT to_regprocedure('public.set_product_pack(text,text,bigint,text,uuid,boolean)') IS NOT NULL")))
+                Assert.Ignore("dashboard migration 0075 is not applied on this stack (run pnpm db:reset:local)");
+
+            string p = await Product("K", 0);
+            var res = (JObject)await _api.Rpc(_mgr1, "set_product_pack", new
+            {
+                p_product_code = p, p_pack_unit = "dus", p_pack_qty = 2400L, p_source = "opname", p_session_id = _session
+            });
+            res["changed"].Value<bool>().Should().BeTrue();
+            var req = await RequestOf("PRODUCT_PACK", p);
+            req["idempotency_key"].Value<string>().Should().StartWith("PRODUCT_PACK:" + p + ":");
+            req["payload"]["conversion1"].Value<long>().Should().Be(2400);
+
+            // Someone else answers differently: refused (409), the first pack stays.
+            var conflict = await FluentActions.Awaiting(() => _api.Rpc(_mgr2, "set_product_pack", new
+            {
+                p_product_code = p, p_pack_unit = "DUS", p_pack_qty = 1200L, p_source = "opname"
+            })).Should().ThrowAsync<DashboardRpcException>();
+            conflict.Which.Status.Should().Be(409);
+            conflict.Which.Body.Should().Contain("sudah diisi");
+
+            // This hub also pushes products (OutboxTables "sales,products", the post-cutover
+            // scope; the default "sales" never pushes them). The worker pushes before it pulls.
+            var pushCfg = new CloudSyncConfig { PullBatchSize = 5000, OutboxTables = "sales,products" };
+            var sink = new GenericSink(_pg);
+            var worker = new CloudSyncWorker(NullLogger<CloudSyncWorker>.Instance, Options.Create(pushCfg),
+                new OutboxRouter(_db, new SyncQueueRepository(_db), sink, NullLogger<OutboxRouter>.Instance, pushCfg.OutboxTableList()),
+                new WatermarkPusher(_db, sink, NullLogger<WatermarkPusher>.Instance),
+                _pull);
+            // The hub row's insert queue entry stands for history the cloud already has
+            // (Product() wrote both rows); start from an empty queue.
+            Exec("DELETE FROM sync_queue");
+
+            // A price change at the till, queued before the hub has the pack: its push
+            // carries unit2 NULL / conversion1 100.
+            Exec($"UPDATE products SET price = 550000, changed_at = datetime('now','localtime') WHERE product_code = '{p}'");
+            Scalar($"SELECT COUNT(*) FROM sync_queue WHERE table_name = 'products' AND record_key = '{p}' AND operation = 'U'")
+                .Should().BeGreaterThan(0);
+            // The LAN push already ran (the cloud push ships rows the LAN sync has synced).
+            Exec("UPDATE sync_queue SET status = 'synced'");
+
+            (await worker.TickAsync(CancellationToken.None)).Should().BeTrue();
+            _pull.LastResult.Failed.Should().BeEmpty();
+            _pull.LastResult.Applied.Should().Contain(req.Id());
+
+            Text($"SELECT unit2 || ' x ' || conversion1 FROM products WHERE product_code = '{p}'").Should().Be("DUS x 2400");
+            var cloud = await PgRow("SELECT price, unit2, conversion1 FROM public.products WHERE product_code = @p", ("@p", p));
+            ((long)cloud["price"], (string)cloud["unit2"], (long)cloud["conversion1"])
+                .Should().Be((550000L, "DUS", 2400L), "the till's price went through, the dashboard's pack was kept");
+            (await Pg("SELECT applied_at IS NOT NULL FROM public.pos_stock_requests WHERE id = @id", ("@id", req.Id())))
+                .Should().Be(true);
+
+            // The hub queued its row so the pack also reaches the other registers (LAN sync)
+            // and the cloud; after that push Supabase still has the same pack.
+            Scalar($"SELECT COUNT(*) FROM sync_queue WHERE record_key = '{p}' AND status <> 'synced'")
+                .Should().Be(1, "ApplyProductPack queued the row (trg_products_sync_u ignores unit2 / conversion1)");
+            Exec("UPDATE sync_queue SET status = 'synced'");
+            (await worker.TickAsync(CancellationToken.None)).Should().BeTrue();
+            Scalar($"SELECT COUNT(*) FROM sync_queue WHERE record_key = '{p}' AND cloud_synced = 0").Should().Be(0);
+            _pull.LastResult.Fetched.Should().Be(0);
+            var after = await PgRow("SELECT unit2, conversion1 FROM public.products WHERE product_code = @p", ("@p", p));
+            ((string)after["unit2"], (long)after["conversion1"]).Should().Be(("DUS", 2400L));
         }
 
         // ------------------------------------------------------------------ dashboard helpers

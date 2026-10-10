@@ -138,7 +138,7 @@ namespace Kasir.CloudSync.Pull
             // NEW_PRODUCT request. Stock on it waits until that request is applied HERE, so
             // a receipt / count never lands before the product, nor on a different local
             // product that happens to hold the code (its NEW_PRODUCT is then rejected).
-            if (PosRequestKinds.MovesStock(r.RequestKind) && PosRequestKinds.IsDashboardProductCode(r.ProductCode)
+            if (PosRequestKinds.NeedsDashboardProduct(r.RequestKind) && PosRequestKinds.IsDashboardProductCode(r.ProductCode)
                 && !NewProductApplied(r.ProductCode))
                 throw new PosRequestApplyException(Describe(r) + ": waiting for "
                     + PosRequestKinds.NewProductKey(r.ProductCode) + " to be applied on this register", deferred: true);
@@ -151,6 +151,7 @@ namespace Kasir.CloudSync.Pull
                 case PosRequestKinds.VendorBill: return ApplyVendorBill(r);
                 case PosRequestKinds.ProductStatus: return ApplyProductStatus(r);
                 case PosRequestKinds.NewProduct: return ApplyNewProduct(r);
+                case PosRequestKinds.ProductPack: return ApplyProductPack(r);
                 case PosRequestKinds.BarcodeLink: return null; // POS has no barcode table (Migration_005)
                 default: throw Invalid(r, "unknown request_kind " + r.RequestKind);
             }
@@ -515,6 +516,68 @@ namespace Kasir.CloudSync.Pull
                     SqlHelper.Param("@c1", conversion1 ?? 100),
                     SqlHelper.Param("@code", code));
             return null;
+        }
+
+        // ---------- PRODUCT_PACK (D22) ----------
+
+        // "Isi per dus?" from the dashboard: products.unit2 / conversion1 (legacy UNIT2 /
+        // KONVERSI1, x100 stock units per pack). Only these two columns change.
+        // trg_products_sync_u does not watch them, so the row is queued for sync by hand:
+        // the LAN sync (SELECT *) takes the pack to the other registers, and the cloud push
+        // sends Supabase the pack it already has.
+        private string ApplyProductPack(PosStockRequest r)
+        {
+            if (SalesService.IsNonStockItem(r.ProductCode))
+                throw Rejected(r, (r.ProductCode ?? "").Trim()
+                    + " is not a stock item (manual price code / category key); it has no pack size");
+            var product = RequireProduct(r);
+
+            var payload = Payload(r);
+            string unit2 = (Str(payload, "unit2") ?? "").ToUpperInvariant();
+            if (unit2.Length == 0) throw Invalid(r, "payload.unit2 (pack unit) is required");
+            if (unit2.Length > 6) throw Invalid(r, "payload.unit2 is longer than 6");
+            long conversion1 = Long(payload, "conversion1") ?? throw Invalid(r, "payload.conversion1 (x100 stock units per pack) is required");
+            if (conversion1 <= 100 || conversion1 > int.MaxValue)
+                throw Invalid(r, "payload.conversion1 (x100 stock units per pack) must be > 100");
+
+            // A newer pack for this product is already here (requests applied out of
+            // order after a retry): this older one must not put its pack back.
+            if (NewerPackApplied(r)) return null;
+
+            var current = SqlHelper.ExecuteScalar<string>(_db,
+                "SELECT COALESCE(unit2, '') || '|' || COALESCE(conversion1, 100) FROM products WHERE product_code = @code",
+                SqlHelper.Param("@code", product.ProductCode));
+            if (current == unit2 + "|" + conversion1.ToString(CultureInfo.InvariantCulture)) return null;
+
+            SqlHelper.ExecuteNonQuery(_db,
+                @"UPDATE products SET unit2 = @u2, conversion1 = @c1, changed_by = @by, changed_at = datetime('now','localtime')
+                  WHERE product_code = @code",
+                SqlHelper.Param("@u2", unit2),
+                SqlHelper.Param("@c1", conversion1),
+                SqlHelper.Param("@by", PullUserId),
+                SqlHelper.Param("@code", product.ProductCode));
+            SqlHelper.ExecuteNonQuery(_db,
+                @"INSERT INTO sync_queue (register_id, table_name, record_key, operation)
+                  VALUES (COALESCE((SELECT value FROM config WHERE key = 'register_id'), 'unknown'), 'products', @code, 'U')",
+                SqlHelper.Param("@code", product.ProductCode));
+            return null;
+        }
+
+        // Keys are 'PRODUCT_PACK:<code>:<yyyyMMddHHmmssffffff>' (dashboard 0075): within one
+        // product the key order is the change order.
+        private bool NewerPackApplied(PosStockRequest r)
+        {
+            string key = r.IdempotencyKey ?? "";
+            int cut = key.LastIndexOf(':');
+            if (cut <= 0) return false;
+            string prefix = key.Substring(0, cut + 1);
+            return SqlHelper.ExecuteScalar<long>(_db,
+                @"SELECT COUNT(*) FROM applied_requests
+                  WHERE request_kind = @k AND substr(idempotency_key, 1, length(@prefix)) = @prefix
+                    AND length(idempotency_key) = length(@key) AND idempotency_key > @key",
+                SqlHelper.Param("@k", PosRequestKinds.ProductPack),
+                SqlHelper.Param("@prefix", prefix),
+                SqlHelper.Param("@key", key)) > 0;
         }
 
         // True once this register applied the code's NEW_PRODUCT (applied_requests).

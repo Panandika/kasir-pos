@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS pos_stock_requests (
   request_kind    TEXT NOT NULL
                   CHECK (request_kind IN (
                     'OPNAME','PURCHASE','RETURN_OUT',
-                    'PRODUCT_STATUS','NEW_PRODUCT','BARCODE_LINK',
+                    'PRODUCT_STATUS','NEW_PRODUCT','BARCODE_LINK','PRODUCT_PACK',
                     'VENDOR_BILL'
                   )),
   idempotency_key TEXT NOT NULL,
