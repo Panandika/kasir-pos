@@ -18,7 +18,9 @@ namespace Kasir.CloudSync.Pull
     // the request is fetched again next tick, found in applied_requests, and only
     // re-marked - never applied twice.
     //
-    // Order: created_at, then kind priority (PosRequestKinds.ApplyOrder). A request
+    // Order: every NEW_PRODUCT first, then created_at, then kind priority
+    // (PosRequestKinds.ApplyOrder). A stock request on a dashboard 'NP' code is deferred
+    // until that code's NEW_PRODUCT is applied on this hub (D21). A request
     // that cannot be applied stays pending (logged, retried every tick) and every
     // later stock-moving request (OPNAME / PURCHASE / RETURN_OUT) for the SAME product
     // is held back for this tick, so an OPNAME never compares against on-hand that is
@@ -89,6 +91,9 @@ namespace Kasir.CloudSync.Pull
                 catch (PosRequestApplyException rex) when (rex.Rejected)
                 {
                     await MarkRejectedAsync(r, rex.Message, registerId, result, ct).ConfigureAwait(false);
+                    // A rejected NEW_PRODUCT: its code is taken here, so nothing that depends
+                    // on it may run (the applier also defers those until the product is in).
+                    if (product != null && r.RequestKind == PosRequestKinds.NewProduct) heldProducts.Add(product);
                     continue;
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException))

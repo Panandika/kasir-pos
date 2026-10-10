@@ -35,6 +35,7 @@ namespace Kasir.CloudSync.Tests.E2E
     //   receipt between count and "Terapkan" is counted once     (PLAN edge 10, #29)
     //   dashboard receipt / bill / return / credit note -> POS once (#47 #50 #51 #53)
     //   POS purchasing stays locked while the dashboard purchases (#46)
+    //   dashboard-made product (NP, D21) -> NEW_PRODUCT before its receipt and count
     //
     // [Explicit]: needs the dashboard's LOCAL stack (`pnpm db:reset:local` in
     // sinar-makmur-dashboard, which applies every migration + seed):
@@ -438,6 +439,76 @@ namespace Kasir.CloudSync.Tests.E2E
             // The dashboard path never opened the POS purchasing screens.
             lockService.IsLocked.Should().BeTrue("pulling dashboard purchases does not unlock POS purchasing");
             Scalar($"SELECT COUNT(*) FROM config_audit WHERE key = '{PurchasingLockService.ConfigKey}'").Should().Be(0);
+        }
+
+        // D21 / WP-13 (dashboard 0074): a product made in the dashboard (NP code), received
+        // by the dus on Barang Masuk Cepat and counted, reaches the hub in that order: the
+        // NEW_PRODUCT first (with its pack), then the PURCHASE, then the OPNAME.
+        [Test, Order(5)]
+        public async Task New_product_made_in_the_dashboard_is_created_received_and_counted_on_the_hub()
+        {
+            if (!Convert.ToBoolean(await Pg("SELECT to_regprocedure('public.create_dashboard_product(text,text,text,bigint,bigint,text,bigint,text,text,uuid,text)') IS NOT NULL")))
+                Assert.Ignore("dashboard migration 0074 is not applied on this stack (run pnpm db:reset:local)");
+
+            string name = "PRODUK BARU UJI " + _run;
+            var made = (JObject)await _api.Rpc(_mgr1, "create_dashboard_product", new
+            {
+                p_name = name.ToLowerInvariant(), p_dept_code = "10", p_unit = "pcs",
+                p_cost_price = 300000L, p_price = 500000L, p_pack_unit = "dus", p_pack_qty = 1200L,
+                p_vendor_code = _vendor, p_source = "direct_receipt", p_client_key = "x-np-" + _run
+            });
+            string np = made["product_code"].Value<string>();
+            np.Should().MatchRegex("^NP[0-9]{4,}$");
+            _products.Add(np);
+            // A replay of the same submit makes no second product.
+            var replay = (JObject)await _api.Rpc(_mgr1, "create_dashboard_product", new
+            {
+                p_name = name, p_dept_code = "10", p_unit = "PCS", p_cost_price = 300000L, p_price = 500000L,
+                p_pack_unit = "DUS", p_pack_qty = 1200L, p_vendor_code = _vendor, p_source = "direct_receipt",
+                p_client_key = "x-np-" + _run
+            });
+            replay["product_code"].Value<string>().Should().Be(np);
+            replay["created"].Value<bool>().Should().BeFalse();
+
+            // 2 dus x 12 on Barang Masuk Cepat, then a count of 20 pcs.
+            var rc = (JObject)await _api.Rpc(_mgr1, "create_direct_receipt", new
+            {
+                p_vendor_code = _vendor,
+                p_lines = new JArray(PoLine(np, 200, 3600000, "DUS", 1200))
+            });
+            rc["requests_created"].Value<int>().Should().Be(1);
+            await Task.Delay(1500); // the count is strictly after the receipt
+            await Count(_mgr1, np, 2000, "Rak produk baru");
+            await Apply(np);
+
+            var newReq = await RequestOf("NEW_PRODUCT", np);
+            newReq["idempotency_key"].Value<string>().Should().Be("NEW_PRODUCT:" + np);
+            newReq["payload"]["name"].Value<string>().Should().Be(name);
+
+            (await _worker.TickAsync(CancellationToken.None)).Should().BeTrue();
+            _pull.LastResult.Failed.Should().BeEmpty();
+            _pull.LastResult.Applied.Should().HaveCount(3);
+            _pull.LastResult.Applied[0].Should().Be(newReq.Id(), "the product lands before its receipt and count");
+
+            var p = new ProductRepository(_db).GetByCode(np);
+            p.Should().NotBeNull();
+            (p.Name, p.DeptCode, p.Unit, p.Status, p.Price, p.VendorCode).Should().Be((name, "10", "PCS", "A", 500000L, _vendor));
+            Text($"SELECT unit2 || ' x ' || conversion1 FROM products WHERE product_code = '{np}'").Should().Be("DUS x 1200");
+            OnHand(np).Should().Be(2000, "24 received, 20 counted");
+            var opn = new StockMovementRepository(_db).GetByProduct(np, "2000-01-01", "2099-12-31").Single(x => x.MovementType == "OPNAME");
+            opn.QtyOut.Should().Be(400);
+            opn.Id.Should().BeGreaterThanOrEqualTo(Floor);
+            new ProductRepository(_db).GetByCode(np).CostPrice.Should().Be(300000, "Rp 36.000 / dus of 12");
+
+            (await Pg(@"SELECT count(*) FROM public.pos_stock_requests WHERE product_code = @p AND applied_at IS NOT NULL",
+                ("@p", np))).Should().Be(3L);
+            // The hub's copy of the product, if pushed back, matches what the dashboard made.
+            var cloud = await PgRow("SELECT name, unit2, conversion1, status FROM public.products WHERE product_code = @p", ("@p", np));
+            ((string)cloud["name"], (string)cloud["unit2"], (long)cloud["conversion1"], (string)cloud["status"])
+                .Should().Be((name, "DUS", 1200L, "A"));
+
+            (await _worker.TickAsync(CancellationToken.None)).Should().BeTrue();
+            _pull.LastResult.Fetched.Should().Be(0, "nothing left for this product");
         }
 
         // ------------------------------------------------------------------ dashboard helpers

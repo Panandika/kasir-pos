@@ -9,13 +9,16 @@ namespace Kasir.CloudSync.Pull
 {
     public sealed class PostgresPosRequestSource : IPosRequestSource
     {
-        // Targets the hub applies (single-hub-applicant model, OB-12).
+        // Targets the hub applies (single-hub-applicant model, OB-12). NEW_PRODUCT rows
+        // come first so a batch limit never leaves a product behind the receipt / count
+        // that needs it (PosRequestKinds.ApplyOrder, D21).
         internal const string PendingSql =
             @"SELECT id, request_kind, idempotency_key, product_code, qty, unit_cost,
                      vendor_code, doc_no, target_register, payload::text, happened_at, created_at
               FROM pos_stock_requests
               WHERE applied_at IS NULL AND failed_at IS NULL AND target_register IN ('hub', 'ALL')
-              ORDER BY created_at ASC,
+              ORDER BY (request_kind = 'NEW_PRODUCT') DESC,
+                       created_at ASC,
                        CASE request_kind
                          WHEN 'NEW_PRODUCT' THEN 0 WHEN 'PRODUCT_STATUS' THEN 1
                          WHEN 'BARCODE_LINK' THEN 2 WHEN 'PURCHASE' THEN 3

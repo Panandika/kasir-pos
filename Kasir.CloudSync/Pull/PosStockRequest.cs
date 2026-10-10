@@ -35,9 +35,16 @@ namespace Kasir.CloudSync.Pull
     //                it reverses) lowers that bill's payables_register value by the total
     //                instead of adding a payable; it waits until the bill is applied.
     //   PRODUCT_STATUS product_code; payload.status 'A' | 'I' | 'D' (default 'A').
-    //   NEW_PRODUCT  product_code (dashboard 'NP' code, OB-10); payload.name (required);
+    //   NEW_PRODUCT  product_code (dashboard 'NP' code, OB-10 / D21, dashboard 0074
+    //                create_dashboard_product); payload.name (required);
     //                payload.dept_code, unit, price, buying_price, cost_price (x100),
-    //                vendor_code, status (optional). An existing code is left unchanged.
+    //                vendor_code, status (optional), unit2 + conversion1 (pack, x100 stock
+    //                units per pack, optional). An existing code is left unchanged; for an
+    //                NP code whose local product has another name the request is
+    //                rejected (the code is taken on this hub).
+    //                Applied BEFORE anything that depends on it: PullService takes every
+    //                fetched NEW_PRODUCT first, and an OPNAME / PURCHASE / RETURN_OUT on an
+    //                NP code waits (deferred) until that code's NEW_PRODUCT is applied here.
     //   BARCODE_LINK no-op on the POS (barcodes were dropped, Migration_005); marked applied.
     //
     // OPNAME / PURCHASE / RETURN_OUT on a non-stock code (SalesService.IsNonStockItem:
@@ -94,10 +101,20 @@ namespace Kasir.CloudSync.Pull
         public static bool MovesStock(string kind) =>
             kind == Opname || kind == Purchase || kind == ReturnOut;
 
+        // Dashboard-created product codes (reserved 'NP' prefix, D21 / dashboard 0074).
+        public static bool IsDashboardProductCode(string code) => Kasir.Services.ProductService.IsDashboardProductCode(code);
+
+        // The idempotency key the dashboard gives a code's NEW_PRODUCT request.
+        public static string NewProductKey(string code) => "NEW_PRODUCT:" + (code ?? "").Trim();
+
         // The order PullService applies a fetched batch in (and the SQL ORDER BY).
+        // NEW_PRODUCT first (it depends on nothing, and stock requests on its code wait
+        // for it even when they were queued earlier), then created_at, then kind.
         public static readonly IComparer<PosStockRequest> ApplyOrder = Comparer<PosStockRequest>.Create((a, b) =>
         {
-            int c = a.CreatedAt.CompareTo(b.CreatedAt);
+            int c = (a.RequestKind == NewProduct ? 0 : 1).CompareTo(b.RequestKind == NewProduct ? 0 : 1);
+            if (c != 0) return c;
+            c = a.CreatedAt.CompareTo(b.CreatedAt);
             if (c != 0) return c;
             c = Priority(a.RequestKind).CompareTo(Priority(b.RequestKind));
             if (c != 0) return c;

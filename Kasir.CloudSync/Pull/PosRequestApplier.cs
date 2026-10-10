@@ -134,6 +134,15 @@ namespace Kasir.CloudSync.Pull
                     + " is not a stock item (manual price code / category key); "
                     + "the POS never counts, buys or returns it");
 
+            // D21: a dashboard-created product (NP code) reaches this hub through its own
+            // NEW_PRODUCT request. Stock on it waits until that request is applied HERE, so
+            // a receipt / count never lands before the product, nor on a different local
+            // product that happens to hold the code (its NEW_PRODUCT is then rejected).
+            if (PosRequestKinds.MovesStock(r.RequestKind) && PosRequestKinds.IsDashboardProductCode(r.ProductCode)
+                && !NewProductApplied(r.ProductCode))
+                throw new PosRequestApplyException(Describe(r) + ": waiting for "
+                    + PosRequestKinds.NewProductKey(r.ProductCode) + " to be applied on this register", deferred: true);
+
             switch (r.RequestKind)
             {
                 case PosRequestKinds.Opname: return ApplyOpname(r);
@@ -451,15 +460,33 @@ namespace Kasir.CloudSync.Pull
         {
             string code = (r.ProductCode ?? "").Trim();
             if (code.Length == 0) throw Invalid(r, "product_code is required");
-            if (_products.GetByCode(code) != null) return null; // already here: leave it as it is
 
             var payload = Payload(r);
             string name = (Str(payload, "name") ?? "").Trim().ToUpperInvariant();
             if (name.Length == 0) throw Invalid(r, "payload.name is required");
             if (name.Length > MaxNameLength) name = name.Substring(0, MaxNameLength);
+
+            var existing = _products.GetByCode(code);
+            if (existing != null)
+            {
+                // Already here (a replay after a lost applied_requests row, a restored DB):
+                // leave it as it is. An NP code held by a DIFFERENT product cannot be the
+                // dashboard's product: reject, so nothing is ever applied to the wrong one.
+                if (PosRequestKinds.IsDashboardProductCode(code)
+                    && !string.Equals((existing.Name ?? "").Trim(), name, StringComparison.OrdinalIgnoreCase))
+                    throw Rejected(r, "code " + code + " is already used on this register by \""
+                        + (existing.Name ?? "").Trim() + "\" (dashboard product \"" + name + "\")");
+                return null;
+            }
+
             string status = (Str(payload, "status") ?? "A").Trim().ToUpperInvariant();
             if (status != "A" && status != "I") throw Invalid(r, "payload.status must be A or I");
             long cost = Long(payload, "cost_price") ?? 0;
+            string unit2 = Str(payload, "unit2");
+            long? conversion1 = Long(payload, "conversion1");
+            if (conversion1.HasValue && conversion1.Value < 100)
+                throw Invalid(r, "payload.conversion1 (x100 stock units per pack) must be >= 100");
+            if (unit2 != null && unit2.Length > 6) throw Invalid(r, "payload.unit2 is longer than 6");
 
             _products.Insert(new Product
             {
@@ -478,8 +505,24 @@ namespace Kasir.CloudSync.Pull
                 IsConsignment = "N",
                 ChangedBy = PullUserId
             });
+
+            // Pack size (D21 optional, legacy UNIT2 / KONVERSI1 x100). Not on the Product
+            // model, so set on the row just inserted (same transaction).
+            if (unit2 != null || (conversion1.HasValue && conversion1.Value != 100))
+                SqlHelper.ExecuteNonQuery(_db,
+                    "UPDATE products SET unit2 = @u2, conversion1 = @c1 WHERE product_code = @code",
+                    SqlHelper.Param("@u2", unit2?.ToUpperInvariant()),
+                    SqlHelper.Param("@c1", conversion1 ?? 100),
+                    SqlHelper.Param("@code", code));
             return null;
         }
+
+        // True once this register applied the code's NEW_PRODUCT (applied_requests).
+        private bool NewProductApplied(string code) =>
+            SqlHelper.ExecuteScalar<long>(_db,
+                "SELECT COUNT(*) FROM applied_requests WHERE request_kind = @k AND idempotency_key = @key",
+                SqlHelper.Param("@k", PosRequestKinds.NewProduct),
+                SqlHelper.Param("@key", PosRequestKinds.NewProductKey(code))) > 0;
 
         // ---------- helpers ----------
 

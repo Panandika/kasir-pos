@@ -535,24 +535,154 @@ namespace Kasir.CloudSync.Tests.Pull
             pushed.Should().OnlyContain(id => id < Floor, "dashboard-originated rows are never pushed back (PV-3)");
         }
 
+        // D21: a NEW_PRODUCT queued AFTER its purchase (two dashboard transactions whose
+        // now() crossed) is still applied first in the same tick: NEW_PRODUCT leads the batch.
         [Test]
-        public async Task out_of_order_purchase_before_its_new_product_waits_one_tick()
+        public async Task out_of_order_purchase_before_its_new_product_is_applied_after_it_in_the_same_tick()
         {
             var purchase = Purchase("np-line", "NP0002", 200, 150000, doc: "RCV-0003", createdAt: At(10));
-            _source.Add(new PosStockRequest
-            {
-                RequestKind = "NEW_PRODUCT", IdempotencyKey = "NEW_PRODUCT:NP0002", ProductCode = "NP0002",
-                PayloadJson = "{\"name\":\"KABEL ROL\"}", HappenedAt = At(10, 5), CreatedAt = At(10, 5)
-            });
+            var product = NewProductRequest("NP0002", "{\"name\":\"KABEL ROL\"}", At(10, 5));
 
-            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1, "only the product; the purchase waits");
-            _pull.LastResult.Failed.Should().Equal(purchase.Id);
-            _source.RowOf(purchase.Id).AppliedAt.Should().BeNull();
-            OnHand("NP0002").Should().Be(0);
-
-            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            _pull.LastResult.Applied.Should().Equal(product.Id, purchase.Id);
             OnHand("NP0002").Should().Be(200);
             _source.RowOf(purchase.Id).AppliedAt.Should().NotBeNull();
+        }
+
+        // The NEW_PRODUCT has not reached the hub yet (not fetched): the purchase waits,
+        // writes nothing, and goes through on the tick after the product arrives.
+        [Test]
+        public async Task purchase_on_an_np_code_waits_until_its_new_product_arrives()
+        {
+            var purchase = Purchase("np-line", "NP0002", 200, 150000, doc: "RCV-0003", createdAt: At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0, "the product is not here yet");
+            _pull.LastResult.Failed.Should().Equal(purchase.Id);
+            _source.RowOf(purchase.Id).AppliedAt.Should().BeNull();
+            _source.RowOf(purchase.Id).FailedAt.Should().BeNull("waiting is not a rejection");
+            Scalar("SELECT COUNT(*) FROM purchases").Should().Be(0);
+
+            NewProductRequest("NP0002", "{\"name\":\"KABEL ROL\"}", At(10, 5));
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            OnHand("NP0002").Should().Be(200);
+        }
+
+        private PosStockRequest NewProductRequest(string code, string payload, DateTimeOffset createdAt) =>
+            _source.Add(new PosStockRequest
+            {
+                RequestKind = "NEW_PRODUCT", IdempotencyKey = "NEW_PRODUCT:" + code, ProductCode = code,
+                PayloadJson = payload, HappenedAt = createdAt, CreatedAt = createdAt
+            });
+
+        // An NP product that exists here without its NEW_PRODUCT having been applied (made
+        // by hand before the POS refused NP codes) is not the dashboard's: stock waits.
+        [Test]
+        public async Task stock_on_an_np_code_waits_for_its_new_product_even_when_a_local_product_has_the_code()
+        {
+            SeedProduct("NP0009", "A", 100000);
+            var purchase = Purchase("np9", "NP0009", 100, 100000, createdAt: At(10));
+            var count = Opname("NP0009", 300, At(11), createdAt: At(12));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Failed.Should().Equal(purchase.Id);
+            _pull.LastResult.HeldBack.Should().Equal(count.Id);
+            OnHand("NP0009").Should().Be(0);
+            Scalar("SELECT COUNT(*) FROM stock_movements").Should().Be(0);
+        }
+
+        // The hub's NP0009 is a different product: the NEW_PRODUCT is rejected (failed_at,
+        // reason) and the dashboard's receipt / count on that code never lands on it.
+        [Test]
+        public async Task new_product_on_an_np_code_taken_by_another_product_is_rejected_and_its_stock_waits()
+        {
+            SeedProduct("NP0009", "A", 100000); // name "NP0009"
+            var product = NewProductRequest("NP0009", "{\"name\":\"Sabun Cair Baru\"}", At(10));
+            var purchase = Purchase("np9", "NP0009", 100, 100000, createdAt: At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Rejected.Should().Equal(product.Id);
+            _pull.LastResult.HeldBack.Should().Equal(purchase.Id);
+            _source.RowOf(product.Id).FailedReason.Should()
+                .Be("NEW_PRODUCT NEW_PRODUCT:NP0009: code NP0009 is already used on this register by \"NP0009\" (dashboard product \"SABUN CAIR BARU\")");
+            new ProductRepository(_db).GetByCode("NP0009").Name.Should().Be("NP0009");
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0, "next tick: the product is still not the dashboard's");
+            _pull.LastResult.Failed.Should().Equal(purchase.Id);
+            OnHand("NP0009").Should().Be(0);
+        }
+
+        // Replay after a restore: the product is already here with the same name. The
+        // NEW_PRODUCT is applied as a no-op and unblocks its stock.
+        [Test]
+        public async Task new_product_already_here_with_the_same_name_is_a_no_op_that_unblocks_its_stock()
+        {
+            new ProductRepository(_db).Insert(new Product
+            {
+                ProductCode = "NP0010", Name = "KABEL ROL", Price = 900000, CostPrice = 700000, Status = "A",
+                OpenPrice = "N", VatFlag = "N", LuxuryTaxFlag = "N", IsConsignment = "N"
+            });
+            NewProductRequest("NP0010", "{\"name\":\"kabel rol\",\"price\":1}", At(10));
+            Purchase("np10", "NP0010", 300, 700000, createdAt: At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(2);
+            new ProductRepository(_db).GetByCode("NP0010").Price.Should().Be(900000, "left as it is");
+            OnHand("NP0010").Should().Be(300);
+        }
+
+        [Test]
+        public async Task new_product_with_a_pack_size_sets_unit2_and_conversion1()
+        {
+            NewProductRequest("NP0011",
+                "{\"name\":\"TEH KOTAK BARU\",\"dept_code\":\"11\",\"unit\":\"PCS\",\"unit2\":\"DUS\",\"conversion1\":2400,"
+                + "\"price\":400000,\"buying_price\":300000,\"cost_price\":300000,\"vendor_code\":\"V001\",\"status\":\"A\",\"source\":\"direct_receipt\"}",
+                At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            Text("SELECT unit || '/' || unit2 || '/' || conversion1 || '/' || dept_code || '/' || vendor_code FROM products WHERE product_code = 'NP0011'")
+                .Should().Be("PCS/DUS/2400/11/V001");
+            var p = new ProductRepository(_db).GetByCode("NP0011");
+            (p.Price, p.BuyingPrice, p.CostPrice, p.Status).Should().Be((400000L, 300000L, 300000L, "A"));
+        }
+
+        [Test]
+        public async Task new_product_with_a_bad_pack_size_is_invalid_and_holds_its_stock_back()
+        {
+            var product = NewProductRequest("NP0012", "{\"name\":\"X\",\"unit2\":\"DUS\",\"conversion1\":50}", At(10));
+            var purchase = Purchase("np12", "NP0012", 100, 100000, createdAt: At(10));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(0);
+            _pull.LastResult.Failed.Should().Equal(product.Id);
+            _pull.LastResult.HeldBack.Should().Equal(purchase.Id);
+            new ProductRepository(_db).GetByCode("NP0012").Should().BeNull();
+        }
+
+        // create -> receive -> count, the D21 flow as the hub sees it.
+        [Test]
+        public async Task new_product_received_then_counted_applies_in_order()
+        {
+            var created = At(9);
+            NewProductRequest("NP0013", "{\"name\":\"KERUPUK BARU\",\"cost_price\":150000,\"price\":200000}", created);
+            Purchase("np13", "NP0013", 2400, 150000, doc: "RCV-0013", createdAt: At(10));
+            Opname("NP0013", 2000, At(11), createdAt: At(12));
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(3);
+
+            OnHand("NP0013").Should().Be(2000, "24 received, 20 counted: a shortage of 4");
+            Scalar("SELECT COUNT(*) FROM stock_movements WHERE product_code = 'NP0013' AND movement_type = 'OPNAME'").Should().Be(1);
+            Scalar("SELECT COUNT(*) FROM applied_requests WHERE request_kind = 'NEW_PRODUCT' AND idempotency_key = 'NEW_PRODUCT:NP0013'").Should().Be(1);
+        }
+
+        [Test]
+        public void apply_order_puts_every_new_product_first()
+        {
+            var late = new PosStockRequest { Id = Guid.NewGuid(), RequestKind = "NEW_PRODUCT", CreatedAt = At(12) };
+            var early = new PosStockRequest { Id = Guid.NewGuid(), RequestKind = "PURCHASE", CreatedAt = At(9) };
+            var status = new PosStockRequest { Id = Guid.NewGuid(), RequestKind = "PRODUCT_STATUS", CreatedAt = At(9) };
+            new[] { early, status, late }.OrderBy(x => x, PosRequestKinds.ApplyOrder).Should().Equal(late, status, early);
+            PosRequestKinds.IsDashboardProductCode(" np0001").Should().BeTrue();
+            PosRequestKinds.IsDashboardProductCode("9001").Should().BeFalse();
+            PosRequestKinds.NewProductKey(" NP0001 ").Should().Be("NEW_PRODUCT:NP0001");
         }
 
         [Test]

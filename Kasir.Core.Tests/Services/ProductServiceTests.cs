@@ -244,5 +244,18 @@ namespace Kasir.Tests.Services
             _service.CreateQuickProduct("B", "PL", 1000, 2000, 1, 1).ProductCode.Should().Be("9001");
             _products.GetByCode("9000").DeptCode.Should().Be("100");
         }
+
+        // D21: 'NP' codes are the dashboard's (dashboard migration 0074).
+        [Test]
+        public void IsDashboardProductCode_MatchesTheReservedNpPrefixOnly()
+        {
+            ProductService.IsDashboardProductCode("NP0001").Should().BeTrue();
+            ProductService.IsDashboardProductCode(" np12 ").Should().BeTrue();
+            ProductService.IsDashboardProductCode("9001").Should().BeFalse("POS quick codes are numeric");
+            ProductService.IsDashboardProductCode("8998866200011").Should().BeFalse();
+            ProductService.IsDashboardProductCode("ANP1").Should().BeFalse();
+            ProductService.IsDashboardProductCode(null).Should().BeFalse();
+            ProductService.IsDashboardProductCode("  ").Should().BeFalse();
+        }
     }
 }
