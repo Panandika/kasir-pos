@@ -243,7 +243,7 @@ namespace Kasir.CloudSync.Tests.Pull
             await Pg(@"INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, unit_cost, vendor_code, doc_no, payload)
                        VALUES ('PURCHASE', 'PURCHASE:ns-1', 'AL', 100, 500000, 'V001', 'RCV-NS', '{""po_no"":""PO-9""}');
                        INSERT INTO pos_stock_requests (request_kind, idempotency_key, product_code, qty, doc_no, happened_at)
-                       VALUES ('OPNAME', 'OPNAME:sess:44', '44', 300, 'OPN-DB-OKT26', '2026-10-09 09:00:00+08');");
+                       VALUES ('OPNAME', 'OPNAME:sess:99', '99', 300, 'OPN-DB-OKT26', '2026-10-09 09:00:00+08');");
 
             var pull = Pull();
             (await pull.TickAsync(CancellationToken.None)).Should().Be(0);
@@ -252,7 +252,7 @@ namespace Kasir.CloudSync.Tests.Pull
             (await Pg("SELECT count(*) FROM pos_stock_requests WHERE failed_at IS NOT NULL AND applied_at IS NULL")).Should().Be(2L);
             (await Pg("SELECT failed_reason FROM pos_stock_requests WHERE idempotency_key = 'PURCHASE:ns-1'")).Should()
                 .Be("PURCHASE PURCHASE:ns-1: AL is not a stock item (manual price code / category key); the POS never counts, buys or returns it");
-            (await Pg("SELECT failed_by_register FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:sess:44'")).Should().Be("01");
+            (await Pg("SELECT failed_by_register FROM pos_stock_requests WHERE idempotency_key = 'OPNAME:sess:99'")).Should().Be("01");
             SqlHelper.ExecuteScalar<long>(_db, "SELECT COUNT(*) FROM stock_movements WHERE id >= 5000000000").Should().Be(0);
             SqlHelper.ExecuteScalar<long>(_db, "SELECT COUNT(*) FROM purchases").Should().Be(0);
 

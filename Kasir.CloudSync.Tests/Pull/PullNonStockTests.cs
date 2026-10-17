@@ -37,7 +37,7 @@ namespace Kasir.CloudSync.Tests.Pull
             cfg.Set(InventoryService.CostEngineOwnsCostPriceKey, "true");
             foreach (var code in new[] { "P001", "1", "2", "AL", "LL" })
                 SeedProduct(code);
-            // "44" and "99" are deliberately NOT in kasir.db: a missing row must not defer.
+            // "99" is deliberately NOT in kasir.db: a missing row must not defer.
             _source = new InMemoryPosRequestSource();
             _pull = new PullService(_db, _source, NullLogger<PullService>.Instance, 200,
                 () => new DateTimeOffset(2026, 10, 10, 2, 0, 0, TimeSpan.Zero));
@@ -111,7 +111,6 @@ namespace Kasir.CloudSync.Tests.Pull
             _pull.LastResult.Fetched.Should().Be(0, "it is not retried every tick");
         }
 
-        [TestCase("44")]
         [TestCase("99")]
         public async Task a_manual_code_missing_from_kasir_db_is_rejected_not_deferred(string code)
         {
@@ -141,6 +140,21 @@ namespace Kasir.CloudSync.Tests.Pull
             new InventoryService(_db).GetStockOnHand("P001").Should().Be(1000);
             new InventoryService(_db).GetStockOnHand("1").Should().Be(0, "code 1 never gets a movement");
             new ProductRepository(_db).GetByCode("1").CostPrice.Should().Be(300000, "its cost is never estimated from the request");
+        }
+
+        [Test]
+        public async Task a_purchase_on_code_44_aqua_galon_is_applied_as_stock()
+        {
+            // Owner decision 2026-10-17 (dashboard 0092): 44 is tracked stock.
+            SeedProduct("44");
+            var req = Add(PosRequestKinds.Purchase, "galon", "44", 1000, 1800000, doc: "RCV-GALON-1");
+
+            (await _pull.TickAsync(CancellationToken.None)).Should().Be(1);
+
+            _source.RowOf(req.Id).AppliedAt.Should().NotBeNull();
+            _source.RowOf(req.Id).FailedAt.Should().BeNull();
+            _pull.LastResult.Rejected.Should().BeEmpty();
+            new InventoryService(_db).GetStockOnHand("44").Should().Be(1000);
         }
 
         [Test]
@@ -190,9 +204,10 @@ namespace Kasir.CloudSync.Tests.Pull
         [Test]
         public void is_non_stock_item_matches_the_dashboard_list()
         {
-            foreach (var c in new[] { "1", "2", "44", "99", "AL", "AT", "PR", "PL", "MY", "LL", " 44 " })
+            foreach (var c in new[] { "1", "2", "99", "AL", "AT", "PR", "PL", "MY", "LL", " 99 " })
                 SalesService.IsNonStockItem(c).Should().BeTrue(c);
-            foreach (var c in new[] { "P001", "11", "100", "al", "ALL", "", null })
+            // Code 44 AQUA GALON is tracked stock since dashboard 0092 (2026-10-17).
+            foreach (var c in new[] { "44", " 44 ", "P001", "11", "100", "al", "ALL", "", null })
                 SalesService.IsNonStockItem(c).Should().BeFalse(c ?? "null");
         }
     }

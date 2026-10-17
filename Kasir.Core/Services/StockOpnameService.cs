@@ -39,7 +39,7 @@ namespace Kasir.Services
 
             foreach (var p in products)
             {
-                // Code 1/2/44/99 and the category keys have no stock to count (review L3, K1/K4).
+                // Code 1/2/99 and the category keys have no stock to count (review L3, K1/K4).
                 if (SalesService.IsNonStockItem(p.ProductCode)) continue;
                 lines.Add(new OpnameLine
                 {

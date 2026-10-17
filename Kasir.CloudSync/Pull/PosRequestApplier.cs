@@ -126,7 +126,7 @@ namespace Kasir.CloudSync.Pull
         // Returns the local document written (journal_no), or null.
         private string Dispatch(PosStockRequest r)
         {
-            // K1/K4: code 1/2/44/99 and the category keys carry no stock. Checked before
+            // K1/K4: code 1/2/99 and the category keys carry no stock. Checked before
             // the product lookup, so a code the hub has no row for is rejected too (not
             // deferred for ever).
             if (PosRequestKinds.MovesStock(r.RequestKind) && SalesService.IsNonStockItem(r.ProductCode))
