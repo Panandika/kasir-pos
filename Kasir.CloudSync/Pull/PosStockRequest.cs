@@ -57,7 +57,7 @@ namespace Kasir.CloudSync.Pull
     //                the code's NEW_PRODUCT like the stock requests.
     //
     // OPNAME / PURCHASE / RETURN_OUT on a non-stock code (SalesService.IsNonStockItem:
-    // 1/2/44/99, AL/AT/PR/PL/MY/LL; K1/K4) are rejected: nothing is written and the row
+    // 1/2/99, AL/AT/PR/PL/MY/LL; K1/K4; 44 is tracked stock since dashboard 0092) are rejected: nothing is written and the row
     // gets failed_at / failed_reason / failed_by_register (dashboard 0072), which takes it
     // out of the pending fetch. The dashboard never queues them (0072); older rows may exist.
     //
