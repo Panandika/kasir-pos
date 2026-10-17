@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.1](https://github.com/Panandika/kasir-pos/compare/v2.13.0...v2.13.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* **stock:** code 44 AQUA GALON is a tracked stock item ([#114](https://github.com/Panandika/kasir-pos/issues/114)) ([65b3f54](https://github.com/Panandika/kasir-pos/commit/65b3f54f0d686b656037e839decfa91a17a5ef6e))
+
 ## [2.13.0](https://github.com/Panandika/kasir-pos/compare/v2.12.0...v2.13.0) (2026-10-10)
 
 
