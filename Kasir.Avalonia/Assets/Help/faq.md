@@ -45,6 +45,10 @@ tersebut dengan cepat.
 Jika scanner tidak merespon sama sekali, cabut dan pasang ulang kabel USB,
 lalu coba scan barcode panjang seperti EAN-13 (13 digit) untuk tes.
 
+Jika scanner rusak atau belum terpasang, tekan `F7` (atau tombol **Kamera F7**)
+di layar Penjualan untuk scan barcode dengan webcam. Arahkan barcode ke kamera
+sampai terbaca; barang langsung masuk. `Tab` = ganti kamera, `Esc` = batal.
+
 ## Laci kasir tidak terbuka
 
 Laci kasir terhubung ke printer. Buka otomatis saat **Pembayaran Tunai**

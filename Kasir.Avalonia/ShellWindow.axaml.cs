@@ -83,6 +83,13 @@ public partial class ShellWindow : Window
         ViewShortcuts.FocusInput(target);
     }
 
+    // Hide only if `expected` is still the overlay shown: another dialog (e.g. a late
+    // "Struk tidak tercetak" message) may have replaced it and must stay up.
+    public void HideOverlay(Control expected)
+    {
+        if (ReferenceEquals(OverlayHost.Content, expected)) HideOverlay();
+    }
+
     public void HideOverlay()
     {
         OverlayHost.IsVisible = false;
