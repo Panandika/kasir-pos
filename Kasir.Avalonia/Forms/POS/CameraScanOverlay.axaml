@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kasir.Avalonia.Forms.POS.CameraScanOverlay"
+             x:DataType="x:Object"
+             Background="#CC0F1419"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             Focusable="True">
+  <!-- Webcam fallback when the barcode scanner is dead (F7 on the sale screen). The
+       overlay owns keyboard focus: Esc cancels, Tab switches camera. -->
+  <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+          Background="{DynamicResource Bg1Brush}"
+          BorderBrush="{DynamicResource BorderSubtleBrush}"
+          BorderThickness="1"
+          CornerRadius="12"
+          Padding="24">
+    <DockPanel>
+      <TextBlock DockPanel.Dock="Top" Text="SCAN DENGAN KAMERA"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="18" FontWeight="Bold"
+                 Foreground="{DynamicResource FgPrimaryBrush}" Margin="0,0,0,4" />
+      <TextBlock DockPanel.Dock="Top" Text="Arahkan barcode ke kamera. Esc = batal  Tab = ganti kamera"
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="14"
+                 Foreground="{DynamicResource FgDimBrush}" Margin="0,0,0,12" />
+      <TextBlock DockPanel.Dock="Bottom" x:Name="LblStatus" Text="Membuka kamera..."
+                 FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="14"
+                 Foreground="{DynamicResource WarningBrush}" Margin="0,12,0,0"
+                 TextWrapping="Wrap" MaxWidth="640" />
+      <Border Width="640" Height="480" Background="{DynamicResource Bg0Brush}" CornerRadius="6" ClipToBounds="True">
+        <Image x:Name="ImgPreview" Stretch="Uniform" />
+      </Border>
+    </DockPanel>
+  </Border>
+</UserControl>

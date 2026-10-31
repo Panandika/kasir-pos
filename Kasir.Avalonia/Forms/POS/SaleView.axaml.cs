@@ -49,6 +49,7 @@ public partial class SaleView : UserControl, INavigationAware
     private int _pendingMiscQty = 1;
     // Category quick key (AL/AT/PR/PL/MY/LL) the pending price belongs to (PR-K4).
     private string? _pendingCategory;
+    private bool _cameraScanOpen;
     private bool _printerHealthChecked;
     private string _printerStatusText = "";
     private bool _printerStatusOk;
@@ -87,6 +88,7 @@ public partial class SaleView : UserControl, INavigationAware
         TxtSearchInput.TextChanged += (_, _) => OnSearchTextChanged();
         TxtSearchInput.KeyDown += OnSearchInputKeyDown;
         DgvSearch.KeyDown += OnSearchGridKeyDown;
+        BtnCamera.Click += OnCameraButtonClick;
 
         // Recover an unfinished cart persisted by a previous (crashed) session (F36).
         if (_salesService.RecoverPendingSale() > 0)
@@ -98,7 +100,7 @@ public partial class SaleView : UserControl, INavigationAware
         UpdateTotals();
         UpdateFooter();
 
-        FooterStatus.RegisterDefault(StatusLabel, "F1=Kode  F2=Nama  F3=Qty  F4=Kategori  F5=Bayar  F8=Void  F9=Kalkulator  F10=Batal  F11=Laci  +=Pas  Esc=Keluar");
+        FooterStatus.RegisterDefault(StatusLabel, "F1=Kode  F2=Nama  F3=Qty  F4=Kategori  F5=Bayar  F7=Kamera  F8=Void  F9=Kalkulator  F10=Batal  F11=Laci  +=Pas  Esc=Keluar");
 
         _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _clockTimer.Tick += (_, _) => UpdateFooter();
@@ -194,6 +196,12 @@ public partial class SaleView : UserControl, INavigationAware
         TxtBarcode.Text = "";
         if (raw.Length == 0) return;
 
+        ProcessScanInput(raw);
+    }
+
+    // One line from the code box (typed or HID-scanned) or from the webcam scan (F7).
+    private void ProcessScanInput(string raw)
+    {
         if (_inputMode == InputMode.AwaitingMiscPrice)
         {
             HandleMiscPriceInput(raw);
@@ -229,6 +237,46 @@ public partial class SaleView : UserControl, INavigationAware
 
         using var _ = PerfMetrics.Measure(PerfMetrics.BarcodeScanLine);
         AddItemByCode(code, qty);
+    }
+
+    // Webcam fallback for a dead barcode scanner (F7 or the "Kamera" button). The decoded
+    // code goes through the same path as a scanned code + Enter.
+    private async void OnCameraButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await UiGuard.RunAsync("Sale.CameraScan", OpenCameraScanAsync,
+            ex => ShowSaleErrorAsync("Gagal membuka kamera", ex));
+    }
+
+    private async Task OpenCameraScanAsync()
+    {
+        if (_cameraScanOpen || SearchPanel.IsVisible) return;
+        // A scan while the price prompt is open would be taken as the price.
+        if (_inputMode == InputMode.AwaitingMiscPrice)
+        {
+            FooterStatus.Show(StatusLabel, "Selesaikan harga barang tanpa kode dulu (Esc = batal).");
+            TxtBarcode.Focus();
+            return;
+        }
+        // Same as typing into the code box: drop the Kembalian banner and any half-typed text.
+        if (_bannerState != BannerState.Subtotal) ResetBanner();
+        TxtBarcode.Text = "";
+
+        string? code;
+        _cameraScanOpen = true;
+        try { code = await CameraScanOverlay.Show(NavigationService.Owner); }
+        finally { _cameraScanOpen = false; }
+        // Closing the overlay already puts focus back in the code box.
+        if (string.IsNullOrWhiteSpace(code) || _inputMode == InputMode.AwaitingMiscPrice) return;
+        ProcessScanInput(CameraCodeToProductCode(code.Trim()));
+    }
+
+    // ZXing reports an EAN-13 that starts with 0 as its 12-digit UPC-A; a HID scanner
+    // sends all 13 digits, and some products are stored that way.
+    private string CameraCodeToProductCode(string code)
+    {
+        if (code.Length != 12 || !IndonesianMoneyFormatter.IsDigitsOnly(code)) return code;
+        if (_productRepo.GetByCode(code) != null) return code;
+        return _productRepo.GetByCode("0" + code) != null ? "0" + code : code;
     }
 
     // Every async void handler on the sale screen runs through UiGuard: an exception
@@ -727,6 +775,7 @@ public partial class SaleView : UserControl, INavigationAware
             using (var _ = PerfMetrics.Measure(PerfMetrics.F8PaymentVisible))
                 OpenPayment();
         }
+        else if (KeyboardRouter.IsF7(e)) { e.Handled = true; await OpenCameraScanAsync(); }
         else if (KeyboardRouter.IsF8(e)) { e.Handled = true; await VoidItem(); }
         else if (KeyboardRouter.IsF9(e))
         {

@@ -67,11 +67,17 @@
                      FontFamily="{DynamicResource JetBrainsMonoFont}"
                      FontSize="13" VerticalAlignment="Center" Margin="8,0,0,0"/>
         </StackPanel>
-        <Grid Grid.Column="1" ColumnDefinitions="Auto,*">
-          <TextBlock Grid.Column="0" Text="&gt;" Foreground="{DynamicResource FgPrimaryBrush}" VerticalAlignment="Center"
+        <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,*">
+          <!-- Webcam fallback when the barcode scanner is dead (F7). Not focusable, so
+               Enter from a scan can never press it. -->
+          <Button Grid.Column="0" x:Name="BtnCamera" Content="Kamera F7" Focusable="False"
+                  MinHeight="24" Padding="8,0" FontSize="11" Margin="0,0,8,0"
+                  VerticalAlignment="Center"
+                  FontFamily="{DynamicResource JetBrainsMonoFont}"/>
+          <TextBlock Grid.Column="1" Text="&gt;" Foreground="{DynamicResource FgPrimaryBrush}" VerticalAlignment="Center"
                      FontFamily="{DynamicResource JetBrainsMonoFont}"
                      FontSize="15" Margin="0,0,6,0"/>
-          <TextBox Grid.Column="1" x:Name="TxtBarcode" Background="{DynamicResource Bg0Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
+          <TextBox Grid.Column="2" x:Name="TxtBarcode" Background="{DynamicResource Bg0Brush}" Foreground="{DynamicResource FgPrimaryBrush}"
                    BorderBrush="Transparent" BorderThickness="0"
                    FontFamily="{DynamicResource JetBrainsMonoFont}"
                    FontSize="15" Height="30"/>
