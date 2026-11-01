@@ -81,6 +81,16 @@ namespace Kasir.Tests.Hardware
             new CameraBarcodeDecoder().DecodePixels32(new byte[8], px.Width, px.Height).Should().BeNull();
         }
 
+        // Measured on a MacBook Air: FlashCap labels a native 1920x1080 RGB32 frame as the
+        // requested 640x480. Reading it with the header's size gives garbage; reject it.
+        [Test]
+        public void BitmapToGray_BufferMuchLargerThanHeader_ReturnsNull()
+        {
+            var bmp = ToBmp(Render(BarcodeFormat.EAN_13, "8992761002015"), 32, true);
+            Array.Resize(ref bmp, bmp.Length * 6);
+            CameraBarcodeDecoder.BitmapToGray(bmp, out _, out _).Should().BeNull();
+        }
+
         [Test]
         public void DecodeBitmap_BlankFrame_ReturnsNull()
         {

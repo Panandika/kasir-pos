@@ -132,12 +132,24 @@ public partial class CameraScanOverlay : UserControl
             or PixelFormats.RGB24 or PixelFormats.RGB32 or PixelFormats.ARGB32 or PixelFormats.JPEG
         && c.Width > 0 && c.Height > 0;
 
-    // Uncompressed formats decode straight from the BMP bytes; JPEG (MJPG) needs a
-    // decode first, so it is used only when the camera offers nothing else. Size closest
-    // to 640x480: big enough for barcode bars, small enough for an old register PC.
+    // YUV first: FlashCap converts it to RGB itself and writes a header that matches its
+    // output; device RGB keeps the device's own header. JPEG needs a decode first, so it
+    // comes last. Size closest to 640x480: big enough for barcode bars, small enough for
+    // an old register PC.
+    // Known: FlashCap 1.12 on macOS ignores the chosen format and always captures native
+    // 1080p (measured on a MacBook Air: RGB frames are 1080p behind a 640x480 header,
+    // YUV frames are 1080p data converted as 640x480), so the preview is garbage there.
+    // Windows DirectShow applies the format to the device; that is the target.
+    private static int FormatRank(PixelFormats f) => f switch
+    {
+        PixelFormats.YUYV or PixelFormats.UYVY or PixelFormats.NV12 => 0,
+        PixelFormats.JPEG => 2,
+        _ => 1,
+    };
+
     private static VideoCharacteristics PickFormat(CaptureDeviceDescriptor camera) =>
         camera.Characteristics.Where(IsUsable)
-            .OrderBy(c => c.PixelFormat == PixelFormats.JPEG ? 1 : 0)
+            .OrderBy(c => FormatRank(c.PixelFormat))
             .ThenBy(c => Math.Abs(c.Width - 640) + Math.Abs(c.Height - 480))
             .ThenByDescending(c => (double)c.FramesPerSecond)
             .First();
