@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.14.0](https://github.com/Panandika/kasir-pos/compare/v2.13.0...v2.14.0) (2026-11-01)
+
+
+### Features
+
+* **pos:** webcam barcode scan fallback (F7) ([#116](https://github.com/Panandika/kasir-pos/issues/116)) ([1d87581](https://github.com/Panandika/kasir-pos/commit/1d875811f15ccfe4b4034688f42bff68839f15e6))
+
+
+### Bug Fixes
+
+* **pos:** camera scan fixes found testing with a real webcam ([#117](https://github.com/Panandika/kasir-pos/issues/117)) ([347a632](https://github.com/Panandika/kasir-pos/commit/347a632b977180d2df11e2c9cde374720d3c65be))
+* **stock:** code 44 AQUA GALON is a tracked stock item ([#114](https://github.com/Panandika/kasir-pos/issues/114)) ([65b3f54](https://github.com/Panandika/kasir-pos/commit/65b3f54f0d686b656037e839decfa91a17a5ef6e))
+
 ## [2.13.0](https://github.com/Panandika/kasir-pos/compare/v2.12.0...v2.13.0) (2026-10-10)
 
 
