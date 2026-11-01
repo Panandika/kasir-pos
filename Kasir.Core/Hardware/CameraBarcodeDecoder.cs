@@ -58,7 +58,41 @@ namespace Kasir.Hardware
             return DecodeGray(gray, width, height);
         }
 
+        // ZXing's 1D readers threshold each row from that row's histogram. On a webcam frame
+        // the background beside the label (counter, hand) adds a grey peak, and with the
+        // usual webcam blur the soft bar edges then fall on the wrong side: the barcode is
+        // intact yet unreadable. A centre crop, where the label dominates the row, reads it.
+        // Measured on real MacBook camera frames with pasted, degraded EAN-13/Code 128:
+        // slightly blurred barcodes read 11/108 full-frame only, 44/108 with the crops,
+        // no misreads. (Per-row contrast stretching was tried: worse, and it misread.)
+        private static readonly double[] CropWidths = { 1.0, 0.6, 0.4 };
+
         public string DecodeGray(byte[] gray, int width, int height)
+        {
+            if (gray == null || width <= 0 || height <= 0 || gray.Length < (long)width * height) return null;
+            foreach (double fraction in CropWidths)
+            {
+                string text = fraction >= 1.0
+                    ? DecodeOnce(gray, width, height)
+                    : DecodeCentre(gray, width, height, fraction);
+                if (text != null) return text;
+            }
+            return null;
+        }
+
+        private string DecodeCentre(byte[] gray, int width, int height, double fraction)
+        {
+            int w = (int)(width * fraction);
+            int h = Math.Max(1, height / 2);
+            if (w < 64) return null;
+            int left = (width - w) / 2, top = (height - h) / 2;
+            var crop = new byte[w * h];
+            for (int y = 0; y < h; y++)
+                Buffer.BlockCopy(gray, (top + y) * width + left, crop, y * w, w);
+            return DecodeOnce(crop, w, h);
+        }
+
+        private string DecodeOnce(byte[] gray, int width, int height)
         {
             try
             {
@@ -103,6 +137,10 @@ namespace Kasir.Hardware
             // tell the two apart by the data length.
             int stride = (w * bpp + 31) / 32 * 4;
             long available = bmp.Length - (long)pixelOffset;
+            // Far more pixel data than the header describes: the header is wrong (FlashCap
+            // on macOS labels native 1080p RGB frames with the requested 640x480), and
+            // reading it with these dimensions gives a striped garbage image.
+            if (available > (long)stride * h * 2) return null;
             if (sizeImage == (long)w * bytesPerPixel * h && (long)stride * h != sizeImage)
             {
                 stride = w * bytesPerPixel;

@@ -18,7 +18,7 @@
       <TextBlock DockPanel.Dock="Top" Text="SCAN DENGAN KAMERA"
                  FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="18" FontWeight="Bold"
                  Foreground="{DynamicResource FgPrimaryBrush}" Margin="0,0,0,4" />
-      <TextBlock DockPanel.Dock="Top" Text="Arahkan barcode ke kamera. Esc = batal  Tab = ganti kamera"
+      <TextBlock DockPanel.Dock="Top" Text="Taruh barcode di tengah gambar, jangan terlalu dekat. Esc = batal  Tab = ganti kamera"
                  FontFamily="{DynamicResource JetBrainsMonoFont}" FontSize="14"
                  Foreground="{DynamicResource FgDimBrush}" Margin="0,0,0,12" />
       <TextBlock DockPanel.Dock="Bottom" x:Name="LblStatus" Text="Membuka kamera..."

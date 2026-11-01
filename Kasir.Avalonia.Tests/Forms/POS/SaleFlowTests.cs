@@ -454,4 +454,143 @@ public class SaleFlowTests
         Scan("5000"); // not a product code
         Assert.That(subtotal.Text, Is.EqualTo(before), "SUBTOTAL keeps showing the running total");
     }
+    // ── F7 webcam scan (fallback when the HID scanner is dead) ──
+    // The overlay's camera is real (none on CI, the built-in one on a dev Mac); a decoded
+    // barcode is simulated by completing the overlay's result, as the frame handler does.
+
+    private void PumpUntil(Func<bool> done, string what)
+    {
+        var until = DateTime.UtcNow.AddSeconds(5);
+        while (!done())
+        {
+            if (DateTime.UtcNow > until) Assert.Fail("timed out waiting for " + what);
+            Dispatcher.UIThread.RunJobs();
+            System.Threading.Thread.Sleep(10);
+        }
+        Pump();
+    }
+
+    private void CameraReads(string code)
+    {
+        var overlay = (CameraScanOverlay)OverlayHost.Content!;
+        var tcs = (System.Threading.Tasks.TaskCompletionSource<string?>)typeof(CameraScanOverlay)
+            .GetField("_tcs", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(overlay)!;
+        tcs.TrySetResult(code);
+        PumpUntil(() => !OverlayHost.IsVisible, "the camera overlay to close");
+    }
+
+    private static void InsertProduct(string code, string name)
+    {
+        new ProductRepository(DbConnection.GetConnection()).Insert(new Product
+        {
+            ProductCode = code, Name = name, Price = 500000, CostPrice = 400000, Status = "A",
+        });
+    }
+
+    [AvaloniaTest]
+    public void F7_OpensCameraOverlay_SwallowsKeys_EscCancels()
+    {
+        OpenSaleScreen(withShift: true);
+        Press(Key.F7);
+        Assert.That(OverlayHost.Content, Is.InstanceOf<CameraScanOverlay>(), "F7 opens the webcam scan");
+
+        Type("8992761002015");     // a half-working HID scanner typing while the camera is open
+        Press(Key.Enter);
+        Assert.That(Barcode.Text, Is.Empty, "nothing typed leaks into the code box behind");
+        Assert.That(OverlayHost.IsVisible, Is.True, "Enter does not close the camera");
+        Assert.That(ItemCount, Is.EqualTo(0));
+
+        Press(Key.Escape);
+        PumpUntil(() => !OverlayHost.IsVisible, "Esc to close the camera");
+        Assert.That(ItemCount, Is.EqualTo(0));
+        AssertBarcodeReady("after cancelling the camera");
+    }
+
+    [AvaloniaTest]
+    public void CameraButton_OpensCameraOverlay()
+    {
+        OpenSaleScreen(withShift: true);
+        var button = _view!.FindControl<Button>("BtnCamera")!;
+        Assert.That(button.Focusable, Is.False, "a scanner's Enter must never press it");
+        button.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Pump();
+        Assert.That(OverlayHost.Content, Is.InstanceOf<CameraScanOverlay>());
+        Press(Key.Escape);
+        PumpUntil(() => !OverlayHost.IsVisible, "Esc to close the camera");
+    }
+
+    [AvaloniaTest]
+    public void CameraRead_AddsTheItem_LikeAScan()
+    {
+        OpenSaleScreen(withShift: true);
+        InsertProduct("8992761002015", "TES KAMERA");
+        Press(Key.F7);
+        CameraReads("8992761002015");
+        var line = OnlyCartLine();
+        Assert.That(line.ProductCode, Is.EqualTo("8992761002015"));
+        Assert.That(line.ProductName, Is.EqualTo("TES KAMERA"));
+        AssertBarcodeReady("after a camera scan");
+
+        // And again straight away: the previous webcam is released in the background.
+        Press(Key.F7);
+        Assert.That(OverlayHost.Content, Is.InstanceOf<CameraScanOverlay>(), "F7 reopens the camera");
+        Press(Key.Escape);
+        PumpUntil(() => !OverlayHost.IsVisible, "Esc to close the camera");
+    }
+
+    [AvaloniaTest]
+    public void CameraRead_UpcA_MapsToStoredLeadingZeroEan13()
+    {
+        // ZXing reports EAN-13 0012345678905 as UPC-A 012345678905; the HID scanner sends 13.
+        OpenSaleScreen(withShift: true);
+        InsertProduct("0012345678905", "TES UPC");
+        Press(Key.F7);
+        CameraReads("012345678905");
+        Assert.That(OnlyCartLine().ProductCode, Is.EqualTo("0012345678905"));
+    }
+
+    [AvaloniaTest]
+    public void CameraRead_CategoryCode_GoesToThePricePrompt()
+    {
+        OpenSaleScreen(withShift: true);
+        Press(Key.F7);
+        CameraReads("PL");
+        Scan("5000");
+        Assert.That(OnlyCartLine().ProductCode, Is.EqualTo("PL"));
+    }
+
+    [AvaloniaTest]
+    public void F7_WhileAwaitingMiscPrice_DoesNotOpenTheCamera()
+    {
+        OpenSaleScreen(withShift: true);
+        Scan("1");
+        Press(Key.F7);
+        Assert.That(OverlayHost.IsVisible, Is.False, "a camera scan would be taken as the price");
+        Scan("10000");
+        Assert.That(OnlyCartLine().ProductCode, Is.EqualTo("1"));
+    }
+    [AvaloniaTest]
+    public void F7_ShowsLiveCameraPreview_OrSaysNoCamera()
+    {
+        // Real device path: a machine with a webcam must show its frames; one without
+        // (CI) must say so instead of hanging on "Membuka kamera...". This checks the
+        // pipeline runs, not the picture: on macOS FlashCap 1.12 delivers garbage frames.
+        OpenSaleScreen(withShift: true);
+        Press(Key.F7);
+        var overlay = (CameraScanOverlay)OverlayHost.Content!;
+        var preview = overlay.FindControl<Image>("ImgPreview")!;
+        var status = overlay.FindControl<TextBlock>("LblStatus")!;
+        PumpUntil(() => preview.Source != null || (status.Text ?? "").Contains("tidak ditemukan"),
+            "a camera frame or the no-camera message");
+        TestContext.WriteLine("status: " + status.Text);
+        // Optional screenshot for a human check: KASIR_TEST_SCREENSHOT=/path/shot.png
+        string? shot = Environment.GetEnvironmentVariable("KASIR_TEST_SCREENSHOT");
+        if (!string.IsNullOrEmpty(shot))
+        {
+            Pump();
+            _window.CaptureRenderedFrame()?.Save(shot);
+        }
+        Press(Key.Escape);
+        PumpUntil(() => !OverlayHost.IsVisible, "Esc to close the camera");
+    }
 }
